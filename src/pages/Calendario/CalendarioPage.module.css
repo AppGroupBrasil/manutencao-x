@@ -1,0 +1,116 @@
+.calendarPage { padding: 0; }
+
+.controls { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+.monthNav { display: flex; align-items: center; gap: 8px; }
+.navBtn { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--cor-borda); background: var(--cor-card); color: var(--cor-texto); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.navBtn:hover { background: var(--cor-fundo); }
+.monthLabel { font-size: 16px; font-weight: 600; min-width: 180px; text-align: center; color: var(--cor-texto); }
+.legendasBtn { display: flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 500; border: 1px solid var(--cor-borda); background: var(--cor-card); color: var(--cor-texto-secundario); cursor: pointer; transition: all 0.15s; }
+.legendasBtn:hover { background: var(--cor-fundo); color: var(--cor-texto); }
+.filterGroup { display: flex; gap: 6px; margin-left: auto; }
+.filterBtn { padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; border: 1px solid var(--cor-borda); background: var(--cor-card); color: var(--cor-texto-secundario); cursor: pointer; }
+.filterBtnActive { background: var(--cor-primaria); color: #fff; border-color: var(--cor-primaria); }
+
+.calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: var(--cor-borda); border: 1px solid var(--cor-borda); border-radius: 10px; overflow: hidden; }
+.dayHeader { background: var(--cor-card); padding: 8px; text-align: center; font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--cor-texto-secundario); }
+.dayCell { background: var(--cor-card); min-height: 100px; padding: 6px; cursor: pointer; transition: background 0.15s; position: relative; border: none; width: 100%; text-align: left; appearance: none; font: inherit; }
+.dayCell:hover { background: var(--cor-fundo); }
+.dayCell:disabled { cursor: default; }
+.dayCellOther { opacity: 0.4; }
+.dayCellToday { background: color-mix(in srgb, var(--cor-primaria) 8%, var(--cor-card)); }
+.dayTop { display: flex; align-items: center; gap: 4px; margin-bottom: 4px; }
+.dayNumber { font-size: 12px; font-weight: 500; color: var(--cor-texto); }
+.dayNumberToday { background: var(--cor-primaria); color: #fff; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; }
+.colorIndicator { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.noteIcon { color: var(--cor-texto-secundario); opacity: 0.5; flex-shrink: 0; }
+.eventList { display: flex; flex-direction: column; gap: 2px; }
+.event { padding: 2px 5px; border-radius: 4px; font-size: 10px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+.eventOS { background: #dbeafe; color: #1e40af; }
+.eventPlano { background: #dcfce7; color: #166534; }
+.eventVencimento { background: #fef3c7; color: #92400e; }
+.eventDocumento { background: #fee2e2; color: #b91c1c; }
+.eventFornecedor { background: #fae8ff; color: #a21caf; }
+.eventContrato { background: #e0f2fe; color: #0369a1; }
+.eventEscala { background: #ede9fe; color: #6d28d9; }
+.more { font-size: 10px; color: var(--cor-texto-secundario); padding: 1px 4px; }
+
+.legend { display: flex; gap: 16px; margin-top: 12px; flex-wrap: wrap; }
+.legendItem { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--cor-texto-secundario); }
+.legendDot { width: 10px; height: 10px; border-radius: 3px; }
+
+.detailTitle { font-size: 14px; font-weight: 600; margin-bottom: 4px; color: var(--cor-texto); }
+.detailMeta { font-size: 12px; color: var(--cor-texto-secundario); margin-bottom: 2px; }
+.detailList { display: flex; flex-direction: column; gap: 8px; }
+.detailItem { padding: 10px; border-radius: 8px; border: 1px solid var(--cor-borda); }
+
+/* ── Seção de observações no modal ── */
+.sectionDivider { display: flex; align-items: center; gap: 6px; margin: 16px 0 8px; padding-top: 12px; border-top: 1px solid var(--cor-borda); font-size: 13px; font-weight: 600; color: var(--cor-texto-secundario); }
+
+.anotList { display: flex; flex-direction: column; gap: 6px; }
+.anotItem { padding: 10px 12px; border-radius: 8px; background: var(--cor-fundo); }
+.anotTexto { font-size: 13px; color: var(--cor-texto); line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+.anotFooter { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
+.anotBadge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+.anotBtns { display: flex; gap: 4px; }
+.anotIconBtn { background: none; border: none; color: var(--cor-texto-secundario); cursor: pointer; padding: 4px; border-radius: 4px; display: flex; align-items: center; }
+.anotIconBtn:hover { background: var(--cor-borda); color: var(--cor-texto); }
+.anotEmpty { font-size: 13px; color: var(--cor-texto-secundario); padding: 12px 0; text-align: center; }
+
+/* ── Formulário nova anotação ── */
+.novaAnotForm { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--cor-borda); display: flex; flex-direction: column; gap: 8px; }
+.anotInput { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--cor-borda); background: var(--cor-card); color: var(--cor-texto); font-size: 13px; font-family: inherit; resize: vertical; outline: none; box-sizing: border-box; }
+.anotInput:focus { border-color: var(--cor-primaria); }
+
+.anotColorRow { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.anotColorLabel { font-size: 12px; color: var(--cor-texto-secundario); font-weight: 500; }
+.colorBtn { width: 22px; height: 22px; border-radius: 6px; border: 2px solid transparent; cursor: pointer; transition: all 0.15s; flex-shrink: 0; }
+.colorBtn:hover { transform: scale(1.15); }
+.colorBtnActive { border-color: var(--cor-texto); box-shadow: 0 0 0 2px var(--cor-card), 0 0 0 3px var(--cor-texto); }
+.selectedLegBadge { font-size: 11px; font-weight: 600; }
+
+.anotAddBtn { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 16px; border-radius: 8px; border: none; background: var(--cor-primaria); color: #fff; font-size: 13px; font-weight: 500; cursor: pointer; transition: opacity 0.15s; }
+.anotAddBtn:disabled { opacity: 0.4; cursor: default; }
+.anotAddBtn:not(:disabled):hover { opacity: 0.85; }
+
+/* ── Edição inline de anotação ── */
+.anotEditRow { display: flex; flex-direction: column; gap: 6px; }
+.anotActions { display: flex; gap: 6px; }
+.anotSaveBtn { display: flex; align-items: center; gap: 4px; padding: 6px 12px; border-radius: 6px; border: none; background: var(--cor-primaria); color: #fff; font-size: 12px; cursor: pointer; }
+.anotCancelBtn { display: flex; align-items: center; justify-content: center; padding: 6px; border-radius: 6px; border: 1px solid var(--cor-borda); background: var(--cor-card); color: var(--cor-texto-secundario); cursor: pointer; }
+
+/* ── Modal de legendas ── */
+.legendaDesc { font-size: 13px; color: var(--cor-texto-secundario); margin: 0 0 16px; line-height: 1.5; }
+.legendaList { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+.legendaItem { padding: 8px 10px; border-radius: 8px; border: 1px solid var(--cor-borda); }
+.legendaRow { display: flex; align-items: center; gap: 10px; }
+.legendaRotulo { flex: 1; font-size: 14px; font-weight: 500; color: var(--cor-texto); }
+.legendaEditRow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.legendaColorInput { width: 36px; height: 32px; border: 1px solid var(--cor-borda); border-radius: 6px; cursor: pointer; padding: 2px; background: var(--cor-card); }
+.legendaTextInput { flex: 1; min-width: 120px; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--cor-borda); background: var(--cor-card); color: var(--cor-texto); font-size: 13px; font-family: inherit; outline: none; }
+.legendaTextInput:focus { border-color: var(--cor-primaria); }
+
+.novaLegForm { display: flex; align-items: center; gap: 8px; padding: 12px 0; border-top: 1px solid var(--cor-borda); flex-wrap: wrap; }
+
+.legendaSugestoes { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--cor-borda); }
+.sugestoesList { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.sugestaoBtn { display: flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; cursor: pointer; background: transparent; transition: all 0.15s; }
+.sugestaoBtn:hover { opacity: 0.8; }
+
+/* ── Seção de e-mails ── */
+.emailSection { margin-top: 20px; padding-top: 16px; border-top: 2px solid var(--cor-borda); }
+.emailSectionHeader { display: flex; align-items: center; gap: 8px; color: var(--cor-texto); }
+.emailSectionTitle { margin: 0; font-size: 14px; font-weight: 600; }
+.emailSectionDesc { font-size: 12px; color: var(--cor-texto-secundario); margin: 6px 0 12px; }
+.emailList { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.emailItem { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 8px; background: var(--cor-fundo); border: 1px solid var(--cor-borda); }
+.emailItemIcon { color: var(--cor-texto-secundario); flex-shrink: 0; }
+.emailItemText { flex: 1; font-size: 13px; color: var(--cor-texto); word-break: break-all; }
+.novaEmailForm { display: flex; align-items: center; gap: 8px; }
+
+@media (max-width: 768px) {
+  .dayCell { min-height: 60px; padding: 4px; }
+  .event { font-size: 9px; }
+  .filterGroup { margin-left: 0; }
+  .legendasBtn { margin-left: auto; }
+  .colorBtn { width: 20px; height: 20px; }
+}

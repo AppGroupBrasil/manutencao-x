@@ -1,0 +1,330 @@
+.addBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: var(--raio-borda-sm);
+  background: var(--cor-primaria);
+  color: white;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  z-index: 2;
+}
+
+.addBtn:hover {
+  background: var(--cor-primaria-hover);
+  transform: translateY(-1px);
+}
+
+/* Busca Inteligente */
+.buscaArea {
+  position: relative;
+  margin-bottom: 0.5cm;
+}
+
+.buscaIcon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9ca3af;
+  pointer-events: none;
+}
+
+.buscaInput {
+  width: 100%;
+  padding: 12px 40px 12px 44px;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-borda-sm);
+  background: var(--cor-superficie);
+  color: var(--cor-texto);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+
+.buscaInput:focus {
+  border-color: var(--cor-primaria);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.buscaInput::placeholder { color: #9ca3af; }
+
+.buscaLimpar {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+
+.buscaLimpar:hover { background: #f3f4f6; color: #6b7280; }
+
+/* Filter Tabs */
+.filterTabs {
+  display: flex;
+  gap: 4px;
+  background: var(--cor-superficie);
+  border-radius: var(--raio-borda-sm);
+  padding: 4px;
+  border: 1px solid var(--cor-borda);
+  flex-wrap: wrap;
+  margin-bottom: 1cm;
+}
+
+.filterTab {
+  padding: 8px 14px;
+  border: none;
+  background: transparent;
+  color: var(--cor-texto-secundario);
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+/* Todas - Azul */
+.tabTodas { background: #e8f0fe !important; color: #3b82f6 !important; }
+.tabTodas:hover { background: #d0e2fd !important; }
+.tabTodasActive { background: #3b82f6 !important; color: white !important; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.35); }
+
+/* Abertas - Cinza */
+.tabAberta { background: #f0f0f0 !important; color: #616161 !important; }
+.tabAberta:hover { background: #e0e0e0 !important; }
+.tabAbertaActive { background: #616161 !important; color: white !important; box-shadow: 0 2px 8px rgba(97, 97, 97, 0.35); }
+
+/* Em Andamento - Laranja */
+.tabAndamento { background: #fff3e0 !important; color: #f57c00 !important; }
+.tabAndamento:hover { background: #ffe0b2 !important; }
+.tabAndamentoActive { background: #f57c00 !important; color: white !important; box-shadow: 0 2px 8px rgba(245, 124, 0, 0.35); }
+
+/* Aguardando - Amarelo */
+.tabAguardando { background: #fffde7 !important; color: #f9a825 !important; }
+.tabAguardando:hover { background: #fff9c4 !important; }
+.tabAguardandoActive { background: #f9a825 !important; color: white !important; box-shadow: 0 2px 8px rgba(249, 168, 37, 0.35); }
+
+/* Concluída - Verde */
+.tabConcluida { background: #e8f5e9 !important; color: #2e7d32 !important; }
+.tabConcluida:hover { background: #c8e6c9 !important; }
+.tabConcluidaActive { background: #2e7d32 !important; color: white !important; box-shadow: 0 2px 8px rgba(46, 125, 50, 0.35); }
+
+/* Cancelada - Vermelho */
+.tabCancelada { background: #fef2f2 !important; color: #dc2626 !important; }
+.tabCancelada:hover { background: #fee2e2 !important; }
+.tabCanceladaActive { background: #dc2626 !important; color: white !important; box-shadow: 0 2px 8px rgba(220, 38, 38, 0.35); }
+
+/* Protocolo Tag */
+.protocoloTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: #e8f0fe;
+  color: #1a73e8;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-family: 'Courier New', monospace;
+  margin-left: 6px;
+}
+
+/* Vazio */
+.vazio {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--cor-texto-secundario);
+  font-size: 14px;
+}
+
+.osList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5cm;
+}
+
+.osCard {
+  display: flex;
+  flex-direction: column;
+}
+
+.osTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.osId {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--cor-texto-secundario);
+  font-family: monospace;
+}
+
+.osBadges {
+  display: flex;
+  gap: 6px;
+}
+
+.osTitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--cor-texto);
+  margin: 0 0 6px;
+}
+
+.osDesc {
+  font-size: 13px;
+  color: var(--cor-texto-secundario);
+  margin: 0 0 12px;
+  line-height: 1.5;
+}
+
+.osMeta {
+  display: flex;
+  gap: 20px;
+  font-size: 12px;
+  color: var(--cor-texto-secundario);
+}
+
+.osMeta span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.osRating {
+  color: #f57c00;
+  font-size: 14px;
+  letter-spacing: 2px;
+}
+
+.osFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--cor-borda);
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.statusSelect {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.statusSelect label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--cor-texto-secundario);
+}
+
+.statusSelect select {
+  padding: 6px 10px;
+  border: 1px solid var(--cor-borda);
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  background: var(--cor-superficie);
+  color: var(--cor-texto);
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.statusSelect select:focus {
+  border-color: var(--cor-primaria);
+}
+
+.chartTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--cor-texto);
+  margin: 0 0 20px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.formGroup label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cor-texto);
+}
+
+.formGroup input,
+.formGroup select,
+.formGroup textarea {
+  padding: 10px 14px;
+  border: 2px solid var(--cor-borda);
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--cor-texto);
+  background: var(--cor-superficie);
+  outline: none;
+  transition: border-color 0.2s;
+  font-family: inherit;
+}
+
+.formGroup input:focus,
+.formGroup select:focus,
+.formGroup textarea:focus {
+  border-color: var(--cor-primaria);
+}
+
+.submitBtn {
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  background: var(--cor-primaria);
+  color: white;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.submitBtn:hover {
+  background: var(--cor-primaria-hover);
+}
+
+@media (max-width: 768px) {
+  .formRow { grid-template-columns: 1fr; }
+}

@@ -1,0 +1,387 @@
+/* ═══ CONTRATO MODAL ═══ */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modal {
+  background: #fff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 860px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 28px;
+  border-bottom: 1px solid #e5e7eb;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.modalTitulo {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+  color: #1a1a2e;
+}
+
+.modalActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.actionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.actionBtn:hover {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+.closeBtn {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: none;
+  background: #f3f4f6;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.closeBtn:hover {
+  background: #e5e7eb;
+  color: #1f2937;
+}
+
+.modalBody {
+  overflow-y: auto;
+  padding: 32px 36px;
+  flex: 1;
+}
+
+/* ═══ CONTRATO TEXTO ═══ */
+
+.contratoTexto {
+  color: #1a1a2e;
+  line-height: 1.7;
+  font-size: 14.5px;
+}
+
+.contratoTexto h3 {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 28px 0 8px;
+  color: #1a1a2e;
+}
+
+.contratoTexto p {
+  margin: 4px 0;
+}
+
+.clausula {
+  margin: 8px 0 !important;
+  text-align: justify;
+}
+
+/* ═══ FORMULÁRIO CONTRATANTE ═══ */
+
+.formGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin: 16px 0 24px;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.formGroup label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.formGroup input {
+  padding: 10px 12px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #1a1a2e;
+  transition: border-color 0.2s;
+  background: #fafafa;
+}
+
+.formGroup input:focus {
+  outline: none;
+  border-color: #f57c00;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(245, 124, 0, 0.1);
+}
+
+.formGroup input::placeholder {
+  color: #9ca3af;
+}
+
+/* ═══ ASSINATURAS ═══ */
+
+.assinaturas {
+  display: flex;
+  justify-content: space-between;
+  gap: 60px;
+  margin-top: 48px;
+}
+
+.assinatura {
+  flex: 1;
+  text-align: center;
+}
+
+.assinaturaLinha {
+  border-top: 1px solid #1a1a2e;
+  margin-bottom: 8px;
+}
+
+.assinatura p {
+  margin: 2px 0;
+  font-size: 13px;
+}
+
+/* ═══ SECTION CONTRATO (na landing) ═══ */
+
+.contratoSection {
+  padding: 100px 24px;
+  background: linear-gradient(135deg, #f57c00 0%, #e65100 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.contratoHeader {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.contratoSubtitulo {
+  text-align: center;
+  font-size: 22px;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin: 0 0 32px;
+}
+
+.contratoGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.contratoCard {
+  background: #fff;
+  border: 2px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 32px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s;
+  position: relative;
+}
+
+.contratoCard:hover {
+  border-color: #f57c00;
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(245, 124, 0, 0.12);
+}
+
+.contratoCard:hover .contratoCardBtn {
+  background: #f57c00;
+  color: #fff;
+}
+
+.contratoCardIcon {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: rgba(245, 124, 0, 0.1);
+  color: #f57c00;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.contratoCardUsuarios {
+  font-size: 14px;
+  font-weight: 600;
+  color: #6b7280;
+  margin-bottom: 8px;
+}
+
+.contratoCardPreco {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  margin-bottom: 12px;
+}
+
+.contratoCardCifrao {
+  font-size: 16px;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.contratoCardValor {
+  font-size: 40px;
+  font-weight: 800;
+  color: #f57c00;
+  line-height: 1;
+}
+
+.contratoCardPeriodo {
+  font-size: 14px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.contratoCardDesc {
+  font-size: 13px;
+  color: #9ca3af;
+  line-height: 1.5;
+  margin: 0 0 20px;
+}
+
+.contratoCardBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  border: 2px solid #f57c00;
+  border-radius: 10px;
+  background: transparent;
+  color: #f57c00;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+  margin-top: auto;
+}
+
+.contratoCardBtn:hover {
+  background: #f57c00;
+  color: #fff;
+}
+
+.contratoNota {
+  text-align: center;
+  margin-top: 28px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.contratoNotaLink {
+  color: #fff;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.contratoNotaLink:hover {
+  text-decoration: underline;
+}
+
+/* ═══ RESPONSIVE ═══ */
+
+@media (max-width: 768px) {
+  .modalHeader {
+    flex-wrap: wrap;
+    padding: 16px 20px;
+  }
+
+  .modalTitulo {
+    font-size: 16px;
+    width: 100%;
+  }
+
+  .modalBody {
+    padding: 24px 20px;
+  }
+
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .assinaturas {
+    flex-direction: column;
+    gap: 32px;
+  }
+
+  .contratoGrid {
+    grid-template-columns: 1fr;
+    max-width: 360px;
+  }
+
+  .actionBtn span {
+    display: none;
+  }
+
+  .contratoSection {
+    padding: 64px 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal {
+    max-height: 95vh;
+    border-radius: 12px;
+  }
+
+  .modalBody {
+    padding: 20px 16px;
+  }
+
+  .actionBtn {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+}

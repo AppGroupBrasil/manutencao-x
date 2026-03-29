@@ -1,0 +1,475 @@
+﻿/* ── Leitor QR Code ── */
+
+.modoGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  max-width: 600px;
+  margin: 40px auto;
+}
+
+.modoCard {
+  background: #fff;
+  border: 2px solid var(--cor-borda);
+  border-radius: var(--raio-borda);
+  padding: 40px 24px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.modoCard:hover {
+  border-color: var(--cor-primaria);
+  box-shadow: 0 4px 16px rgba(26, 115, 232, 0.12);
+  transform: translateY(-2px);
+}
+
+.modoCard h4 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.modoCard p {
+  margin: 0;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.modoIcone {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: #e8f0fe;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--cor-primaria);
+}
+
+/* ── Câmera ── */
+
+.cameraArea {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.cameraWrapper {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  aspect-ratio: 1;
+  border-radius: var(--raio-borda);
+  overflow: hidden;
+  background: #000;
+}
+
+.cameraVideo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cameraOverlay {
+  position: absolute;
+  inset: 15%;
+  pointer-events: none;
+}
+
+.cameraCorner {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  border-color: #fff;
+  border-style: solid;
+  border-width: 0;
+}
+
+.cameraCorner[data-pos=stls] {
+  top: 0; left: 0;
+  border-top-width: 3px;
+  border-left-width: 3px;
+  border-top-left-radius: 8px;
+}
+
+.cameraCorner[data-pos=strs] {
+  top: 0; right: 0;
+  border-top-width: 3px;
+  border-right-width: 3px;
+  border-top-right-radius: 8px;
+}
+
+.cameraCorner[data-pos=sbls] {
+  bottom: 0; left: 0;
+  border-bottom-width: 3px;
+  border-left-width: 3px;
+  border-bottom-left-radius: 8px;
+}
+
+.cameraCorner[data-pos=sbrs] {
+  bottom: 0; right: 0;
+  border-bottom-width: 3px;
+  border-right-width: 3px;
+  border-bottom-right-radius: 8px;
+}
+
+.cameraScanLine {
+  position: absolute;
+  left: 15%;
+  right: 15%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--cor-primaria), transparent);
+  animation: scanMove 2s ease-in-out infinite;
+  top: 15%;
+}
+
+@keyframes scanMove {
+  0%, 100% { top: 15%; }
+  50% { top: 80%; }
+}
+
+.cameraHint {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0;
+}
+
+/* ── Resultado ── */
+
+.resultadoCard {
+  background: #fff;
+  border: 2px solid #22c55e;
+  border-radius: var(--raio-borda);
+  padding: 32px;
+  margin: 40px auto;
+  max-width: 600px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.resultadoIcone {
+  color: #22c55e;
+}
+
+.resultadoCard h4 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.resultadoTexto {
+  background: #f1f5f9;
+  border-radius: var(--raio-borda-sm);
+  padding: 12px 16px;
+  width: 100%;
+  word-break: break-all;
+}
+
+.resultadoTexto code {
+  font-size: 14px;
+  color: #334155;
+}
+
+.resultadoAcoes {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* ── Dados Capturados ── */
+
+.dadosCapturados {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-borda-sm);
+  overflow: hidden;
+  text-align: left;
+}
+
+.dadoItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--cor-borda);
+}
+
+.dadoItem:last-child {
+  border-bottom: none;
+}
+
+.dadoItem > svg {
+  color: var(--cor-primaria);
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.dadoItem div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.dadoItem strong {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.dadoItem span {
+  font-size: 14px;
+  color: #1e293b;
+  word-break: break-word;
+}
+
+.dadoSub {
+  font-size: 12px !important;
+  color: #94a3b8 !important;
+}
+
+.dadoIndisponivel {
+  color: #94a3b8 !important;
+  font-style: italic;
+}
+
+/* ── Carregando Geo ── */
+
+.carregandoGeo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 48px;
+  text-align: center;
+}
+
+.carregandoGeo p {
+  color: #64748b;
+  font-size: 15px;
+  margin: 0;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--cor-borda);
+  border-top: 3px solid var(--cor-primaria);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Histórico ── */
+
+.historicoSection {
+  margin-top: 40px;
+  max-width: 700px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.historicoHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.historicoHeader h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.btnLimpar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: none;
+  color: #dc2626;
+  border: 1px solid #fca5a5;
+  border-radius: var(--raio-borda-sm);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btnLimpar:hover {
+  background: #fef2f2;
+}
+
+.historicoLista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.historicoItem {
+  background: #fff;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-borda-sm);
+  padding: 14px 16px;
+}
+
+.historicoQr {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.historicoQr svg {
+  color: var(--cor-primaria);
+  flex-shrink: 0;
+}
+
+.historicoQr code {
+  font-size: 13px;
+  color: #334155;
+  word-break: break-all;
+}
+
+.historicoDetalhes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.historicoDetalhes span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.historicoDetalhes svg {
+  flex-shrink: 0;
+}
+
+.btnAbrir {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 24px;
+  background: var(--cor-primaria);
+  color: #fff;
+  border: none;
+  border-radius: var(--raio-borda-sm);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btnAbrir:hover {
+  background: #1557b0;
+}
+
+.btnNovo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 24px;
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-borda-sm);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btnNovo:hover {
+  background: #e2e8f0;
+}
+
+.btnCancelar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 24px;
+  background: #ef4444;
+  color: #fff;
+  border: none;
+  border-radius: var(--raio-borda-sm);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btnCancelar:hover {
+  background: #dc2626;
+}
+
+/* ── Erro ── */
+
+.erroCard {
+  background: #fef2f2;
+  border: 2px solid #fca5a5;
+  border-radius: var(--raio-borda);
+  padding: 24px;
+  margin: 40px auto;
+  max-width: 500px;
+  text-align: center;
+}
+
+.erroCard p {
+  margin: 0 0 16px;
+  color: #dc2626;
+  font-size: 15px;
+}
+
+/* ── Responsivo ── */
+
+@media (max-width: 600px) {
+  .modoGrid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    margin: 24px auto;
+  }
+
+  .modoCard {
+    padding: 28px 16px;
+  }
+
+  .resultadoCard {
+    margin: 24px auto;
+    padding: 24px 16px;
+  }
+
+  .historicoDetalhes {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .historicoSection {
+    margin-top: 24px;
+  }
+}

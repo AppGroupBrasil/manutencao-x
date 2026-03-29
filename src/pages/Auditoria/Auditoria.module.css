@@ -1,0 +1,200 @@
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.statCard {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.statIcon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.statInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+.statValor {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--cor-texto);
+  line-height: 1.1;
+}
+
+.statLabel {
+  font-size: 0.78rem;
+  color: var(--cor-texto-secundario);
+  margin-top: 2px;
+}
+
+.chartsRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.chartTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--cor-texto);
+  margin: 0 0 16px 0;
+}
+
+.filtros {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.filtroSearch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--cor-fundo);
+  border: 1px solid var(--cor-borda);
+  border-radius: 8px;
+  padding: 8px 12px;
+  flex: 1;
+  min-width: 250px;
+  color: var(--cor-texto-secundario);
+}
+
+.filtroSearch:focus-within {
+  border-color: var(--cor-primaria);
+}
+
+.filtroInput {
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 0.88rem;
+  color: var(--cor-texto);
+  width: 100%;
+}
+
+.filtroSelect {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--cor-texto-secundario);
+}
+
+.filtroSelect select {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--cor-borda);
+  background: var(--cor-fundo);
+  color: var(--cor-texto);
+  font-size: 0.88rem;
+  outline: none;
+  cursor: pointer;
+}
+
+.table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.85rem;
+}
+
+.table thead th {
+  text-align: left;
+  padding: 10px 12px;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--cor-texto-secundario);
+  border-bottom: 1px solid var(--cor-borda);
+  white-space: nowrap;
+}
+
+.table tbody tr {
+  transition: background 0.15s;
+}
+
+.table tbody tr:hover {
+  background: var(--cor-fundo);
+}
+
+.table tbody td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--cor-borda);
+  color: var(--cor-texto);
+  vertical-align: middle;
+}
+
+.cellDate {
+  white-space: nowrap;
+  color: var(--cor-texto-secundario) !important;
+  font-size: 0.82rem;
+}
+
+.cellUser {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.cellUser strong {
+  font-size: 0.85rem;
+}
+
+.cellUser span {
+  font-size: 0.75rem;
+  color: var(--cor-texto-secundario);
+}
+
+.acaoBadge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.cellIp {
+  font-family: monospace;
+  font-size: 0.8rem;
+  color: var(--cor-texto-secundario) !important;
+}
+
+.cellDetalhes {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.78rem;
+  color: var(--cor-texto-secundario) !important;
+}
+
+@media (max-width: 768px) {
+  .chartsRow {
+    grid-template-columns: 1fr;
+  }
+  .statsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .statsGrid {
+    grid-template-columns: 1fr;
+  }
+}

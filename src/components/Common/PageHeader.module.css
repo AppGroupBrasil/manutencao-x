@@ -1,0 +1,35 @@
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: var(--espacamento-secao);
+  flex-wrap: wrap;
+}
+
+.left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.titulo {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--cor-texto);
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+.subtitulo {
+  font-size: 14px;
+  color: var(--cor-texto-secundario);
+  margin: 0;
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}

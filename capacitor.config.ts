@@ -1,0 +1,28 @@
+import type { CapacitorConfig } from '@capacitor/cli';
+
+const config: CapacitorConfig = {
+  appId: 'com.manutencaox.app',
+  appName: 'Manutenção X',
+  webDir: 'dist',
+  server: {
+    androidScheme: 'https',
+  },
+  plugins: {
+    SplashScreen: {
+      launchShowDuration: 2000,
+      backgroundColor: '#f5f7fa',
+      showSpinner: false,
+      androidScaleType: 'CENTER_CROP',
+    },
+    StatusBar: {
+      style: 'LIGHT',
+      backgroundColor: '#f57c00',
+    },
+    Keyboard: {
+      resize: 'body',
+      resizeOnFullScreen: true,
+    },
+  },
+};
+
+export default config;

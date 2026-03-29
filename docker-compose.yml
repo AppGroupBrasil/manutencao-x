@@ -1,0 +1,136 @@
+﻿services:
+  # ── PostgreSQL ──
+  postgres:
+    image: postgres:16-alpine
+    container_name: manutencao-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: manutencao
+      POSTGRES_USER: manutencao
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD env var is required}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./server/src/db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    networks:
+      - coolify
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U manutencao"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── API Backend ──
+  manutencao-api:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: manutencao-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: "3001"
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: manutencao
+      DB_USER: manutencao
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD env var is required}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET env var is required}
+      CORS_ORIGIN: https://manutencaox.com.br
+      FRONTEND_URL: https://manutencaox.com.br
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-Manutenção X <noreply@manutencaox.com.br>}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_EMAIL: ${VAPID_EMAIL:-mailto:admin@manutencaox.com.br}
+    volumes:
+      - uploads:/app/uploads
+    networks:
+      - coolify
+    labels:
+      - "traefik.enable=false"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:3001/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── Frontend Nginx ──
+  manutencao-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: manutencao-app
+    restart: unless-stopped
+    depends_on:
+      - manutencao-api
+    networks:
+      - coolify
+    labels:
+      - "traefik.enable=true"
+      # HTTPS
+      - "traefik.http.routers.manutencao-https.rule=Host(`manutencaox.com.br`) || Host(`www.manutencaox.com.br`)"
+      - "traefik.http.routers.manutencao-https.entrypoints=https"
+      - "traefik.http.routers.manutencao-https.tls.certresolver=letsencrypt"
+      - "traefik.http.services.manutencao.loadbalancer.server.port=80"
+      # HTTP → HTTPS redirect
+      - "traefik.http.routers.manutencao-http.rule=Host(`manutencaox.com.br`) || Host(`www.manutencaox.com.br`)"
+      - "traefik.http.routers.manutencao-http.entrypoints=http"
+      - "traefik.http.routers.manutencao-http.middlewares=manutencao-redirect-https"
+      - "traefik.http.middlewares.manutencao-redirect-https.redirectscheme.scheme=https"
+      # www → raiz redirect
+      - "traefik.http.routers.manutencao-www.rule=Host(`www.manutencaox.com.br`)"
+      - "traefik.http.routers.manutencao-www.entrypoints=https"
+      - "traefik.http.routers.manutencao-www.tls=true"
+      - "traefik.http.routers.manutencao-www.middlewares=manutencao-redirect-www"
+      - "traefik.http.middlewares.manutencao-redirect-www.redirectregex.regex=^https://www\\.manutencaox\\.com\\.br/(.*)"
+      - "traefik.http.middlewares.manutencao-redirect-www.redirectregex.replacement=https://manutencaox.com.br/$${1}"
+      - "traefik.http.middlewares.manutencao-redirect-www.redirectregex.permanent=true"
+    healthcheck:
+      test: ["CMD-SHELL", "nginx -t 2>/dev/null"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+  # ── Backup automático ──
+  manutencao-backup:
+    image: postgres:16-alpine
+    container_name: manutencao-backup
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGDATABASE: manutencao
+      PGUSER: manutencao
+      PGPASSWORD: ${DB_PASSWORD:?DB_PASSWORD env var is required}
+      PGHOST: postgres
+      PGPORT: "5432"
+    volumes:
+      - backups:/var/backups/manutencao
+    networks:
+      - coolify
+    entrypoint: >
+      sh -c "while true; do
+        TIMESTAMP=$$(date +%Y%m%d_%H%M%S);
+        echo \"[$$(date)] Iniciando backup...\";
+        pg_dump --no-owner --no-privileges | gzip > /var/backups/manutencao/manutencao_$$TIMESTAMP.sql.gz;
+        find /var/backups/manutencao -name 'manutencao_*.sql.gz' -mtime +30 -delete;
+        echo \"[$$(date)] Backup concluído.\";
+        sleep 86400;
+      done"
+
+volumes:
+  pgdata:
+  uploads:
+  backups:
+
+networks:
+  coolify:
+    external: true

@@ -1,0 +1,66 @@
+.page { padding: 0; }
+
+.tabBar { display: flex; gap: 4px; border-bottom: 2px solid var(--cor-borda); margin-bottom: 16px; }
+.tab { padding: 8px 16px; font-size: 13px; font-weight: 500; border: none; background: transparent; color: var(--cor-texto-secundario); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; }
+.tabActive { color: var(--cor-primaria); border-bottom-color: var(--cor-primaria); }
+
+.formGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+.formGroup { display: flex; flex-direction: column; gap: 4px; }
+.formGroup label { font-size: 12px; font-weight: 500; color: var(--cor-texto-secundario); text-transform: uppercase; letter-spacing: 0.5px; }
+.formGroup input, .formGroup select { padding: 8px 12px; border: 1px solid var(--cor-borda); border-radius: 8px; font-size: 13px; background: var(--cor-fundo); color: var(--cor-texto); }
+.formGroupFull { grid-column: 1 / -1; }
+
+.toggleRow { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--cor-borda); }
+.toggleRow:last-child { border-bottom: none; }
+.toggleLabel { flex: 1; font-size: 13px; color: var(--cor-texto); }
+.toggleDesc { font-size: 11px; color: var(--cor-texto-secundario); }
+.toggle { position: relative; width: 44px; height: 24px; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: var(--cor-borda); border-radius: 24px; transition: 0.3s; }
+.slider::before { content: ''; position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.3s; }
+.toggle input:checked + .slider { background: var(--cor-primaria); }
+.toggle input:checked + .slider::before { transform: translateX(20px); }
+
+.section { margin-top: 24px; }
+.sectionTitle { font-size: 16px; font-weight: 600; color: var(--cor-texto); margin-bottom: 12px; }
+
+.actions { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+.btn { padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; border: none; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+.btnPrimary { background: var(--cor-primaria); color: #fff; }
+.btnPrimary:hover { opacity: 0.9; }
+.btnPrimary:disabled { opacity: 0.5; cursor: default; }
+.btnOutline { background: transparent; color: var(--cor-texto); border: 1px solid var(--cor-borda); }
+.btnOutline:hover { background: var(--cor-fundo); }
+.btnSuccess { background: #16a34a; color: #fff; }
+.btnSuccess:hover { opacity: 0.9; }
+.btnDanger { background: #dc2626; color: #fff; }
+
+.testResult { margin-top: 12px; padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; }
+.testOk { background: #dcfce7; color: #166534; }
+.testFail { background: #fee2e2; color: #991b1b; }
+
+.statusBadge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+.statusEnviado { background: #dcfce7; color: #166534; }
+.statusPendente { background: #fef3c7; color: #92400e; }
+.statusErro { background: #fee2e2; color: #991b1b; }
+
+.table { width: 100%; border-collapse: collapse; }
+.table th { text-align: left; padding: 10px 12px; font-size: 12px; text-transform: uppercase; color: var(--cor-texto-secundario); border-bottom: 2px solid var(--cor-borda); }
+.table td { padding: 10px 12px; font-size: 13px; border-bottom: 1px solid var(--cor-borda); color: var(--cor-texto); }
+.table td.msgText { max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.table td.errText { color: #dc2626; font-size: 11px; }
+
+.sendForm { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 20px; }
+.sendForm .formGroup { min-width: 180px; }
+.sendForm .formGroup:last-of-type { flex: 1; min-width: 200px; }
+
+.empty { text-align: center; padding: 40px 20px; color: var(--cor-texto-secundario); font-size: 14px; }
+
+.selectCond { display: flex; gap: 12px; align-items: center; margin-bottom: 20px; }
+.selectCond label { font-size: 13px; font-weight: 500; color: var(--cor-texto); }
+.selectCond select { padding: 8px 12px; border: 1px solid var(--cor-borda); border-radius: 8px; font-size: 13px; background: var(--cor-fundo); color: var(--cor-texto); min-width: 250px; }
+
+@media (max-width: 768px) {
+  .formGrid { grid-template-columns: 1fr; }
+  .sendForm { flex-direction: column; align-items: stretch; }
+}

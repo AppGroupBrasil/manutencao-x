@@ -1,0 +1,228 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.resumoGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.resumoCard {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 20px;
+  border-radius: var(--raio-borda);
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+}
+
+.resumoIcon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.resumoIcon.azul { background: #eff6ff; color: #2563eb; }
+.resumoIcon.verde { background: #ecfdf5; color: #059669; }
+.resumoIcon.laranja { background: #fff7ed; color: #ea580c; }
+.resumoIcon.roxo { background: #f5f3ff; color: #7c3aed; }
+
+.resumoInfo h3 {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--cor-texto-secundario);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0 0 4px;
+}
+
+.resumoInfo p {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--cor-texto);
+  margin: 0;
+}
+
+/* ── Ações topo ── */
+.acoes {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.registrarBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: var(--raio-borda-sm);
+  background: var(--cor-primaria);
+  color: white;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.registrarBtn:hover {
+  background: var(--cor-primaria-hover);
+  transform: translateY(-1px);
+}
+
+.filtroData {
+  padding: 9px 12px;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-borda-sm);
+  font-size: 13px;
+  background: var(--cor-superficie);
+  color: var(--cor-texto);
+  outline: none;
+}
+
+.filtroData:focus {
+  border-color: var(--cor-primaria);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+/* ── Tabela ── */
+.tabela {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tabela thead tr {
+  background: var(--cor-primaria);
+  color: white;
+}
+
+.tabela th {
+  padding: 14px 16px;
+  text-align: left;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.tabela td {
+  padding: 12px 16px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--cor-borda);
+}
+
+.tabela tbody tr:hover {
+  background: var(--cor-superficie-hover, #f9fafb);
+}
+
+.funcNome {
+  font-weight: 600;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.badgeEntrada {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.badgeSaida {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+/* ── Modal ── */
+.formGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.formGroupFull {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  grid-column: 1 / -1;
+}
+
+.formLabel {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--cor-texto);
+}
+
+.formInput,
+.formSelect {
+  padding: 10px 12px;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-borda-sm);
+  font-size: 13.5px;
+  background: var(--cor-superficie);
+  color: var(--cor-texto);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.formInput:focus,
+.formSelect:focus {
+  border-color: var(--cor-primaria);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+.formSubmit {
+  grid-column: 1 / -1;
+  padding: 12px;
+  border: none;
+  border-radius: var(--raio-borda-sm);
+  background: var(--cor-primaria);
+  color: white;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-top: 8px;
+}
+
+.formSubmit:hover {
+  background: var(--cor-primaria-hover);
+}
+
+@media (max-width: 600px) {
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .tabela th, .tabela td {
+    padding: 10px 10px;
+    font-size: 12px;
+  }
+
+  .resumoGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .acoes {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

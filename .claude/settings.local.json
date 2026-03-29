@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run:*)",
+      "Bash(netstat -ano)",
+      "Read(//c/Users/HP/OneDrive/Área de Trabalho/Manutenção X/**)",
+      "Bash(xargs -r taskkill //F //PID)",
+      "Bash(taskkill //F //PID 15520 //PID 5736)",
+      "Bash(taskkill //F //PID 17732)",
+      "Skill(update-config)",
+      "Skill(update-config:*)",
+      "Bash(ssh -i ~/.ssh/hetzner_key root@46.225.191.114 \"docker stop manutencao-api manutencao-app manutencao-backup manutencao-db 2>&1 && docker rm manutencao-api manutencao-app manutencao-backup manutencao-db 902b7013ff2e 2>&1\")",
+      "Bash(ssh -i ~/.ssh/hetzner_key root@46.225.191.114 \"cd /root/manutencao && docker compose up -d 2>&1\")"
+    ]
+  }
+}

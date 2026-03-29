@@ -1,0 +1,37 @@
+.card {
+  background: var(--cor-superficie);
+  border-radius: var(--raio-borda);
+  box-shadow: var(--sombra-card);
+  border: 1px solid var(--cor-borda);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pad_none {
+  padding: 0;
+}
+
+.pad_sm {
+  padding: 16px;
+}
+
+.pad_md {
+  padding: 24px;
+}
+
+.pad_lg {
+  padding: 32px;
+}
+
+.hover {
+  cursor: pointer;
+}
+
+.hover:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--sombra-elevada);
+  border-color: var(--cor-primaria);
+}
+
+.hover:active {
+  transform: translateY(0);
+}

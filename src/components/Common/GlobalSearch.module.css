@@ -1,0 +1,121 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: min(20vh, 160px);
+  backdrop-filter: blur(4px);
+}
+
+.modal {
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 560px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+
+.inputWrap {
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--cor-borda);
+  gap: 10px;
+}
+
+.searchIcon { color: var(--cor-texto-secundario); flex-shrink: 0; }
+
+.input {
+  flex: 1;
+  padding: 16px 0;
+  border: none;
+  background: none;
+  font-size: 15px;
+  color: var(--cor-texto);
+  outline: none;
+}
+.input::placeholder { color: var(--cor-texto-secundario); }
+
+.kbd {
+  padding: 2px 6px;
+  border: 1px solid var(--cor-borda);
+  border-radius: 5px;
+  font-size: 10px;
+  font-family: monospace;
+  color: var(--cor-texto-secundario);
+  background: var(--cor-fundo);
+}
+
+.closeBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--cor-texto-secundario);
+  cursor: pointer;
+}
+.closeBtn:hover { background: var(--cor-borda); color: var(--cor-texto); }
+
+.results {
+  max-height: 400px;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.resultItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  width: 100%;
+  border: none;
+  border-radius: 10px;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+}
+.resultItem:hover,
+.resultItemActive {
+  background: var(--cor-primaria-light, rgba(26, 115, 232, 0.08));
+}
+
+.resultIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--cor-fundo);
+  color: var(--cor-primaria);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.resultText { display: flex; flex-direction: column; min-width: 0; }
+
+.resultLabel {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--cor-texto);
+}
+.resultDesc {
+  font-size: 11.5px;
+  color: var(--cor-texto-secundario);
+}
+
+.empty {
+  padding: 32px;
+  text-align: center;
+  color: var(--cor-texto-secundario);
+  font-size: 13px;
+}

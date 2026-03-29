@@ -1,0 +1,29 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(var(--grid-cols, 3), 1fr);
+  flex-wrap: wrap;
+}
+
+.gap_sm {
+  gap: 0.5cm; /* meio centímetro entre itens de lista */
+}
+
+.gap_md {
+  gap: 1cm; /* 1 centímetro entre funções diferentes */
+}
+
+.gap_lg {
+  gap: 1.5cm;
+}
+
+@media (max-width: 1200px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

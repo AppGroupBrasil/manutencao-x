@@ -1,0 +1,93 @@
+.sindicoPage { padding: 0; }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.statCard { background: var(--cor-card); border-radius: 12px; padding: 20px; border: 1px solid var(--cor-borda); display: flex; flex-direction: column; }
+.statIcon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
+.statLabel { font-size: 12px; color: var(--cor-texto-secundario); text-transform: uppercase; letter-spacing: 0.5px; }
+.statValue { font-size: 28px; font-weight: 700; color: var(--cor-texto); margin-top: 2px; }
+
+.columns { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+.section { background: var(--cor-card); border-radius: 12px; padding: 20px; border: 1px solid var(--cor-borda); }
+.sectionTitle { font-size: 14px; font-weight: 600; color: var(--cor-texto); margin-bottom: 12px; }
+
+.osItem { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--cor-borda); }
+.osItem:last-child { border-bottom: none; }
+.osProtocolo { font-size: 12px; font-weight: 600; color: var(--cor-primaria); min-width: 100px; }
+.osTitulo { font-size: 13px; color: var(--cor-texto); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.osBadge { padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 600; text-transform: uppercase; }
+
+.barChart { display: flex; flex-direction: column; gap: 8px; }
+.barItem { display: flex; align-items: center; gap: 8px; }
+.barLabel { font-size: 12px; color: var(--cor-texto); min-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.barTrack { flex: 1; height: 20px; background: var(--cor-fundo); border-radius: 4px; overflow: hidden; position: relative; }
+.barFill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+.barValue { font-size: 11px; font-weight: 600; min-width: 30px; text-align: right; }
+
+/* ── Solicitações QR Code ── */
+.solList { display: flex; flex-direction: column; gap: 8px; }
+
+.solItem {
+  border: 1px solid var(--cor-borda);
+  border-radius: 8px;
+  padding: 10px 12px;
+  transition: background 0.15s, border-color 0.15s;
+}
+.solItem:hover { background: var(--cor-fundo); border-color: var(--cor-primaria); }
+
+.solItemHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 5px;
+}
+.solProtocolo {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  font-family: monospace;
+  font-weight: 700;
+  color: #e65100;
+  background: #fff3e0;
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+.solTipo {
+  font-size: 10px;
+  font-weight: 600;
+  color: #0284c7;
+  background: #e0f2fe;
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+.solData {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  color: var(--cor-texto-secundario);
+  margin-left: auto;
+}
+.solItemBody {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  flex-wrap: wrap;
+}
+.solItemBody strong { color: var(--cor-texto); }
+.solItemBody span { color: var(--cor-texto-secundario); font-size: 12px; }
+
+.solEndereco {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--cor-texto-secundario);
+  margin-top: 4px;
+}
+
+@media (max-width: 768px) {
+  .columns { grid-template-columns: 1fr; }
+  .grid { grid-template-columns: repeat(2, 1fr); }
+}

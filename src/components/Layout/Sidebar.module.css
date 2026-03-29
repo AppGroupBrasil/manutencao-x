@@ -1,0 +1,680 @@
+.sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 260px;
+  display: flex;
+  flex-direction: column;
+  z-index: var(--z-sidebar);
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  box-shadow: 2px 0 16px rgba(0, 0, 0, 0.15);
+}
+
+.collapsed {
+  width: 72px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 16px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  object-fit: contain;
+  background: white;
+  padding: 2px;
+}
+
+.logoPlaceholder {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--cor-primaria);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.brandText {
+  display: flex;
+  flex-direction: column;
+}
+
+.brandName {
+  font-size: 16px;
+  font-weight: 700;
+  color: #f57c00;
+  letter-spacing: -0.3px;
+}
+
+.brandDestaque {
+  color: var(--cor-texto-sobre-menu);
+}
+
+.brandSub {
+  font-size: 11px;
+  color: var(--cor-primaria);
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.brandDesc {
+  margin: 0;
+  padding: 0 16px 12px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.45);
+  line-height: 1.4;
+  text-align: center;
+}
+
+.collapseBtn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--cor-texto-sobre-menu);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.collapseBtn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.userInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--cor-primaria);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+.userMeta {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.userName {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cor-texto-sobre-menu);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.userRole {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: capitalize;
+}
+
+.demoBadge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 0 16px 8px;
+  padding: 6px 12px;
+  background: rgba(245, 124, 0, 0.15);
+  border: 1px solid rgba(245, 124, 0, 0.3);
+  border-radius: 8px;
+  color: #f57c00;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.demoBadgeTopBar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  background: rgba(245, 124, 0, 0.2);
+  border: 1px solid rgba(245, 124, 0, 0.4);
+  border-radius: 100px;
+  color: #ffb74d;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav::-webkit-scrollbar {
+  width: 4px;
+}
+
+.nav::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 13.5px;
+  font-weight: 500;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  white-space: nowrap;
+  text-align: left;
+  width: 100%;
+}
+
+.navItem:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--cor-texto-sobre-menu);
+}
+
+.navItem.active {
+  background: var(--cor-primaria);
+  color: white;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.navIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 20px;
+}
+
+.navLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.activeIndicator {
+  position: absolute;
+  right: 8px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: white;
+}
+
+/* Reorganizar menu */
+.reorderBar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px 8px;
+}
+
+.reorderToggle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 6px;
+  background: transparent;
+  color: rgba(255,255,255,0.5);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.reorderToggle:hover { color: rgba(255,255,255,0.8); border-color: rgba(255,255,255,0.3); }
+.reorderToggleAtivo { background: var(--cor-primaria); color: white; border-color: var(--cor-primaria); }
+
+.reorderReset {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 6px;
+  background: transparent;
+  color: rgba(255,255,255,0.5);
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 0;
+}
+.reorderReset:hover { color: #ef5350; border-color: #ef5350; }
+
+.dragHandle {
+  color: rgba(255,255,255,0.35);
+  cursor: grab;
+  flex-shrink: 0;
+}
+.dragHandle:active { cursor: grabbing; }
+
+.navItemDragOver {
+  border-top: 2px solid var(--cor-primaria) !important;
+  margin-top: -2px;
+}
+
+/* Favoritos */
+.favSection {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #f59e0b;
+  padding: 6px 14px 4px;
+}
+
+.favDivider {
+  height: 1px;
+  background: rgba(255,255,255,0.1);
+  margin: 6px 12px 8px;
+}
+
+.navItemFav {
+  border-left: 2px solid #f59e0b;
+  margin-left: 2px;
+}
+
+.favBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 2px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.navItem:hover .favBtn,
+.navItemFav .favBtn {
+  opacity: 1;
+}
+
+/* Ocultar itens */
+.navItemOculto {
+  opacity: 0.35;
+}
+
+.navItemOculto .navLabel {
+  text-decoration: line-through;
+}
+
+.visBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 2px;
+  cursor: pointer;
+  margin-left: auto;
+  flex-shrink: 0;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.visBtn:hover {
+  opacity: 1;
+}
+
+/* Popup dica do menu */
+.dicaOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: dicaFadeIn 0.3s ease;
+}
+
+@keyframes dicaFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.dicaPopup {
+  background: #fff;
+  border-radius: 14px;
+  padding: 28px 32px;
+  max-width: 360px;
+  text-align: center;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.dicaTexto {
+  margin: 0;
+  font-size: 14px;
+  color: #333;
+  line-height: 1.5;
+}
+
+.dicaBtn {
+  background: #f57c00;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 32px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.dicaBtn:hover {
+  background: #e65100;
+}
+
+.dicaCheck {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #666;
+  cursor: pointer;
+}
+
+.dicaCheck input {
+  accent-color: #f57c00;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.footer {
+  padding: 12px 8px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.iconBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: none;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+.iconBtn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+}
+
+.bellBadge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  background: #d32f2f;
+  color: white;
+  font-size: 9px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+}
+
+.logoutBtn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  width: 100%;
+  border: none;
+  background: rgba(211, 47, 47, 0.12);
+  color: #ef5350;
+  font-size: 13.5px;
+  font-weight: 500;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.logoutBtn:hover {
+  background: rgba(211, 47, 47, 0.25);
+}
+
+.mobileToggle {
+  display: none;
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: calc(var(--z-sidebar) + 1);
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: none;
+  background: var(--cor-superficie);
+  box-shadow: var(--sombra-card);
+  color: var(--cor-texto);
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+}
+
+.overlay {
+  display: none;
+}
+
+/* Top bar for funcionario/supervisor — always visible */
+.topBar {
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: var(--z-sticky);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Hide sidebar for funcionario/supervisor on all sizes */
+.hideAlways {
+  display: none !important;
+}
+
+.topBarHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.topBarBrand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.topBarActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.topBarAvatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--cor-primaria);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.topBarLogout {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: rgba(211, 47, 47, 0.15);
+  color: #ef5350;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.topBarLogout:hover {
+  background: rgba(211, 47, 47, 0.3);
+}
+
+.topBarNav {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 10px 12px 12px;
+  overflow-y: auto;
+  max-height: calc(100vh - 56px);
+}
+
+.topBarNav::-webkit-scrollbar {
+  display: none;
+}
+
+.topBarItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 14px 6px;
+  border: none;
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.65);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: normal;
+  min-height: 72px;
+}
+
+.topBarItem:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: white;
+}
+
+.topBarItemActive {
+  background: var(--cor-primaria);
+  color: white;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.topBarIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.topBarLabel {
+  font-size: 10.5px;
+  line-height: 1.3;
+  text-align: center;
+  word-break: break-word;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%);
+    width: 280px;
+  }
+
+  .mobileOpen {
+    transform: translateX(0);
+  }
+
+  .mobileToggle {
+    display: flex;
+  }
+
+  .overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: calc(var(--z-sidebar) - 1);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+
+  .overlayVisible {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .collapseBtn {
+    display: none;
+  }
+}

@@ -1,0 +1,276 @@
+/* ══════════════════════════════════════════
+   Solicitações (Staff) — Estilos
+   ══════════════════════════════════════════ */
+
+.resumoGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.resumoCard {
+  background: var(--cor-card);
+  border: 1px solid var(--cor-borda);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.resumoIcon {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.resumoIcon.blue { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+.resumoIcon.yellow { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+.resumoIcon.purple { background: rgba(139, 92, 246, 0.1); color: #8b5cf6; }
+.resumoIcon.green { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+.resumoInfo h3 {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--cor-texto);
+  margin: 0;
+}
+.resumoInfo p {
+  font-size: 12px;
+  color: var(--cor-texto-secundario);
+  margin: 2px 0 0;
+}
+
+/* ── Toolbar ── */
+.toolbar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.toolbar input,
+.toolbar select {
+  padding: 8px 12px;
+  border: 1px solid var(--cor-borda);
+  border-radius: 8px;
+  background: var(--cor-card);
+  color: var(--cor-texto);
+  font-size: 13px;
+}
+.toolbar input { flex: 1; min-width: 200px; }
+
+/* ── Table ── */
+.tableWrapper {
+  background: var(--cor-card);
+  border: 1px solid var(--cor-borda);
+  border-radius: 10px;
+  overflow-x: auto;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.table th {
+  text-align: left;
+  padding: 12px 14px;
+  font-weight: 600;
+  color: var(--cor-texto-secundario);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  background: var(--cor-fundo);
+  border-bottom: 1px solid var(--cor-borda);
+}
+.table td {
+  padding: 12px 14px;
+  color: var(--cor-texto);
+  border-bottom: 1px solid var(--cor-borda);
+  vertical-align: middle;
+}
+.table tr:last-child td { border-bottom: none; }
+.table tr:hover td { background: var(--cor-fundo); }
+.moradorInfo {
+  display: flex;
+  flex-direction: column;
+}
+.moradorInfo strong { font-weight: 600; }
+.moradorInfo small {
+  font-size: 11px;
+  color: var(--cor-texto-secundario);
+}
+
+/* ── Badges ── */
+.badge {
+  display: inline-flex;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.badge.aberta { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+.badge.em_analise { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+.badge.em_andamento { background: rgba(139, 92, 246, 0.1); color: #8b5cf6; }
+.badge.resolvida { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+.badge.cancelada { background: rgba(107, 114, 128, 0.1); color: #6b7280; }
+.badgeTipo {
+  display: inline-flex;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  background: var(--cor-fundo);
+  color: var(--cor-texto-secundario);
+}
+
+/* ── Actions ── */
+.actions {
+  display: flex;
+  gap: 6px;
+}
+.actionBtn {
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--cor-borda);
+  background: var(--cor-card);
+  cursor: pointer;
+  color: var(--cor-texto-secundario);
+  display: flex;
+  align-items: center;
+  transition: all 0.15s;
+}
+.actionBtn:hover {
+  border-color: var(--cor-primaria);
+  color: var(--cor-primaria);
+}
+.actionBtn.converter {
+  border-color: #8b5cf6;
+  color: #8b5cf6;
+}
+.actionBtn.converter:hover {
+  background: rgba(139, 92, 246, 0.1);
+}
+
+/* ── Modal ── */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+.modal {
+  background: var(--cor-card);
+  border-radius: 12px;
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 24px;
+}
+.modal h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--cor-texto);
+  margin: 0 0 16px;
+}
+.detailGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.detailItem label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--cor-texto-secundario);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.detailItem span {
+  font-size: 14px;
+  color: var(--cor-texto);
+}
+.descricaoBox {
+  padding: 12px;
+  background: var(--cor-fundo);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--cor-texto);
+  line-height: 1.6;
+  margin-bottom: 16px;
+  white-space: pre-wrap;
+}
+.responderForm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--cor-borda);
+}
+.responderForm select,
+.responderForm textarea {
+  padding: 10px 12px;
+  border: 1px solid var(--cor-borda);
+  border-radius: 8px;
+  background: var(--cor-fundo);
+  color: var(--cor-texto);
+  font-size: 13px;
+  font-family: inherit;
+}
+.responderForm textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+.btnPrimary {
+  padding: 10px 20px;
+  background: var(--cor-primaria);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.btnPrimary:hover { opacity: 0.9; }
+.btnSecondary {
+  padding: 10px 20px;
+  background: var(--cor-fundo);
+  border: 1px solid var(--cor-borda);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--cor-texto);
+}
+.btnSecondary:hover { background: var(--cor-borda); }
+
+/* ── Empty ── */
+.empty {
+  text-align: center;
+  padding: 48px 20px;
+  color: var(--cor-texto-secundario);
+}
+.empty svg { margin-bottom: 12px; opacity: 0.4; }
+.empty h3 { font-size: 16px; color: var(--cor-texto); margin: 0 0 4px; }
+.empty p { font-size: 13px; margin: 0; }
+
+@media (max-width: 768px) {
+  .resumoGrid { grid-template-columns: 1fr 1fr; }
+  .detailGrid { grid-template-columns: 1fr; }
+}

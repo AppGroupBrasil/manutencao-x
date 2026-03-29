@@ -1,0 +1,728 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── Botão novo ── */
+.btnNovo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: var(--raio-borda-sm);
+  background: var(--cor-primaria);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btnNovo:hover {
+  opacity: 0.9;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* ── Stats ── */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.statCard {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.statIcon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.statVencido { background: #ffebee; color: #c62828; }
+.statProximo { background: #fff3e0; color: #e65100; }
+.statEmDia { background: #e8f5e9; color: #2e7d32; }
+.statNum {
+  display: block;
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--cor-texto);
+  line-height: 1;
+}
+.statLabel {
+  display: block;
+  font-size: 12px;
+  color: var(--cor-texto-secundario);
+  margin-top: 2px;
+}
+
+/* ── Filtros ── */
+.filtros {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.filtroSearch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-borda-sm);
+  background: var(--cor-superficie);
+  flex: 1;
+  min-width: 180px;
+  color: var(--cor-texto-secundario);
+}
+.filtroInput {
+  flex: 1;
+  padding: 10px 0;
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  color: var(--cor-texto);
+  outline: none;
+  font-family: inherit;
+}
+.filtroSelect {
+  padding: 10px 12px;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-borda-sm);
+  background: var(--cor-superficie);
+  color: var(--cor-texto);
+  font-size: 13px;
+  min-width: 150px;
+}
+
+/* ── Lista ── */
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.vazio {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--cor-texto-secundario);
+}
+.vazio h3 {
+  margin: 16px 0 8px;
+  color: var(--cor-texto);
+  font-size: 17px;
+}
+.vazio p {
+  margin: 0 0 20px;
+  font-size: 13px;
+}
+
+/* ── Card vencimento ── */
+.vencCard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.vencTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.vencTipo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--cor-texto-secundario);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.vencTitulo {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--cor-texto);
+}
+.vencCond {
+  margin: 0;
+  font-size: 13px;
+  color: var(--cor-texto-secundario);
+}
+
+/* ── Datas ── */
+.vencDatas {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.vencDataItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.vencDataLabel {
+  font-size: 11px;
+  color: var(--cor-texto-secundario);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  font-weight: 600;
+}
+.vencDataValor {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--cor-texto);
+}
+.vencDias {
+  font-size: 13px;
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 6px;
+}
+.dias_em_dia { background: #e8f5e9; color: #2e7d32; }
+.dias_proximo { background: #fff3e0; color: #e65100; }
+.dias_vencido { background: #ffebee; color: #c62828; }
+
+/* ── Meta (emails, avisos count) ── */
+.vencMeta {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 8px 0 0;
+  border-top: 1px solid var(--cor-borda);
+}
+.metaItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--cor-texto-secundario);
+}
+
+/* ── Expand ── */
+.expandBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--cor-primaria);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.expandBtn:hover { text-decoration: underline; }
+
+/* ── Detalhes expandidos ── */
+.detalhes {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px;
+  background: var(--cor-fundo);
+  border-radius: var(--raio-borda-sm);
+  border: 1px solid var(--cor-borda);
+}
+.detalheDesc {
+  margin: 0;
+  font-size: 13px;
+  color: var(--cor-texto);
+  line-height: 1.5;
+}
+.detalheSecao h4 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--cor-texto);
+}
+.emailTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.emailTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: #e3f2fd;
+  color: #1565c0;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.emailRemove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: #1565c0;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.2s;
+}
+.emailRemove:hover { background: rgba(21, 101, 192, 0.15); }
+
+.avisoLista {
+  margin: 0;
+  padding: 0 0 0 20px;
+  list-style: disc;
+}
+.avisoLista li {
+  font-size: 13px;
+  color: var(--cor-texto);
+  padding: 3px 0;
+}
+
+/* ── Actions ── */
+.vencActions {
+  display: flex;
+  gap: 8px;
+  padding-top: 6px;
+}
+.btnEditar, .btnExcluir {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-borda-sm);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--cor-superficie);
+  color: var(--cor-texto);
+}
+.btnEditar:hover { border-color: var(--cor-primaria); color: var(--cor-primaria); }
+.btnExcluir:hover { border-color: #d32f2f; color: #d32f2f; background: #ffebee; }
+
+/* ═══════════ MODAL FORM ═══════════ */
+.modalForm {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.formRow {
+  display: flex;
+  gap: 12px;
+}
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+.formLabel {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--cor-texto);
+}
+.formInput {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--cor-borda);
+  border-radius: 8px;
+  background: var(--cor-superficie);
+  color: var(--cor-texto);
+  font-size: 13px;
+  font-family: inherit;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+.formInput:focus { outline: none; border-color: var(--cor-primaria); }
+.formTextarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--cor-borda);
+  border-radius: 8px;
+  background: var(--cor-superficie);
+  color: var(--cor-texto);
+  font-size: 13px;
+  font-family: inherit;
+  resize: vertical;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+.formTextarea:focus { outline: none; border-color: var(--cor-primaria); }
+.formSelect {
+  padding: 10px 12px;
+  border: 1px solid var(--cor-borda);
+  border-radius: 8px;
+  background: var(--cor-superficie);
+  color: var(--cor-texto);
+  font-size: 13px;
+  font-family: inherit;
+}
+.tipoSelectRow {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+.tipoSelectRow .formSelect {
+  flex: 1;
+}
+.btnTipoConfig {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  min-width: 42px;
+  border: 1px solid var(--cor-borda);
+  border-radius: 8px;
+  background: var(--cor-superficie);
+  color: var(--cor-texto-secundario);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btnTipoConfig:hover {
+  border-color: var(--cor-primaria);
+  color: var(--cor-primaria);
+}
+.formHint {
+  font-size: 11.5px;
+  color: var(--cor-texto-secundario);
+}
+.tiposModalConteudo {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.tipoAddRow {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.tiposModalLista {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tiposModalVazio {
+  padding: 14px;
+  border: 1px dashed var(--cor-borda);
+  border-radius: 8px;
+  color: var(--cor-texto-secundario);
+  font-size: 13px;
+  text-align: center;
+}
+.tipoItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--cor-borda);
+  border-radius: 8px;
+  background: var(--cor-fundo);
+}
+.tipoItemLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cor-texto);
+}
+.btnExcluirTipo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border: 1px solid #f2c7c7;
+  border-radius: 8px;
+  background: #fff5f5;
+  color: #c62828;
+  cursor: pointer;
+}
+.btnExcluirTipo:hover {
+  background: #ffebee;
+}
+
+/* ── Seções do form ── */
+.secao {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  background: var(--cor-fundo);
+  border-radius: 10px;
+  border: 1px solid var(--cor-borda);
+}
+.secaoHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.secaoTitulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--cor-texto);
+}
+.secaoDesc {
+  margin: 0;
+  font-size: 12px;
+  color: var(--cor-texto-secundario);
+}
+
+/* ── Emails salvos ── */
+.emailSalvos {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.emailSalvosLista {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.emailSalvoItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.emailSalvoBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1.5px solid var(--cor-borda);
+  border-radius: 8px;
+  background: var(--cor-superficie);
+  color: var(--cor-texto);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.emailSalvoBtn:hover:not(:disabled) {
+  border-color: var(--cor-primaria);
+  color: var(--cor-primaria);
+  background: rgba(26, 115, 232, 0.04);
+}
+.emailSalvoBtnAtivo {
+  border-color: #2e7d32;
+  background: #e8f5e9;
+  color: #2e7d32;
+  cursor: default;
+}
+.emailSalvoRemover {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--cor-texto-secundario);
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 0;
+}
+.emailSalvoRemover:hover {
+  background: #ffebee;
+  color: #d32f2f;
+}
+
+/* ── Email add ── */
+.emailAdd {
+  display: flex;
+  gap: 8px;
+}
+.btnAdd {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  background: var(--cor-primaria);
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.2s;
+}
+.btnAdd:hover { opacity: 0.9; }
+.btnAddSmall {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border: 1.5px dashed var(--cor-primaria);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--cor-primaria);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.btnAddSmall:hover { background: rgba(26, 115, 232, 0.06); }
+
+/* ── Aviso block ── */
+.avisoBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: 8px;
+}
+.avisoRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.avisoGaleria {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.avisoGaleriaItem {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--cor-borda);
+}
+.avisoGaleriaImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.avisoGaleriaRemover {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.55);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.2s;
+}
+.avisoGaleriaRemover:hover { background: #d32f2f; }
+.avisoGaleriaAdd {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 72px;
+  height: 72px;
+  border: 2px dashed var(--cor-borda);
+  border-radius: 8px;
+  color: var(--cor-texto-secundario);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.avisoGaleriaAdd:hover {
+  border-color: var(--cor-primaria);
+  color: var(--cor-primaria);
+  background: rgba(26, 115, 232, 0.04);
+}
+.avisoDescricao {
+  font-size: 13px;
+}
+.avisoNum {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--cor-primaria);
+  white-space: nowrap;
+}
+.avisoInputWrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+.avisoInputWrap .formInput { max-width: 90px; }
+.avisoSuffix {
+  font-size: 13px;
+  color: var(--cor-texto-secundario);
+  white-space: nowrap;
+}
+.btnRemoveAviso {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--cor-texto-secundario);
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.btnRemoveAviso:hover { background: #ffebee; color: #d32f2f; }
+
+/* ── Save ── */
+.btnSalvar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px;
+  border: none;
+  border-radius: 10px;
+  background: var(--cor-primaria);
+  color: white;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 4px;
+}
+.btnSalvar:hover:not(:disabled) { opacity: 0.9; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); }
+.btnSalvar:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ═══════════ Responsive ═══════════ */
+@media (max-width: 768px) {
+  .stats { grid-template-columns: 1fr; }
+  .filtros { flex-direction: column; }
+  .filtroSearch { min-width: 0; }
+  .formRow { flex-direction: column; }
+  .vencDatas { flex-direction: column; gap: 10px; }
+  .vencActions { flex-direction: column; }
+  .btnEditar, .btnExcluir { justify-content: center; }
+  .emailAdd { flex-direction: column; }
+  .avisoRow { flex-wrap: wrap; }
+  .tipoAddRow { flex-direction: column; align-items: stretch; }
+  .tipoItem { flex-direction: column; align-items: stretch; }
+}
