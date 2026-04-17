@@ -2,6 +2,7 @@ node_modules
 dist
 server/dist
 .env
+.env.staging
 .env.local
 .env.*.local
 *.log

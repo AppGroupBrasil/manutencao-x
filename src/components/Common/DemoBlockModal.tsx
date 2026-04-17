@@ -3,12 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { useDemo } from '../../contexts/DemoContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { X, Rocket } from 'lucide-react';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 import styles from './DemoBlockModal.module.css';
 
 const DemoBlockModal: React.FC = () => {
   const { mostrarModal, fecharModal, setDemo } = useDemo();
   const { logout } = useAuth();
   const navigate = useNavigate();
+
+  useEscapeKey(fecharModal, mostrarModal);
 
   if (!mostrarModal) return null;
 

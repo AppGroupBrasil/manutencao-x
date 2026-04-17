@@ -1,17 +1,17 @@
 ﻿import React, { useState, useEffect, useRef } from 'react';
-import * as XLSX from 'xlsx';
 import HowItWorks from '../../components/Common/HowItWorks';
 import PageHeader from '../../components/Common/PageHeader';
 import Card from '../../components/Common/Card';
 import { compartilharConteudo, imprimirElemento, gerarPdfDeElemento } from '../../utils/exportUtils';
 import {
   Plus, X, Pencil, Trash2, Upload, Download, Search,
-  Building2, Phone, Mail, User, Home, FileSpreadsheet, Check, AlertCircle
+  Building2, User, Home, FileSpreadsheet, Check, AlertCircle
 } from 'lucide-react';
 import { useDemo } from '../../contexts/DemoContext';
 import { moradores as moradoresApi, condominios as condominiosApi } from '../../services/api';
 import LoadingSpinner from '../../components/Common/LoadingSpinner';
 import Pagination from '../../components/Common/Pagination';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 import { usePagination } from '../../hooks/usePagination';
 import styles from './Moradores.module.css';
 
@@ -39,6 +39,12 @@ const PERFIS = ['Proprietário', 'Inquilino', 'Dependente', 'Síndico', 'Funcion
 const formVazio = () => ({
   nome: '', condominioId: '', bloco: '', apartamento: '', whatsapp: '', email: '', perfil: '',
 });
+
+function normalizeImportCell(value: unknown) {
+  if (typeof value === 'string') return value.trim();
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  return '';
+}
 
 /* ============ Componente ============ */
 const MoradoresPage: React.FC = () => {
@@ -81,7 +87,12 @@ const MoradoresPage: React.FC = () => {
   });
 
   /* CRUD */
-  const abrirNovo = () => { if (!tentarAcao()) return; setForm(formVazio()); setEditandoId(null); setModalAberto(true); };
+  const abrirNovo = () => {
+    if (!tentarAcao()) return;
+    setForm(formVazio());
+    setEditandoId(null);
+    setModalAberto(true);
+  };
   const abrirEditar = (m: Morador) => {
     if (!tentarAcao()) return;
     setForm({ nome: m.nome, condominioId: m.condominioId, bloco: m.bloco, apartamento: m.apartamento, whatsapp: m.whatsapp, email: m.email, perfil: m.perfil });
@@ -89,6 +100,17 @@ const MoradoresPage: React.FC = () => {
     setModalAberto(true);
   };
   const fecharModal = () => { setModalAberto(false); setEditandoId(null); };
+  const fecharImport = () => { setModalImport(false); setImportData([]); setImportErro(''); };
+
+  useEscapeKey(() => {
+    if (modalImport) {
+      fecharImport();
+      return;
+    }
+    if (modalAberto) {
+      fecharModal();
+    }
+  }, modalAberto || modalImport);
 
   const salvar = async () => {
     if (!form.nome.trim() || !form.condominioId) return;
@@ -119,11 +141,10 @@ const MoradoresPage: React.FC = () => {
 
   /* ===== Import Excel/CSV ===== */
   const abrirImport = () => { setImportData([]); setImportErro(''); setModalImport(true); };
-  const fecharImport = () => { setModalImport(false); setImportData([]); setImportErro(''); };
 
   const COLUNAS_ESPERADAS = ['nome', 'condominio', 'bloco', 'apartamento', 'whatsapp', 'email', 'perfil'];
 
-  const processarArquivo = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const processarArquivo = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -133,73 +154,73 @@ const MoradoresPage: React.FC = () => {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      try {
-        const data = new Uint8Array(ev.target?.result as ArrayBuffer);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const json = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: '' });
+    try {
+      const XLSX = await import('xlsx');
+      const data = new Uint8Array(await file.arrayBuffer());
+      const workbook = XLSX.read(data, { type: 'array' });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: '' });
 
-        if (json.length === 0) {
-          setImportErro('A planilha está vazia.');
-          return;
-        }
-
-        /* Normalize headers */
-        const normalize = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
-        const headerMap: Record<string, string> = {};
-        const rawHeaders = Object.keys(json[0]);
-        for (const h of rawHeaders) {
-          const n = normalize(h);
-          if (n.includes('nome')) headerMap[h] = 'nome';
-          else if (n.includes('condominio')) headerMap[h] = 'condominio';
-          else if (n.includes('bloco')) headerMap[h] = 'bloco';
-          else if (n.includes('apartamento') || n === 'apto' || n === 'apt') headerMap[h] = 'apartamento';
-          else if (n.includes('whatsapp') || n.includes('telefone') || n.includes('celular') || n === 'fone') headerMap[h] = 'whatsapp';
-          else if (n.includes('email') || n.includes('e-mail')) headerMap[h] = 'email';
-          else if (n.includes('perfil') || n.includes('tipo')) headerMap[h] = 'perfil';
-        }
-
-        const colunasEncontradas = new Set(Object.values(headerMap));
-        const faltando = COLUNAS_ESPERADAS.filter(c => !colunasEncontradas.has(c));
-        if (faltando.includes('nome')) {
-          setImportErro(`Coluna obrigatória faltando: nome. Cabeçalhos encontrados: ${rawHeaders.join(', ')}`);
-          return;
-        }
-
-        const rows: Record<string, string>[] = json.map(row => {
-          const mapped: Record<string, string> = {};
-          for (const [rawH, field] of Object.entries(headerMap)) {
-            mapped[field] = String(row[rawH] ?? '').trim();
-          }
-          // Resolver condominioId a partir do nome
-          const condNome = mapped.condominio || '';
-          const condMatch = condominios.find(c => c.nome.toLowerCase() === condNome.toLowerCase());
-          return {
-            nome: mapped.nome || '',
-            condominioId: condMatch?.id || condominios[0]?.id || '',
-            condominio: condNome,
-            bloco: mapped.bloco || '',
-            apartamento: mapped.apartamento || '',
-            whatsapp: mapped.whatsapp || '',
-            email: mapped.email || '',
-            perfil: mapped.perfil || '',
-          };
-        }).filter(r => r.nome.trim() !== '');
-
-        if (rows.length === 0) {
-          setImportErro('Nenhum registro válido encontrado na planilha.');
-          return;
-        }
-
-        setImportData(rows);
-        setImportErro('');
-      } catch {
-        setImportErro('Erro ao processar o arquivo. Verifique se é uma planilha válida.');
+      if (json.length === 0) {
+        setImportErro('A planilha está vazia.');
+        return;
       }
-    };
-    reader.readAsArrayBuffer(file);
+
+      /* Normalize headers */
+      const normalize = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+      const headerMap: Record<string, string> = {};
+      const rawHeaders = Object.keys(json[0]);
+      for (const h of rawHeaders) {
+        const n = normalize(h);
+        if (n.includes('nome')) headerMap[h] = 'nome';
+        else if (n.includes('condominio')) headerMap[h] = 'condominio';
+        else if (n.includes('bloco')) headerMap[h] = 'bloco';
+        else if (n.includes('apartamento') || n === 'apto' || n === 'apt') headerMap[h] = 'apartamento';
+        else if (n.includes('whatsapp') || n.includes('telefone') || n.includes('celular') || n === 'fone') headerMap[h] = 'whatsapp';
+        else if (n.includes('email') || n.includes('e-mail')) headerMap[h] = 'email';
+        else if (n.includes('perfil') || n.includes('tipo')) headerMap[h] = 'perfil';
+      }
+
+      const colunasEncontradas = new Set(Object.values(headerMap));
+      const faltando = COLUNAS_ESPERADAS.filter(c => !colunasEncontradas.has(c));
+      if (faltando.includes('nome')) {
+        setImportErro(`Coluna obrigatória faltando: nome. Cabeçalhos encontrados: ${rawHeaders.join(', ')}`);
+        return;
+      }
+
+      const condominiosPorNome = new Map(
+        condominios.map((condominio) => [condominio.nome.toLowerCase(), condominio])
+      );
+      const rows: Record<string, string>[] = json.map((row) => {
+        const mapped: Record<string, string> = {};
+        for (const [rawH, field] of Object.entries(headerMap)) {
+          mapped[field] = normalizeImportCell(row[rawH]);
+        }
+
+        const condNome = mapped.condominio || '';
+        const condMatch = condominiosPorNome.get(condNome.toLowerCase());
+        return {
+          nome: mapped.nome || '',
+          condominioId: condMatch?.id || condominios[0]?.id || '',
+          condominio: condNome,
+          bloco: mapped.bloco || '',
+          apartamento: mapped.apartamento || '',
+          whatsapp: mapped.whatsapp || '',
+          email: mapped.email || '',
+          perfil: mapped.perfil || '',
+        };
+      }).filter((row) => row.nome.trim() !== '');
+
+      if (rows.length === 0) {
+        setImportErro('Nenhum registro válido encontrado na planilha.');
+        return;
+      }
+
+      setImportData(rows);
+      setImportErro('');
+    } catch {
+      setImportErro('Erro ao processar o arquivo. Verifique se é uma planilha válida.');
+    }
     /* Reset input so same file can be re-selected */
     e.target.value = '';
   };
@@ -217,7 +238,8 @@ const MoradoresPage: React.FC = () => {
   };
 
   /* Download template */
-  const baixarModelo = () => {
+  const baixarModelo = async () => {
+    const XLSX = await import('xlsx');
     const ws = XLSX.utils.aoa_to_sheet([
       ['Nome', 'Condomínio', 'Bloco', 'Apartamento', 'WhatsApp', 'E-mail', 'Perfil'],
       ['João Silva', 'Condomínio Aurora', 'A', '101', '(11) 99999-0001', 'joao@email.com', 'Proprietário'],

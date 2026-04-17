@@ -1,0 +1,8 @@
+node_modules
+dist
+npm-debug.log
+.env*
+uploads/avatars/*
+uploads/documentos/*
+uploads/fotos/*
+uploads/qrcodes/*

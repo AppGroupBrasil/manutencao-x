@@ -249,6 +249,13 @@ const Sidebar: React.FC = () => {
     navigate('/');
   };
 
+  const handleItemKeyDown = (event: React.KeyboardEvent<HTMLElement>, action: () => void) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      action();
+    }
+  };
+
   const roleLabel: Record<string, string> = {
     master: 'Master',
     administrador: 'Administrador',
@@ -386,11 +393,14 @@ const Sidebar: React.FC = () => {
             <>
               {!collapsed && <div className={styles.favSection}>★ Favoritos</div>}
               {favoritoItems.map(item => (
-                <button
+                <div
                   key={`fav-${item.id}`}
                   className={`${styles.navItem} ${styles.navItemFav} ${location.pathname === item.rota ? styles.active : ''}`}
                   onClick={() => handleNav(item.rota)}
+                  onKeyDown={event => handleItemKeyDown(event, () => handleNav(item.rota))}
                   title={collapsed ? `★ ${item.label}` : undefined}
+                  role="button"
+                  tabIndex={0}
                 >
                   <span className={styles.navIcon}>{item.icon}</span>
                   {!collapsed && <span className={styles.navLabel}>{item.label}</span>}
@@ -404,7 +414,7 @@ const Sidebar: React.FC = () => {
                     </button>
                   )}
                   {!collapsed && location.pathname === item.rota && <div className={styles.activeIndicator} />}
-                </button>
+                </div>
               ))}
               {!collapsed && <div className={styles.favDivider} />}
             </>
@@ -414,11 +424,16 @@ const Sidebar: React.FC = () => {
           {visibleItems.map((item, idx) => {
             const isOculto = ocultosIds.has(item.id);
             return (
-              <button
+              <div
                 key={item.id}
                 className={`${styles.navItem} ${location.pathname === item.rota ? styles.active : ''} ${dragOverIdx === idx ? styles.navItemDragOver : ''} ${isOculto && editandoVisibilidade ? styles.navItemOculto : ''}`}
                 onClick={() => !editandoOrdem && !editandoVisibilidade && handleNav(item.rota)}
+                onKeyDown={event => handleItemKeyDown(event, () => {
+                  if (!editandoOrdem && !editandoVisibilidade) handleNav(item.rota);
+                })}
                 title={collapsed ? item.label : undefined}
+                role="button"
+                tabIndex={0}
                 draggable={editandoOrdem}
                 onDragStart={() => handleDragStart(idx)}
                 onDragOver={e => handleDragOver(e, idx)}
@@ -451,7 +466,7 @@ const Sidebar: React.FC = () => {
                   </button>
                 )}
                 {!collapsed && location.pathname === item.rota && <div className={styles.activeIndicator} />}
-              </button>
+              </div>
             );
           })}
         </nav>

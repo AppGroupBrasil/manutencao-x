@@ -32,6 +32,7 @@
   justify-content: space-between;
   padding: 20px 24px;
   border-bottom: 1px solid var(--cor-borda);
+  background: color-mix(in srgb, var(--cor-fundo) 72%, var(--cor-superficie) 28%);
 }
 
 .titulo {
@@ -45,9 +46,9 @@
   width: 36px;
   height: 36px;
   border-radius: 8px;
-  border: none;
-  background: transparent;
-  color: var(--cor-texto-secundario);
+  border: 1px solid var(--cor-borda);
+  background: var(--cor-superficie);
+  color: var(--cor-texto);
   cursor: pointer;
   display: flex;
   align-items: center;

@@ -5,20 +5,22 @@ import { usePermissions } from '../../contexts/PermissionsContext';
 import HowItWorks from '../../components/Common/HowItWorks';
 import PageHeader from '../../components/Common/PageHeader';
 import Card from '../../components/Common/Card';
+import Modal from '../../components/Common/Modal';
 import StatusBadge from '../../components/Common/StatusBadge';
 import { compartilharConteudo, imprimirElemento, gerarPdfDeElemento } from '../../utils/exportUtils';
 import {
   Wrench, ClipboardCheck, Users, Building2,
-  Calendar, AlertTriangle, Clock, Search, Plus, Edit2, Trash2, Lock, Unlock, Key,
-  LayoutDashboard, Package, Settings, FileWarning, Eye, ScanLine, Download,
-  CalendarCheck, BookOpen, Columns3, Shield, UserX, UserCheck, Ban, X, Home,
-  TrendingUp, CreditCard, ChevronDown, ChevronRight, Filter
+  AlertTriangle, Clock, Search, Plus, Edit2, Trash2, Lock, Unlock, Key,
+  Package, Settings, FileWarning, Eye, ScanLine, Download,
+  CalendarCheck, BookOpen, Columns3, Shield, UserX, UserCheck, Ban, Home,
+  TrendingUp, ChevronDown, ChevronRight, Filter
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line
 } from 'recharts';
 import { dashboard as dashboardApi, usuarios as usuariosApi, auth as authApi } from '../../services/api';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 import type { User, UserRole } from '../../types';
 import styles from './Dashboard.module.css';
 
@@ -119,6 +121,102 @@ interface StandardActivity {
   tempo: string;
 }
 
+type StatusBadgeVariant = 'sucesso' | 'perigo' | 'neutro' | 'aviso' | 'info';
+
+function pluralize(count: number, singular: string, plural: string) {
+  return count === 1 ? singular : plural;
+}
+
+function getUserStatusBadge(user: Pick<DashboardUser, 'bloqueado' | 'ativo'>) {
+  if (user.bloqueado) {
+    return { texto: 'Bloqueado', variante: 'perigo' as const };
+  }
+
+  if (user.ativo) {
+    return { texto: 'Ativo', variante: 'sucesso' as const };
+  }
+
+  return { texto: 'Inativo', variante: 'neutro' as const };
+}
+
+function getPlanoStatusVariant(statusPlano?: string): StatusBadgeVariant {
+  if (statusPlano === 'ativo') return 'sucesso';
+  if (statusPlano === 'inadimplente') return 'perigo';
+  if (statusPlano === 'bloqueado') return 'neutro';
+  return 'aviso';
+}
+
+function getRoleDescription(role?: UserRole) {
+  if (role === 'administrador') return 'Administrador';
+  if (role === 'supervisor') return 'Supervisor';
+  return 'Funcionário';
+}
+
+function getActivityBadge(tipo?: StandardActivity['tipo']) {
+  if (tipo === 'sucesso') return { texto: '✓', variante: 'sucesso' as const };
+  if (tipo === 'aviso') return { texto: '!', variante: 'aviso' as const };
+  if (tipo === 'perigo') return { texto: '✕', variante: 'perigo' as const };
+  return { texto: '●', variante: 'info' as const };
+}
+
+interface UserRowProps {
+  user: DashboardUser;
+  indent?: number;
+  actionLoading: string;
+  formatDate: (value: string) => string;
+  onEdit: (user: DashboardUser) => void;
+  onToggleBlock: (id: string, blocked: boolean) => void;
+  onResetPassword: (id: string, name: string) => void;
+  onDelete: (id: string, name: string) => void;
+}
+
+const UserRow: React.FC<UserRowProps> = ({
+  user,
+  indent = 0,
+  actionLoading,
+  formatDate,
+  onEdit,
+  onToggleBlock,
+  onResetPassword,
+  onDelete,
+}) => {
+  const status = getUserStatusBadge(user);
+
+  return (
+    <tr key={user.id} style={{ opacity: actionLoading === user.id ? 0.5 : 1 }}>
+      <td style={{ paddingLeft: 12 + indent * 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ width: 8, height: 8, borderRadius: '50%', background: ROLE_CORES[user.role] || '#999', flexShrink: 0 }} />
+          <div>
+            <div style={{ fontWeight: 600 }}>{user.nome}</div>
+            <div style={{ fontSize: 11.5, color: 'var(--cor-texto-secundario)' }}>{user.email}</div>
+          </div>
+        </div>
+      </td>
+      <td>
+        <span style={{ fontSize: 12, fontWeight: 600, color: ROLE_CORES[user.role] || '#666', background: `${ROLE_CORES[user.role] || '#666'}15`, padding: '2px 10px', borderRadius: 20 }}>
+          {ROLE_LABELS[user.role] || user.role}
+        </span>
+      </td>
+      <td>{user.condominioNome || '—'}</td>
+      <td>{formatDate(String(user.criadoEm))}</td>
+      <td>
+        <StatusBadge texto={status.texto} variante={status.variante} />
+      </td>
+      <td>
+        <div style={{ display: 'flex', gap: 4 }}>
+          <button title="Editar" onClick={() => onEdit({ ...user })} style={btnIconStyle}><Edit2 size={14} /></button>
+          <button title={user.bloqueado ? 'Desbloquear' : 'Bloquear'} onClick={() => onToggleBlock(user.id, !user.bloqueado)} style={{ ...btnIconStyle, color: user.bloqueado ? '#00897b' : '#d32f2f' }}>
+            {user.bloqueado ? <Unlock size={14} /> : <Lock size={14} />}
+          </button>
+          <button title="Resetar Senha (123456)" onClick={() => onResetPassword(user.id, user.nome)} style={{ ...btnIconStyle, color: '#f57c00' }}><Key size={14} /></button>
+          <button title="Excluir" onClick={() => onDelete(user.id, user.nome)} style={{ ...btnIconStyle, color: '#d32f2f' }}><Trash2 size={14} /></button>
+        </div>
+      </td>
+    </tr>
+  );
+};
+
 interface StandardSummary {
   reportesAbertos: number;
   execucoesHoje: number;
@@ -171,7 +269,18 @@ function getErrorMessage(error: unknown, fallback: string) {
 }
 
 function escapeCsvValue(value: unknown) {
-  const text = value == null ? '' : String(value);
+  let text: string;
+
+  if (value == null) {
+    text = '';
+  } else if (typeof value === 'string') {
+    text = value;
+  } else if (typeof value === 'number' || typeof value === 'boolean') {
+    text = String(value);
+  } else {
+    text = JSON.stringify(value);
+  }
+
   return `"${text.replace(/"/g, '""')}"`;
 }
 
@@ -200,6 +309,39 @@ const MasterDashboard: React.FC<{ usuario: User }> = ({ usuario }) => {
   const [reportData, setReportData] = useState<{ condominios: DashboardCondominio[]; usuarios: DashboardUser[] } | null>(null);
   const [repLoading, setRepLoading] = useState(false);
 
+  const reportFieldIds = {
+    dataInicio: 'dashboard-relatorio-data-inicio',
+    dataFim: 'dashboard-relatorio-data-fim',
+    status: 'dashboard-relatorio-status',
+  };
+
+  const cadastroFieldIds = {
+    nome: 'dashboard-cadastro-nome',
+    email: 'dashboard-cadastro-email',
+    telefone: 'dashboard-cadastro-telefone',
+    perfil: 'dashboard-cadastro-perfil',
+    senha: 'dashboard-cadastro-senha',
+  };
+
+  const edicaoFieldIds = {
+    nome: 'dashboard-edicao-nome',
+    email: 'dashboard-edicao-email',
+    telefone: 'dashboard-edicao-telefone',
+    perfil: 'dashboard-edicao-perfil',
+    cargo: 'dashboard-edicao-cargo',
+    ativo: 'dashboard-edicao-ativo',
+  };
+
+  useEscapeKey(() => {
+    if (editUser) {
+      setEditUser(null);
+      return;
+    }
+    if (showCadastro) {
+      setShowCadastro(false);
+    }
+  }, showCadastro || !!editUser);
+
   const loadData = useCallback(async () => {
     setErro(null);
     try {
@@ -226,16 +368,18 @@ const MasterDashboard: React.FC<{ usuario: User }> = ({ usuario }) => {
 
     return admins.map((admin): MasterGroup => {
       const adminSups = supervisors.filter(s => s.administradorId === admin.id);
+      const adminSupIds = new Set(adminSups.map(s => s.id));
       const adminFuncs = funcs.filter(f => f.administradorId === admin.id);
-      const supFuncs = funcs.filter(f => adminSups.some(s => s.id === f.supervisorId));
+      const supFuncs = funcs.filter(f => adminSupIds.has(f.supervisorId || ''));
       const adminConds = masterData.condominios.filter(c => c.criadoPor === admin.id);
-      const adminMoradores = masterData.moradores.filter(m =>
-        adminConds.some(c => c.id === m.condominioId)
-      );
+      const adminCondIds = new Set(adminConds.map(c => c.id));
+      const adminMoradores = masterData.moradores.filter(m => adminCondIds.has(m.condominioId || ''));
+      const funcionariosUnicos = Array.from(new Map([...adminFuncs, ...supFuncs].map(funcionario => [funcionario.id, funcionario])).values());
+
       return {
         admin,
         supervisors: adminSups,
-        funcionarios: [...adminFuncs, ...supFuncs].filter((funcionario, index, arr) => arr.findIndex(item => item.id === funcionario.id) === index),
+        funcionarios: funcionariosUnicos,
         condominios: adminConds,
         moradores: adminMoradores,
       };
@@ -395,50 +539,7 @@ const MasterDashboard: React.FC<{ usuario: User }> = ({ usuario }) => {
     { label: 'Sem Vínculo',         valor: dados.usuariosSemVinculo || 0,     icon: <UserX size={22} />,          cor: '#f57c00' },
   ];
 
-  const diasRestantes = (dataFim: string) => {
-    if (!dataFim) return null;
-    return Math.ceil((new Date(dataFim).getTime() - Date.now()) / 86400000);
-  };
-
   const countsByRole = (masterData.countsByRole || []).reduce<Partial<Record<UserRole, number>>>((acc, r) => ({ ...acc, [r.role]: r.total }), {});
-
-  /* ── UserRow helper ── */
-  const UserRow = ({ u, indent = 0 }: { u: DashboardUser; indent?: number }) => (
-    <tr key={u.id} style={{ opacity: actionLoading === u.id ? 0.5 : 1 }}>
-      <td style={{ paddingLeft: 12 + indent * 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ width: 8, height: 8, borderRadius: '50%', background: ROLE_CORES[u.role] || '#999', flexShrink: 0 }} />
-          <div>
-            <div style={{ fontWeight: 600 }}>{u.nome}</div>
-            <div style={{ fontSize: 11.5, color: 'var(--cor-texto-secundario)' }}>{u.email}</div>
-          </div>
-        </div>
-      </td>
-      <td>
-        <span style={{ fontSize: 12, fontWeight: 600, color: ROLE_CORES[u.role] || '#666', background: `${ROLE_CORES[u.role] || '#666'}15`, padding: '2px 10px', borderRadius: 20 }}>
-          {ROLE_LABELS[u.role] || u.role}
-        </span>
-      </td>
-      <td>{u.condominioNome || '—'}</td>
-      <td>{formatDate(String(u.criadoEm))}</td>
-      <td>
-        <StatusBadge
-          texto={u.bloqueado ? 'Bloqueado' : u.ativo ? 'Ativo' : 'Inativo'}
-          variante={u.bloqueado ? 'perigo' : u.ativo ? 'sucesso' : 'neutro'}
-        />
-      </td>
-      <td>
-        <div style={{ display: 'flex', gap: 4 }}>
-          <button title="Editar" onClick={() => setEditUser({ ...u })} style={btnIconStyle}><Edit2 size={14} /></button>
-          <button title={u.bloqueado ? 'Desbloquear' : 'Bloquear'} onClick={() => handleBloquear(u.id, !u.bloqueado)} style={{ ...btnIconStyle, color: u.bloqueado ? '#00897b' : '#d32f2f' }}>
-            {u.bloqueado ? <Unlock size={14} /> : <Lock size={14} />}
-          </button>
-          <button title="Resetar Senha (123456)" onClick={() => handleResetSenha(u.id, u.nome)} style={{ ...btnIconStyle, color: '#f57c00' }}><Key size={14} /></button>
-          <button title="Excluir" onClick={() => handleExcluir(u.id, u.nome)} style={{ ...btnIconStyle, color: '#d32f2f' }}><Trash2 size={14} /></button>
-        </div>
-      </td>
-    </tr>
-  );
 
   return (
     <div id="dashboard-content">
@@ -579,30 +680,38 @@ const MasterDashboard: React.FC<{ usuario: User }> = ({ usuario }) => {
           return (
             <Card key={admin?.id || 'unlinked'} padding="none" style={{ marginBottom: 16, overflow: 'hidden' }}>
               {/* Admin Header */}
-              <div
-                onClick={() => admin && toggleAdmin(admin.id)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', cursor: admin ? 'pointer' : 'default',
-                  background: admin?.bloqueado ? 'rgba(211,47,47,0.04)' : 'rgba(123,31,162,0.04)',
-                  borderBottom: isExpanded ? '1px solid var(--cor-borda)' : 'none',
-                }}
-              >
-                {admin && (isExpanded ? <ChevronDown size={18} color="#7b1fa2" /> : <ChevronRight size={18} color="#7b1fa2" />)}
-                <Shield size={20} color={admin?.bloqueado ? '#d32f2f' : '#7b1fa2'} />
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--cor-texto)' }}>
-                    {admin ? admin.nome : 'Usuários Sem Vínculo'}
-                    {admin?.bloqueado && <span style={{ marginLeft: 8, fontSize: 11, color: '#d32f2f', fontWeight: 600 }}>BLOQUEADO</span>}
+              <div style={{
+                display: 'flex', alignItems: 'stretch', gap: 12, padding: '14px 16px',
+                background: admin?.bloqueado ? 'rgba(211,47,47,0.04)' : 'rgba(123,31,162,0.04)',
+                borderBottom: isExpanded ? '1px solid var(--cor-borda)' : 'none',
+              }}>
+                <button
+                  type="button"
+                  onClick={() => admin && toggleAdmin(admin.id)}
+                  disabled={!admin}
+                  aria-expanded={admin ? isExpanded : undefined}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 12, flex: 1, cursor: admin ? 'pointer' : 'default',
+                    background: 'transparent', border: 'none', padding: 0, textAlign: 'left', color: 'inherit',
+                  }}
+                >
+                  {admin && (isExpanded ? <ChevronDown size={18} color="#7b1fa2" /> : <ChevronRight size={18} color="#7b1fa2" />)}
+                  <Shield size={20} color={admin?.bloqueado ? '#d32f2f' : '#7b1fa2'} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--cor-texto)' }}>
+                      {admin ? admin.nome : 'Usuários Sem Vínculo'}
+                      {admin?.bloqueado && <span style={{ marginLeft: 8, fontSize: 11, color: '#d32f2f', fontWeight: 600 }}>BLOQUEADO</span>}
+                    </div>
+                    {admin && <div style={{ fontSize: 12, color: 'var(--cor-texto-secundario)' }}>
+                      {admin.email} — Cadastro: {formatDate(String(admin.criadoEm))}
+                      {' — '}{group.condominios.length} {pluralize(group.condominios.length, 'condomínio', 'condomínios')}
+                      {' — '}{totalHier} {pluralize(totalHier, 'usuário', 'usuários')}
+                      {' — '}{group.moradores.length} {pluralize(group.moradores.length, 'morador', 'moradores')}
+                    </div>}
                   </div>
-                  {admin && <div style={{ fontSize: 12, color: 'var(--cor-texto-secundario)' }}>
-                    {admin.email} — Cadastro: {formatDate(String(admin.criadoEm))}
-                    {' — '}{group.condominios.length} condomínio{group.condominios.length !== 1 ? 's' : ''}
-                    {' — '}{totalHier} usuário{totalHier !== 1 ? 's' : ''}
-                    {' — '}{group.moradores.length} morador{group.moradores.length !== 1 ? 'es' : ''}
-                  </div>}
-                </div>
+                </button>
                 {admin && (
-                  <div style={{ display: 'flex', gap: 4 }} onClick={e => e.stopPropagation()}>
+                  <div style={{ display: 'flex', gap: 4 }}>
                     <button title="Editar" onClick={() => setEditUser({ ...admin })} style={btnIconStyle}><Edit2 size={14} /></button>
                     <button title={admin.bloqueado ? 'Desbloquear Todos' : 'Bloquear Todos'} onClick={() => handleBloquear(admin.id, !admin.bloqueado)}
                       style={{ ...btnIconStyle, color: admin.bloqueado ? '#00897b' : '#d32f2f' }}>
@@ -630,7 +739,7 @@ const MasterDashboard: React.FC<{ usuario: User }> = ({ usuario }) => {
                             <span style={{ marginLeft: 6, color: c.statusPlano ? STATUS_CORES[c.statusPlano] || '#999' : '#999', fontWeight: 600 }}>
                               ({c.statusPlano ? STATUS_LABELS[c.statusPlano] || c.statusPlano : 'Sem status'})
                             </span>
-                            <span style={{ marginLeft: 4, color: '#666' }}>— {c.totalMoradores || 0} morador{(c.totalMoradores || 0) !== 1 ? 'es' : ''}</span>
+                            <span style={{ marginLeft: 4, color: '#666' }}>— {c.totalMoradores || 0} {pluralize(c.totalMoradores || 0, 'morador', 'moradores')}</span>
                           </span>
                         ))}
                       </div>
@@ -668,8 +777,31 @@ const MasterDashboard: React.FC<{ usuario: User }> = ({ usuario }) => {
                         </tr>
                       </thead>
                       <tbody>
-                        {group.supervisors.map(s => <UserRow key={s.id} u={s} />)}
-                        {group.funcionarios.map(f => <UserRow key={f.id} u={f} indent={group.supervisors.length > 0 ? 1 : 0} />)}
+                        {group.supervisors.map(user => (
+                          <UserRow
+                            key={user.id}
+                            user={user}
+                            actionLoading={actionLoading}
+                            formatDate={formatDate}
+                            onEdit={setEditUser}
+                            onToggleBlock={handleBloquear}
+                            onResetPassword={handleResetSenha}
+                            onDelete={handleExcluir}
+                          />
+                        ))}
+                        {group.funcionarios.map(user => (
+                          <UserRow
+                            key={user.id}
+                            user={user}
+                            indent={group.supervisors.length > 0 ? 1 : 0}
+                            actionLoading={actionLoading}
+                            formatDate={formatDate}
+                            onEdit={setEditUser}
+                            onToggleBlock={handleBloquear}
+                            onResetPassword={handleResetSenha}
+                            onDelete={handleExcluir}
+                          />
+                        ))}
                       </tbody>
                     </table>
                   )}
@@ -702,16 +834,16 @@ const MasterDashboard: React.FC<{ usuario: User }> = ({ usuario }) => {
           <h3 className={styles.chartTitle} style={{ marginBottom: 16 }}>Gerar Relatório</h3>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'flex-end' }}>
             <div>
-              <label style={labelStyle}>Data Início</label>
-              <input type="date" value={repDataInicio} onChange={e => setRepDataInicio(e.target.value)} style={inputStyle} />
+              <label htmlFor={reportFieldIds.dataInicio} style={labelStyle}>Data Início</label>
+              <input id={reportFieldIds.dataInicio} type="date" value={repDataInicio} onChange={e => setRepDataInicio(e.target.value)} style={inputStyle} />
             </div>
             <div>
-              <label style={labelStyle}>Data Fim</label>
-              <input type="date" value={repDataFim} onChange={e => setRepDataFim(e.target.value)} style={inputStyle} />
+              <label htmlFor={reportFieldIds.dataFim} style={labelStyle}>Data Fim</label>
+              <input id={reportFieldIds.dataFim} type="date" value={repDataFim} onChange={e => setRepDataFim(e.target.value)} style={inputStyle} />
             </div>
             <div>
-              <label style={labelStyle}>Status do Plano</label>
-              <select value={repStatus} onChange={e => setRepStatus(e.target.value)} style={inputStyle}>
+              <label htmlFor={reportFieldIds.status} style={labelStyle}>Status do Plano</label>
+              <select id={reportFieldIds.status} value={repStatus} onChange={e => setRepStatus(e.target.value)} style={inputStyle}>
                 <option value="todos">Todos</option>
                 <option value="ativo">Adimplente (Ativo)</option>
                 <option value="teste">Em Teste</option>
@@ -764,7 +896,7 @@ const MasterDashboard: React.FC<{ usuario: User }> = ({ usuario }) => {
                       <td>
                         <StatusBadge
                           texto={c.statusPlano ? STATUS_LABELS[c.statusPlano] || c.statusPlano : '—'}
-                          variante={c.statusPlano === 'ativo' ? 'sucesso' : c.statusPlano === 'inadimplente' ? 'perigo' : c.statusPlano === 'bloqueado' ? 'neutro' : 'aviso'}
+                          variante={getPlanoStatusVariant(c.statusPlano)}
                         />
                       </td>
                       <td>{c.plano || '—'}</td>
@@ -811,10 +943,7 @@ const MasterDashboard: React.FC<{ usuario: User }> = ({ usuario }) => {
                       <td>{u.condominioNome || '—'}</td>
                       <td>{u.adminNome || '—'}</td>
                       <td>
-                        <StatusBadge
-                          texto={u.bloqueado ? 'Bloqueado' : u.ativo ? 'Ativo' : 'Inativo'}
-                          variante={u.bloqueado ? 'perigo' : u.ativo ? 'sucesso' : 'neutro'}
-                        />
+                        <StatusBadge {...getUserStatusBadge(u)} />
                       </td>
                       <td>{formatDate(String(u.criadoEm))}</td>
                     </tr>
@@ -829,26 +958,22 @@ const MasterDashboard: React.FC<{ usuario: User }> = ({ usuario }) => {
       )}
 
       {/* ═══ MODAL: Cadastrar Usuário ═══ */}
-      {showCadastro && (
-        <div style={overlayStyle}>
-          <div style={modalStyle}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Cadastrar Usuário</h3>
-              <button onClick={() => setShowCadastro(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--cor-texto-secundario)' }}><X size={20} /></button>
-            </div>
+      <Modal aberto={showCadastro} onFechar={() => setShowCadastro(false)} titulo="Cadastrar Usuário" largura="md">
+        {showCadastro && (
+          <>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div><label style={labelStyle}>Nome *</label><input value={cadForm.nome} onChange={e => setCadForm(p => ({ ...p, nome: e.target.value }))} style={inputStyle} /></div>
-              <div><label style={labelStyle}>E-mail *</label><input value={cadForm.email} onChange={e => setCadForm(p => ({ ...p, email: e.target.value }))} style={inputStyle} type="email" /></div>
-              <div><label style={labelStyle}>Telefone</label><input value={cadForm.telefone} onChange={e => setCadForm(p => ({ ...p, telefone: e.target.value }))} style={inputStyle} /></div>
+              <div><label htmlFor={cadastroFieldIds.nome} style={labelStyle}>Nome *</label><input id={cadastroFieldIds.nome} value={cadForm.nome} onChange={e => setCadForm(p => ({ ...p, nome: e.target.value }))} style={inputStyle} /></div>
+              <div><label htmlFor={cadastroFieldIds.email} style={labelStyle}>E-mail *</label><input id={cadastroFieldIds.email} value={cadForm.email} onChange={e => setCadForm(p => ({ ...p, email: e.target.value }))} style={inputStyle} type="email" /></div>
+              <div><label htmlFor={cadastroFieldIds.telefone} style={labelStyle}>Telefone</label><input id={cadastroFieldIds.telefone} value={cadForm.telefone} onChange={e => setCadForm(p => ({ ...p, telefone: e.target.value }))} style={inputStyle} /></div>
               <div>
-                <label style={labelStyle}>Perfil</label>
-                <select value={cadForm.role} onChange={e => setCadForm(p => ({ ...p, role: e.target.value as ManagedRole }))} style={inputStyle}>
+                <label htmlFor={cadastroFieldIds.perfil} style={labelStyle}>Perfil</label>
+                <select id={cadastroFieldIds.perfil} value={cadForm.role} onChange={e => setCadForm(p => ({ ...p, role: e.target.value as ManagedRole }))} style={inputStyle}>
                   <option value="administrador">Administrador</option>
                   <option value="supervisor">Supervisor</option>
                   <option value="funcionario">Funcionário</option>
                 </select>
               </div>
-              <div><label style={labelStyle}>Senha</label><input value={cadForm.senha} onChange={e => setCadForm(p => ({ ...p, senha: e.target.value }))} style={inputStyle} /></div>
+              <div><label htmlFor={cadastroFieldIds.senha} style={labelStyle}>Senha</label><input id={cadastroFieldIds.senha} value={cadForm.senha} onChange={e => setCadForm(p => ({ ...p, senha: e.target.value }))} style={inputStyle} /></div>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 20 }}>
               <button onClick={() => setShowCadastro(false)} style={{ padding: '10px 20px', border: '1px solid var(--cor-borda)', borderRadius: 10, background: 'none', cursor: 'pointer', fontWeight: 600, color: 'var(--cor-texto)' }}>Cancelar</button>
@@ -857,34 +982,30 @@ const MasterDashboard: React.FC<{ usuario: User }> = ({ usuario }) => {
                 {actionLoading === 'cadastro' ? 'Salvando...' : 'Cadastrar'}
               </button>
             </div>
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </Modal>
 
       {/* ═══ MODAL: Editar Usuário ═══ */}
-      {editUser && (
-        <div style={overlayStyle}>
-          <div style={modalStyle}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Editar Usuário</h3>
-              <button onClick={() => setEditUser(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--cor-texto-secundario)' }}><X size={20} /></button>
-            </div>
+      <Modal aberto={!!editUser} onFechar={() => setEditUser(null)} titulo="Editar Usuário" largura="md">
+        {editUser && (
+          <>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div><label style={labelStyle}>Nome</label><input value={editUser.nome} onChange={e => setEditUser(p => p ? { ...p, nome: e.target.value } : p)} style={inputStyle} /></div>
-              <div><label style={labelStyle}>E-mail</label><input value={editUser.email} disabled style={{ ...inputStyle, opacity: 0.6 }} /></div>
-              <div><label style={labelStyle}>Telefone</label><input value={editUser.telefone || ''} onChange={e => setEditUser(p => p ? { ...p, telefone: e.target.value } : p)} style={inputStyle} /></div>
+              <div><label htmlFor={edicaoFieldIds.nome} style={labelStyle}>Nome</label><input id={edicaoFieldIds.nome} value={editUser.nome} onChange={e => setEditUser(p => p ? { ...p, nome: e.target.value } : p)} style={inputStyle} /></div>
+              <div><label htmlFor={edicaoFieldIds.email} style={labelStyle}>E-mail</label><input id={edicaoFieldIds.email} value={editUser.email} disabled style={{ ...inputStyle, opacity: 0.6 }} /></div>
+              <div><label htmlFor={edicaoFieldIds.telefone} style={labelStyle}>Telefone</label><input id={edicaoFieldIds.telefone} value={editUser.telefone || ''} onChange={e => setEditUser(p => p ? { ...p, telefone: e.target.value } : p)} style={inputStyle} /></div>
               <div>
-                <label style={labelStyle}>Perfil</label>
-                <select value={editUser.role} onChange={e => setEditUser(p => p ? { ...p, role: e.target.value as UserRole } : p)} style={inputStyle}>
+                <label htmlFor={edicaoFieldIds.perfil} style={labelStyle}>Perfil</label>
+                <select id={edicaoFieldIds.perfil} value={editUser.role} onChange={e => setEditUser(p => p ? { ...p, role: e.target.value as UserRole } : p)} style={inputStyle}>
                   <option value="administrador">Administrador</option>
                   <option value="supervisor">Supervisor</option>
                   <option value="funcionario">Funcionário</option>
                 </select>
               </div>
-              <div><label style={labelStyle}>Cargo</label><input value={editUser.cargo || ''} onChange={e => setEditUser(p => p ? { ...p, cargo: e.target.value } : p)} style={inputStyle} /></div>
+              <div><label htmlFor={edicaoFieldIds.cargo} style={labelStyle}>Cargo</label><input id={edicaoFieldIds.cargo} value={editUser.cargo || ''} onChange={e => setEditUser(p => p ? { ...p, cargo: e.target.value } : p)} style={inputStyle} /></div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <input type="checkbox" checked={editUser.ativo} onChange={e => setEditUser(p => p ? { ...p, ativo: e.target.checked } : p)} />
-                <label style={{ fontSize: 14 }}>Ativo</label>
+                <input id={edicaoFieldIds.ativo} type="checkbox" checked={editUser.ativo} onChange={e => setEditUser(p => p ? { ...p, ativo: e.target.checked } : p)} />
+                <label htmlFor={edicaoFieldIds.ativo} style={{ fontSize: 14 }}>Ativo</label>
               </div>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 20 }}>
@@ -894,9 +1015,9 @@ const MasterDashboard: React.FC<{ usuario: User }> = ({ usuario }) => {
                 {actionLoading === 'editar' ? 'Salvando...' : 'Salvar'}
               </button>
             </div>
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </Modal>
 
       </>}
     </div>
@@ -909,21 +1030,13 @@ const btnIconStyle: React.CSSProperties = {
   display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
   color: 'var(--cor-texto-secundario)', transition: 'all 0.15s',
 };
-const overlayStyle: React.CSSProperties = {
-  position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)',
-  display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999,
-};
-const modalStyle: React.CSSProperties = {
-  background: 'var(--cor-superficie)', borderRadius: 16, padding: 28, width: '100%', maxWidth: 480,
-  maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-};
 const labelStyle: React.CSSProperties = { display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--cor-texto-secundario)', marginBottom: 4 };
 const inputStyle: React.CSSProperties = { width: '100%', padding: '10px 12px', border: '1px solid var(--cor-borda)', borderRadius: 10, fontSize: 14, background: 'var(--cor-fundo)', color: 'var(--cor-texto)' };
 
 /* ══════════ DASHBOARD PADRÃO (admin/supervisor/func) ══════════ */
 const StandardDashboard: React.FC = () => {
   const { usuario } = useAuth();
-  const { podeVerGeolocalizacao, roleNivel } = usePermissions();
+  const { roleNivel } = usePermissions();
   const navigate = useNavigate();
   const isFuncSupervisor = roleNivel <= 2;
 
@@ -950,6 +1063,7 @@ const StandardDashboard: React.FC = () => {
     { label: 'Vencimentos Próximos', valor: dados.vencimentosProximos, icon: <AlertTriangle size={22} />, cor: '#d32f2f' },
   ];
   const tipoData = dados.tipoArr.length ? dados.tipoArr : [{ nome: 'Sem dados', valor: 1 }];
+  const roleDescription = getRoleDescription(usuario?.role);
 
   return (
     <div id="dashboard-content">
@@ -966,7 +1080,7 @@ const StandardDashboard: React.FC = () => {
 
       <PageHeader
         titulo={`Olá, ${usuario?.nome || 'Usuário'} 👋`}
-        subtitulo={`${usuario?.role === 'administrador' ? 'Administrador' : usuario?.role === 'supervisor' ? 'Supervisor' : 'Funcionário'} — Aqui está o resumo do seu sistema`}
+        subtitulo={`${roleDescription} — Aqui está o resumo do seu sistema`}
         onCompartilhar={() => compartilharConteudo('Dashboard', 'Resumo do sistema Manutenção X')}
         onImprimir={() => imprimirElemento('dashboard-content')}
         onGerarPdf={() => gerarPdfDeElemento('dashboard-content', 'dashboard')}
@@ -1131,7 +1245,7 @@ const StandardDashboard: React.FC = () => {
             )}
             {dados.atividades.map((item, i: number) => (
               <div key={`${item.texto}-${item.tempo}-${i}`} className={styles.activityItem}>
-                <StatusBadge texto={item.tipo === 'sucesso' ? '✓' : item.tipo === 'aviso' ? '!' : item.tipo === 'perigo' ? '✕' : '●'} variante={(item.tipo || 'info') as 'sucesso' | 'aviso' | 'perigo' | 'info'} />
+                <StatusBadge {...getActivityBadge(item.tipo)} />
                 <div className={styles.activityInfo}>
                   <span className={styles.activityText}>{item.texto}</span>
                   <span className={styles.activityTime}>{item.tempo}</span>

@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useDemo } from '../../contexts/DemoContext';
 import { quadroAtividades as qaApi, configuracoes as configApi, condominios as condominiosApi } from '../../services/api';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 import styles from './QuadroAtividades.module.css';
 
 /* ============================================================
@@ -133,6 +134,20 @@ const QuadroAtividadesPage: React.FC = () => {
   const [modalConfig, setModalConfig] = useState(false);
   const [modalHistorico, setModalHistorico] = useState<Atividade | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+
+  useEscapeKey(() => {
+    if (modalHistorico) {
+      setModalHistorico(null);
+      return;
+    }
+    if (modalConfig) {
+      setModalConfig(false);
+      return;
+    }
+    if (modalForm) {
+      setModalForm(false);
+    }
+  }, modalForm || modalConfig || !!modalHistorico);
 
   // Form fields
   const [fTitulo, setFTitulo] = useState('');

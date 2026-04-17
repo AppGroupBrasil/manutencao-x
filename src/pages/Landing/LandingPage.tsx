@@ -394,12 +394,19 @@ const LandingPage: React.FC = () => {
               { perfil: 'Funcionário', descricao: 'Executa tarefas do dia, marca checklists e roteiros passo a passo. Registra execuções com foto, áudio e GPS. Escaneia QR Codes, bate ponto e reporta problemas.', cor: '#00897b', demo: 'funcionario' },
               { perfil: 'Morador', descricao: 'Resolve tudo pelo QR Code, "em necessidade de aplicativo. Responde formulário", avalia serviços e reporta ocorrências diretamente pelo celular.', cor: '#7b1fa2' },
             ].map((p) => (
-              <button
-                type="button"
+              <div
                 key={p.perfil}
                 className={`${styles.perfilCard} ${p.demo ? styles.perfilCardClicavel : ''}`}
+                role={p.demo ? 'button' : undefined}
+                tabIndex={p.demo ? 0 : undefined}
                 onClick={() => p.demo && navigate(`/demo/${p.demo}`)}
-                disabled={!p.demo}
+                onKeyDown={(e) => {
+                  if (!p.demo) return;
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    navigate(`/demo/${p.demo}`);
+                  }
+                }}
               >
                 <div className={styles.perfilBadge} style={{ background: `${p.cor}12`, color: p.cor, borderColor: `${p.cor}30` }}>
                   {p.perfil}
@@ -415,7 +422,7 @@ const LandingPage: React.FC = () => {
                     <Eye size={16} /> Testar Perfil
                   </button>
                 )}
-              </button>
+              </div>
             ))}
           </div>
         </div>

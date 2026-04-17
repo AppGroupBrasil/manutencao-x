@@ -1,6 +1,22 @@
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
-import html2canvas from 'html2canvas';
+type PdfModules = {
+  jsPDF: typeof import('jspdf').default;
+  html2canvas: typeof import('html2canvas').default;
+};
+
+let pdfModulesPromise: Promise<PdfModules> | null = null;
+
+async function loadPdfModules(): Promise<PdfModules> {
+  pdfModulesPromise ??= Promise.all([
+    import('jspdf'),
+    import('jspdf-autotable'),
+    import('html2canvas'),
+  ]).then(([jspdfModule, , html2canvasModule]) => ({
+    jsPDF: jspdfModule.default,
+    html2canvas: html2canvasModule.default,
+  }));
+
+  return pdfModulesPromise;
+}
 
 export async function gerarPdfDaTabela(
   titulo: string,
@@ -8,6 +24,7 @@ export async function gerarPdfDaTabela(
   linhas: string[][],
   nomeArquivo: string
 ) {
+  const { jsPDF } = await loadPdfModules();
   const pdf = new jsPDF('l', 'mm', 'a4');
   pdf.setFontSize(18);
   pdf.text(titulo, 14, 20);
@@ -30,6 +47,7 @@ export async function gerarPdfDeElemento(elementIdOrEl: string | HTMLElement, no
   const el = typeof elementIdOrEl === 'string' ? document.getElementById(elementIdOrEl) : elementIdOrEl;
   if (!el) return;
 
+  const { jsPDF, html2canvas } = await loadPdfModules();
   const canvas = await html2canvas(el, { scale: 2, useCORS: true });
   const imgData = canvas.toDataURL('image/png');
   const pdf = new jsPDF('l', 'mm', 'a4');

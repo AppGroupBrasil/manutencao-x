@@ -6,18 +6,22 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      injectRegister: null,
       registerType: 'autoUpdate',
-      includeAssets: ['logo.png', 'logo-192.png', 'apple-touch-icon.png', 'og-image.png'],
+      includeAssets: ['favicon.ico', 'logo-192.png', 'logo-512.png', 'apple-touch-icon.png', 'og-image.png'],
       manifest: {
         name: 'Manutenção X',
         short_name: 'Manutenção X',
         description: 'Sistema completo de manutenção predial e gestão de serviços',
+        id: '/',
         start_url: '/',
+        scope: '/',
         display: 'standalone',
         background_color: '#f5f7fa',
         theme_color: '#f57c00',
         orientation: 'portrait-primary',
         lang: 'pt-BR',
+        categories: ['business', 'productivity'],
         icons: [
           {
             src: '/logo-192.png',
@@ -26,13 +30,19 @@ export default defineConfig({
             purpose: 'any',
           },
           {
-            src: '/logo.png',
+            src: '/icon-192.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'maskable',
+          },
+          {
+            src: '/logo-512.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any',
           },
           {
-            src: '/logo.png',
+            src: '/icon-512.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'maskable',
@@ -48,6 +58,10 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+        navigateFallback: '/index.html',
+        cleanupOutdatedCaches: true,
+        clientsClaim: true,
+        skipWaiting: true,
         importScripts: ['/sw-push.js'],
         runtimeCaching: [
           {
@@ -108,7 +122,7 @@ export default defineConfig({
     open: true,
     hmr: {
       protocol: 'ws',
-      host: 'localhost',
+      host: '127.0.0.1',
       port: 3000,
     },
     proxy: {

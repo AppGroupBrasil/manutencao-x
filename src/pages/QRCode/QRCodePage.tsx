@@ -1,6 +1,5 @@
 ﻿import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import jsPDF from 'jspdf';
 import { QRCodeCanvas } from 'qrcode.react';
 import HowItWorks from '../../components/Common/HowItWorks';
 import PageHeader from '../../components/Common/PageHeader';
@@ -898,7 +897,8 @@ const QRCodePage: React.FC = () => {
   };
 
   // ── Gerar PDF profissional de uma solicitação ──
-  const gerarPdfSolicitacao = useCallback((sol: SolicitacaoQRCode) => {
+  const gerarPdfSolicitacao = useCallback(async (sol: SolicitacaoQRCode) => {
+    const { default: jsPDF } = await import('jspdf');
     const pdf = new jsPDF('p', 'mm', 'a4');
     const W = 210;
     const margin = 16;

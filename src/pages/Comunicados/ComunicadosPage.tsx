@@ -2,13 +2,15 @@
 import HowItWorks from '../../components/Common/HowItWorks';
 import PageHeader from '../../components/Common/PageHeader';
 import Card from '../../components/Common/Card';
+import Modal from '../../components/Common/Modal';
 import Pagination from '../../components/Common/Pagination';
 import { compartilharConteudo, imprimirElemento, gerarPdfDeElemento } from '../../utils/exportUtils';
 import { gerarEmailTemplate, gerarAssunto } from '../../utils/emailTemplates';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 import { usePagination } from '../../hooks/usePagination';
 import {
   Plus, X, Trash2, Send, Search, Building2, Mail, FileText,
-  Megaphone, Clock, Check, AlertCircle, Users, Home, ChevronDown, Paperclip,
+  Megaphone, Clock, Check, AlertCircle, Users, Home, Paperclip,
   Eye, EyeOff, ShieldAlert, BarChart3, RefreshCw, ExternalLink
 } from 'lucide-react';
 import { useDemo } from '../../contexts/DemoContext';
@@ -65,6 +67,63 @@ interface Comunicado {
   enviadoPor: string;
 }
 
+function mapMoradorResponse(morador: any): Morador {
+  return {
+    id: morador.id,
+    nome: morador.nome,
+    condominio: morador.condominioNome || morador.condominio || '',
+    bloco: morador.bloco || '',
+    apartamento: morador.apartamento || '',
+    whatsapp: morador.whatsapp || '',
+    email: morador.email || '',
+    perfil: morador.perfil || '',
+  };
+}
+
+function mapCondominioResponse(condominio: any): Condominio {
+  return { id: condominio.id, nome: condominio.nome };
+}
+
+function getCondominioOptions(condominios: Condominio[], condominiosUnicos: string[]) {
+  if (condominios.length > 0) {
+    return condominios.map(condominio => condominio.nome);
+  }
+
+  if (condominiosUnicos.length > 0) {
+    return condominiosUnicos;
+  }
+
+  return ['Condomínio Aurora', 'Condomínio Solar'];
+}
+
+function buildUpdatedTracking(tracking: EmailTracking[], updatedAt: string) {
+  const statusOpcoes: StatusEmail[] = ['aberto', 'nao_aberto', 'spam'];
+  const pesos = [0.55, 0.35, 0.1];
+
+  return tracking.map((item) => {
+    const rand = Math.random();
+    let acumulado = 0;
+    let novoStatus: StatusEmail = 'nao_aberto';
+
+    for (let index = 0; index < statusOpcoes.length; index++) {
+      acumulado += pesos[index];
+      if (rand <= acumulado) {
+        novoStatus = statusOpcoes[index];
+        break;
+      }
+    }
+
+    return { ...item, status: novoStatus, atualizadoEm: updatedAt };
+  });
+}
+
+function prependComunicado(
+  setComunicados: React.Dispatch<React.SetStateAction<Comunicado[]>>,
+  comunicado: Comunicado
+) {
+  setComunicados((prev) => [comunicado, ...prev]);
+}
+
 /* ============ Persistence ============ */
 
 function obterUsuarioAtual(): string {
@@ -87,17 +146,38 @@ const ComunicadosPage: React.FC = () => {
   const [moradores, setMoradores] = useState<Morador[]>([]);
   const [condominios, setCondominios] = useState<Condominio[]>([]);
   const [loading, setLoading] = useState(true);
+  const [erroCarregamento, setErroCarregamento] = useState<string | null>(null);
 
   useEffect(() => {
-    Promise.all([
-      comunicadosApi.list(),
-      moradoresApi.list().catch(() => []),
-      condominiosApi.list().catch(() => []),
-    ]).then(([coms, mors, conds]) => {
-      setComunicados(coms as Comunicado[]);
-      setMoradores((mors as any[]).map(m => ({ id: m.id, nome: m.nome, condominio: m.condominioNome || m.condominio || '', bloco: m.bloco || '', apartamento: m.apartamento || '', whatsapp: m.whatsapp || '', email: m.email || '', perfil: m.perfil || '' })));
-      setCondominios((conds as any[]).map(c => ({ id: c.id, nome: c.nome })));
-    }).catch(console.error).finally(() => setLoading(false));
+    let ativo = true;
+
+    const carregar = async () => {
+      try {
+        const [coms, mors, conds] = await Promise.all([
+          comunicadosApi.list(),
+          moradoresApi.list().catch(() => []),
+          condominiosApi.list().catch(() => []),
+        ]);
+
+        if (!ativo) return;
+
+        setComunicados(coms as Comunicado[]);
+        setMoradores((mors as any[]).map(mapMoradorResponse));
+        setCondominios((conds as any[]).map(mapCondominioResponse));
+        setErroCarregamento(null);
+      } catch {
+        if (!ativo) return;
+        setErroCarregamento('Não foi possível carregar comunicados. Tente novamente em instantes.');
+      } finally {
+        if (ativo) setLoading(false);
+      }
+    };
+
+    void carregar();
+
+    return () => {
+      ativo = false;
+    };
   }, []);
 
   const [modalAberto, setModalAberto] = useState(false);
@@ -109,6 +189,20 @@ const ComunicadosPage: React.FC = () => {
   const [filtroCond, setFiltroCond] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [envioSucesso, setEnvioSucesso] = useState(false);
+
+  useEscapeKey(() => {
+    if (modalPreviewHtml) {
+      setModalPreviewHtml(null);
+      return;
+    }
+    if (modalTracking) {
+      setModalTracking(null);
+      return;
+    }
+    if (modalAberto) {
+      fecharModal();
+    }
+  }, modalAberto || !!modalTracking || !!modalPreviewHtml);
 
   /* Form */
   const [tipo, setTipo] = useState<TipoEnvio>('aviso');
@@ -131,12 +225,12 @@ const ComunicadosPage: React.FC = () => {
     [moradores]
   );
 
-  const condList = condominios.length > 0 ? condominios.map(c => c.nome) :
-    condominiosUnicos.length > 0 ? condominiosUnicos : ['Condomínio Aurora', 'Condomínio Solar'];
+  const condList = getCondominioOptions(condominios, condominiosUnicos);
 
   const blocosDisponiveis = useMemo(() => {
     if (!destCond) return [];
-    return [...new Set(moradores.filter(m => m.condominio === destCond).map(m => m.bloco).filter(Boolean))].sort();
+    return [...new Set(moradores.filter(m => m.condominio === destCond).map(m => m.bloco).filter(Boolean))]
+      .sort((left, right) => left.localeCompare(right, 'pt-BR'));
   }, [destCond, moradores]);
 
   const moradoresDisponiveis = useMemo(() => {
@@ -155,7 +249,7 @@ const ComunicadosPage: React.FC = () => {
       alvo = moradores.filter(m => m.condominio === destCond && m.bloco === destBloco && m.email);
     } else {
       const mor = moradores.find(m => m.id === destMoradorId);
-      if (mor && mor.email) alvo = [mor];
+      if (mor?.email) alvo = [mor];
     }
     return {
       emails: alvo.map(m => m.email).filter(Boolean),
@@ -249,11 +343,14 @@ const ComunicadosPage: React.FC = () => {
         enviadoPor: obterUsuarioAtual(),
       };
 
-      comunicadosApi.create(novo).then((criado) => {
-        setComunicados(prev => [criado as Comunicado || novo, ...prev]);
-      }).catch(() => {
-        setComunicados(prev => [novo, ...prev]);
-      });
+      void (async () => {
+        try {
+          const criado = await comunicadosApi.create(novo);
+          prependComunicado(setComunicados, (criado as Comunicado) || novo);
+        } catch {
+          prependComunicado(setComunicados, novo);
+        }
+      })();
       setEnviando(false);
       setEnvioSucesso(true);
       setTimeout(() => {
@@ -296,23 +393,12 @@ const ComunicadosPage: React.FC = () => {
 
   /* Simular atualização de tracking (em produção viria de webhook do serviço de e-mail) */
   const simularAtualizacaoTracking = (comunicadoId: string) => {
-    setComunicados(prev => prev.map(c => {
-      if (c.id !== comunicadoId) return c;
-      const statusOpcoes: StatusEmail[] = ['aberto', 'nao_aberto', 'spam'];
-      const pesos = [0.55, 0.35, 0.10]; /* 55% abriu, 35% não abriu, 10% spam */
-      const agora = new Date().toISOString();
-      const novoTracking = c.tracking.map(t => {
-        const rand = Math.random();
-        let acumulado = 0;
-        let novoStatus: StatusEmail = 'nao_aberto';
-        for (let i = 0; i < statusOpcoes.length; i++) {
-          acumulado += pesos[i];
-          if (rand <= acumulado) { novoStatus = statusOpcoes[i]; break; }
-        }
-        return { ...t, status: novoStatus, atualizadoEm: agora };
-      });
-      return { ...c, tracking: novoTracking };
-    }));
+    const agora = new Date().toISOString();
+    setComunicados(prev => prev.map(c => (
+      c.id === comunicadoId
+        ? { ...c, tracking: buildUpdatedTracking(c.tracking, agora) }
+        : c
+    )));
   };
 
   /* Sync modal tracking com estado atualizado */
@@ -400,6 +486,14 @@ const ComunicadosPage: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [destTipo, destCond, destBloco, destMoradorId, moradores]);
 
+  const fieldIds = {
+    titulo: 'comunicados-titulo',
+    mensagem: 'comunicados-mensagem',
+    condominio: 'comunicados-condominio',
+    bloco: 'comunicados-bloco',
+    morador: 'comunicados-morador',
+  };
+
   if (loading) return <div style={{padding:'2rem',textAlign:'center'}}>Carregando comunicados...</div>;
 
   return (
@@ -421,6 +515,12 @@ const ComunicadosPage: React.FC = () => {
         onImprimir={imprimir}
         onGerarPdf={gerarPdf}
       />
+
+      {erroCarregamento && (
+        <Card>
+          <div style={{ color: '#b71c1c', fontWeight: 600 }}>{erroCarregamento}</div>
+        </Card>
+      )}
 
       {/* Cards de resumo */}
       <div className={styles.resumoGrid}>
@@ -566,14 +666,8 @@ const ComunicadosPage: React.FC = () => {
       </Card>
 
       {/* ===== Modal Envio ===== */}
-      {modalAberto && (
-        <div className={styles.overlay} onClick={fecharModal}>
-          <div className={styles.modal} onClick={e => e.stopPropagation()}>
-            <div className={styles.modalHeader}>
-              <h3>Novo Comunicado / Aviso</h3>
-              <button className={styles.modalClose} onClick={fecharModal}><X size={18} /></button>
-            </div>
-            <div className={styles.modalBody}>
+      <Modal aberto={modalAberto} onFechar={fecharModal} titulo="Novo Comunicado / Aviso" largura="lg">
+        <div className={styles.modalBody}>
 
               {envioSucesso ? (
                 <div className={styles.sucessoMsg}>
@@ -601,14 +695,15 @@ const ComunicadosPage: React.FC = () => {
 
                   {/* Título */}
                   <div className={styles.formGroup}>
-                    <label>Título *</label>
-                    <input value={titulo} onChange={e => setTitulo(e.target.value)} placeholder="Ex: Manutenção da piscina" />
+                    <label htmlFor={fieldIds.titulo}>Título *</label>
+                    <input id={fieldIds.titulo} value={titulo} onChange={e => setTitulo(e.target.value)} placeholder="Ex: Manutenção da piscina" />
                   </div>
 
                   {/* Mensagem */}
                   <div className={styles.formGroup}>
-                    <label>{tipo === 'aviso' ? 'Mensagem *' : 'Mensagem (corpo do e-mail)'}</label>
+                    <label htmlFor={fieldIds.mensagem}>{tipo === 'aviso' ? 'Mensagem *' : 'Mensagem (corpo do e-mail)'}</label>
                     <textarea
+                      id={fieldIds.mensagem}
                       value={mensagem}
                       onChange={e => setMensagem(e.target.value)}
                       placeholder={tipo === 'aviso' ? 'Digite o aviso rápido...' : 'Texto complementar ao PDF (opcional)...'}
@@ -661,8 +756,8 @@ const ComunicadosPage: React.FC = () => {
                     </div>
 
                     <div className={styles.formGroup}>
-                      <label>Condomínio *</label>
-                      <select value={destCond} onChange={e => { setDestCond(e.target.value); setDestBloco(''); setDestMoradorId(''); }}>
+                      <label htmlFor={fieldIds.condominio}>Condomínio *</label>
+                      <select id={fieldIds.condominio} value={destCond} onChange={e => { setDestCond(e.target.value); setDestBloco(''); setDestMoradorId(''); }}>
                         <option value="">Selecione...</option>
                         {condList.map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
@@ -670,8 +765,8 @@ const ComunicadosPage: React.FC = () => {
 
                     {destTipo === 'bloco' && destCond && (
                       <div className={styles.formGroup}>
-                        <label>Bloco *</label>
-                        <select value={destBloco} onChange={e => setDestBloco(e.target.value)}>
+                        <label htmlFor={fieldIds.bloco}>Bloco *</label>
+                        <select id={fieldIds.bloco} value={destBloco} onChange={e => setDestBloco(e.target.value)}>
                           <option value="">Selecione o bloco...</option>
                           {blocosDisponiveis.map(b => <option key={b} value={b}>{b}</option>)}
                         </select>
@@ -681,8 +776,8 @@ const ComunicadosPage: React.FC = () => {
 
                     {destTipo === 'morador' && destCond && (
                       <div className={styles.formGroup}>
-                        <label>Morador *</label>
-                        <select value={destMoradorId} onChange={e => setDestMoradorId(e.target.value)}>
+                        <label htmlFor={fieldIds.morador}>Morador *</label>
+                        <select id={fieldIds.morador} value={destMoradorId} onChange={e => setDestMoradorId(e.target.value)}>
                           <option value="">Selecione o morador...</option>
                           {moradoresDisponiveis.map(m => (
                             <option key={m.id} value={m.id}>{m.nome} — Bl.{m.bloco} Ap.{m.apartamento}</option>
@@ -719,44 +814,38 @@ const ComunicadosPage: React.FC = () => {
                   )}
                 </>
               )}
-            </div>
-
-            {!envioSucesso && (
-              <div className={styles.modalFooter}>
-                <button className={styles.btnCancelar} onClick={fecharModal} disabled={enviando}>Cancelar</button>
-                <button
-                  className={styles.btnEnviar}
-                  onClick={enviar}
-                  disabled={
-                    enviando ||
-                    !titulo.trim() ||
-                    !destCond ||
-                    (tipo === 'aviso' && !mensagem.trim()) ||
-                    (tipo === 'comunicado' && !mensagem.trim() && !pdfAnexo) ||
-                    (destTipo === 'bloco' && !destBloco) ||
-                    (destTipo === 'morador' && !destMoradorId) ||
-                    previewDest.emails.length === 0
-                  }
-                >
-                  {enviando ? (
-                    <><Clock size={16} /> Enviando...</>
-                  ) : (
-                    <><Send size={16} /> Enviar</>
-                  )}
-                </button>
-              </div>
-            )}
-          </div>
         </div>
-      )}
+
+        {!envioSucesso && (
+          <div className={styles.modalFooter}>
+            <button className={styles.btnCancelar} onClick={fecharModal} disabled={enviando}>Cancelar</button>
+            <button
+              className={styles.btnEnviar}
+              onClick={enviar}
+              disabled={
+                enviando ||
+                !titulo.trim() ||
+                !destCond ||
+                (tipo === 'aviso' && !mensagem.trim()) ||
+                (tipo === 'comunicado' && !mensagem.trim() && !pdfAnexo) ||
+                (destTipo === 'bloco' && !destBloco) ||
+                (destTipo === 'morador' && !destMoradorId) ||
+                previewDest.emails.length === 0
+              }
+            >
+              {enviando ? (
+                <><Clock size={16} /> Enviando...</>
+              ) : (
+                <><Send size={16} /> Enviar</>
+              )}
+            </button>
+          </div>
+        )}
+      </Modal>
       {/* ===== Modal Preview E-mail ===== */}
-      {modalPreviewHtml && (
-        <div className={styles.overlay} onClick={() => setModalPreviewHtml(null)}>
-          <div className={styles.modalLarge} onClick={e => e.stopPropagation()}>
-            <div className={styles.modalHeader}>
-              <h3>Preview do E-mail</h3>
-              <button className={styles.modalClose} onClick={() => setModalPreviewHtml(null)}><X size={18} /></button>
-            </div>
+      <Modal aberto={!!modalPreviewHtml} onFechar={() => setModalPreviewHtml(null)} titulo="Preview do E-mail" largura="lg">
+        {modalPreviewHtml && (
+          <>
             <div className={styles.emailPreviewWrap}>
               <iframe
                 title="Email Preview"
@@ -782,18 +871,13 @@ const ComunicadosPage: React.FC = () => {
                 <ExternalLink size={14} /> Baixar HTML
               </button>
             </div>
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </Modal>
       {/* ===== Modal Rastreamento ===== */}
-      {modalTracking && (
-        <div className={styles.overlay} onClick={() => setModalTracking(null)}>
-          <div className={styles.modal} onClick={e => e.stopPropagation()}>
-            <div className={styles.modalHeader}>
-              <h3>Rastreamento de E-mails</h3>
-              <button className={styles.modalClose} onClick={() => setModalTracking(null)}><X size={18} /></button>
-            </div>
-            <div className={styles.modalBody}>
+      <Modal aberto={!!modalTracking} onFechar={() => setModalTracking(null)} titulo="Rastreamento de E-mails" largura="md">
+        {modalTracking && (
+          <div className={styles.modalBody}>
               <div className={styles.trackingInfo}>
                 <strong>{modalTracking.titulo}</strong>
                 <span className={styles.trackingInfoSub}>{destLabel(modalTracking)} — {new Date(modalTracking.criadoEm).toLocaleDateString('pt-BR')}</span>
@@ -846,22 +930,26 @@ const ComunicadosPage: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {(modalTracking.tracking || []).map((t, i) => (
-                      <tr key={i}>
-                        <td className={styles.cellTitulo}>{t.nome}</td>
-                        <td>{t.email}</td>
-                        <td>
-                          <span className={`${styles.statusBadge} ${styles[`status_${t.status}`]}`}>
-                            {t.status === 'aberto' && <Eye size={11} />}
-                            {t.status === 'enviado' && <Send size={11} />}
-                            {t.status === 'nao_aberto' && <EyeOff size={11} />}
-                            {t.status === 'spam' && <ShieldAlert size={11} />}
-                            {statusLabel(t.status)}
-                          </span>
-                        </td>
-                        <td>{new Date(t.atualizadoEm).toLocaleString('pt-BR')}</td>
-                      </tr>
-                    ))}
+                    {(modalTracking.tracking || []).map((t) => {
+                      const statusClassName = styles['status_' + t.status];
+
+                      return (
+                        <tr key={t.email}>
+                          <td className={styles.cellTitulo}>{t.nome}</td>
+                          <td>{t.email}</td>
+                          <td>
+                            <span className={[styles.statusBadge, statusClassName].filter(Boolean).join(' ')}>
+                              {t.status === 'aberto' && <Eye size={11} />}
+                              {t.status === 'enviado' && <Send size={11} />}
+                              {t.status === 'nao_aberto' && <EyeOff size={11} />}
+                              {t.status === 'spam' && <ShieldAlert size={11} />}
+                              {statusLabel(t.status)}
+                            </span>
+                          </td>
+                          <td>{new Date(t.atualizadoEm).toLocaleString('pt-BR')}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -870,9 +958,8 @@ const ComunicadosPage: React.FC = () => {
                 Em produção, o rastreamento é feito via pixel de abertura e webhooks do serviço de e-mail (SendGrid, AWS SES, Mailgun). Os status são atualizados automaticamente.
               </p>
             </div>
-          </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   );
 };

@@ -6,6 +6,7 @@ import MainLayout from './components/Layout/MainLayout';
 import { getPortalToken, setPortalToken, portal as portalApi } from './services/api';
 import type { MoradorPortal } from './types';
 import OfflineIndicator from './components/Common/OfflineIndicator';
+import PwaManager from './components/Common/PwaManager';
 import { usePushNotifications } from './hooks/usePushNotifications';
 
 const lazyPage = <T extends React.ComponentType<any>>(loader: () => Promise<{ default: T }>) => React.lazy(loader);
@@ -205,6 +206,7 @@ const App: React.FC = () => {
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
     </Suspense>
+    {import.meta.env.PROD ? <PwaManager /> : null}
     <OfflineIndicator />
     </>
   );

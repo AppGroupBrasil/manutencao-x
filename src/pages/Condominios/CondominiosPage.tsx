@@ -9,6 +9,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { useDemo } from '../../contexts/DemoContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { condominios as condominiosApi } from '../../services/api';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 import styles from './Condominios.module.css';
 
 interface Condominio {
@@ -104,6 +105,16 @@ const CondominiosPage: React.FC = () => {
     setModalAberto(false);
     setEditandoId(null);
   };
+
+  useEscapeKey(() => {
+    if (statusModal) {
+      setStatusModal(null);
+      return;
+    }
+    if (modalAberto) {
+      fecharModal();
+    }
+  }, modalAberto || !!statusModal);
 
   const salvar = async () => {
     if (!form.nome.trim()) return;

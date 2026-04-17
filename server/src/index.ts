@@ -1,14 +1,14 @@
 import 'dotenv/config';
 import 'express-async-errors';
 import express from 'express';
-import { createServer } from 'http';
+import { createServer } from 'node:http';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import pool from './db/database.js';
 import { authMiddleware } from './middleware/auth.js';
 import { scopeMiddleware } from './middleware/rbac.js';
@@ -64,7 +64,47 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
 const httpServer = createServer(app);
-const PORT = parseInt(process.env.PORT || '3001');
+const PORT = Number.parseInt(process.env.PORT || '3001');
+
+const REQUIRED_ENV_VARS = ['DB_PASSWORD', 'JWT_SECRET', 'FRONTEND_URL', 'CORS_ORIGIN'] as const;
+
+function validateCriticalEnvironment() {
+  if (process.env.NODE_ENV !== 'production') return;
+
+  const missing = REQUIRED_ENV_VARS.filter((key) => !process.env[key]?.trim());
+  if (missing.length > 0) {
+    console.error(`[ENV] ❌ Variáveis obrigatórias ausentes: ${missing.join(', ')}`);
+    process.exit(1);
+  }
+}
+
+function expandAllowedOrigin(origin: string) {
+  const variants = new Set([origin]);
+
+  if (origin.includes('localhost')) {
+    variants.add(origin.replace('localhost', '127.0.0.1'));
+  }
+
+  if (origin.includes('127.0.0.1')) {
+    variants.add(origin.replace('127.0.0.1', 'localhost'));
+  }
+
+  variants.add(origin.replace('https://', 'https://www.'));
+  variants.add(origin.replace('https://www.', 'https://'));
+
+  return Array.from(variants);
+}
+
+async function checkDatabaseConnection() {
+  const client = await pool.connect();
+  try {
+    await client.query('SELECT 1');
+  } finally {
+    client.release();
+  }
+}
+
+validateCriticalEnvironment();
 
 // ── Middlewares globais ──
 app.use(compression());
@@ -88,7 +128,7 @@ app.use(cors({
     // Permitir requests sem origin (mobile apps, curl, proxies internos)
     if (!origin) return cb(null, true);
     // Checar lista de origens permitidas
-    if (allowedOrigins.some(allowed => origin === allowed || origin === allowed.replace('https://', 'https://www.') || origin === allowed.replace('https://www.', 'https://'))) {
+    if (allowedOrigins.some(allowed => expandAllowedOrigin(allowed).includes(origin))) {
       return cb(null, true);
     }
     console.warn(`[CORS] Origem bloqueada: ${origin}`);
@@ -128,7 +168,7 @@ protectedRouter.use(scopeMiddleware);
 // Metrics tracking (non-blocking, POST/PUT/PATCH/DELETE only)
 protectedRouter.use((req: any, _res, next) => {
   if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method) && req.user) {
-    const condId = (req as any).condominioIds?.[0] || null;
+    const condId = req.condominioIds?.[0] || null;
     const acao = `${req.method} ${req.baseUrl}${req.path}`.slice(0, 100);
     trackMetric(condId, req.user.id, acao);
   }
@@ -181,20 +221,56 @@ protectedRouter.use('/orcamentos', orcamentosRoutes);
 // ── Health check (before auth middleware) ──
 app.get('/api/health', async (_req, res) => {
   try {
-    const client = await pool.connect();
-    try {
-      const dbResult = await client.query('SELECT 1');
-      const uptime = process.uptime();
-      res.json({
-        status: 'ok',
-        timestamp: new Date().toISOString(),
-      });
-    } finally {
-      client.release();
-    }
+    await checkDatabaseConnection();
+    res.json({
+      status: 'ok',
+      service: 'manutencao-api',
+      environment: process.env.NODE_ENV || 'development',
+      timestamp: new Date().toISOString(),
+      uptimeSeconds: Math.round(process.uptime()),
+    });
   } catch {
     res.status(503).json({ status: 'error', database: 'disconnected' });
   }
+});
+
+app.get('/api/ready', async (_req, res) => {
+  const missingEnv = REQUIRED_ENV_VARS.filter((key) => !process.env[key]?.trim());
+
+  try {
+    await checkDatabaseConnection();
+  } catch {
+    res.status(503).json({
+      status: 'not_ready',
+      checks: {
+        database: 'down',
+        env: missingEnv.length === 0 ? 'ok' : 'missing',
+      },
+      missingEnv,
+    });
+    return;
+  }
+
+  if (missingEnv.length > 0) {
+    res.status(503).json({
+      status: 'not_ready',
+      checks: {
+        database: 'ok',
+        env: 'missing',
+      },
+      missingEnv,
+    });
+    return;
+  }
+
+  res.json({
+    status: 'ready',
+    checks: {
+      database: 'ok',
+      env: 'ok',
+    },
+    timestamp: new Date().toISOString(),
+  });
 });
 
 app.use('/api', protectedRouter);

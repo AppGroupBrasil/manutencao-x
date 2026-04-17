@@ -1,9 +1,71 @@
 import { safeStorage } from '../utils/storage';
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
+const API_CACHE_PREFIX = 'manutencao_api_cache';
+const API_CACHE_VERSION = 'v1';
+const PUBLIC_AUTH_PATHS = new Set([
+  '/auth/login',
+  '/auth/self-register',
+  '/auth/forgot-password',
+  '/auth/reset-password',
+]);
 
 let authToken: string | null = safeStorage.getItem('manutencao_token');
 let isRedirecting = false; // Previne múltiplos redirects simultâneos
+
+function hashScope(value: string | null) {
+  if (!value) return 'public';
+
+  let hash = 0;
+  for (let i = 0; i < value.length; i++) {
+    hash = Math.trunc((((hash << 5) - hash) + (value.codePointAt(i) || 0)));
+  }
+
+  return Math.abs(hash).toString(36);
+}
+
+function buildCacheKey(scope: 'api' | 'portal', path: string, token: string | null) {
+  return `${API_CACHE_PREFIX}:${API_CACHE_VERSION}:${scope}:${hashScope(token)}:${path}`;
+}
+
+function readCachedResponse<T>(cacheKey: string): T | null {
+  const raw = safeStorage.getItem(cacheKey);
+  if (!raw) return null;
+
+  try {
+    const parsed = JSON.parse(raw) as { data?: T };
+    return parsed.data ?? null;
+  } catch {
+    safeStorage.removeItem(cacheKey);
+    return null;
+  }
+}
+
+function writeCachedResponse(cacheKey: string, data: unknown) {
+  safeStorage.setItem(cacheKey, JSON.stringify({ savedAt: Date.now(), data }));
+}
+
+function getCachedOrThrow<T>(cacheKey: string | null, message: string): T {
+  const cached = cacheKey ? readCachedResponse<T>(cacheKey) : null;
+  if (cached !== null) {
+    return cached;
+  }
+
+  throw new Error(message);
+}
+
+function parseJsonResponse<T>(res: Response, cacheKey: string | null): Promise<T> {
+  if (res.status === 204) {
+    if (cacheKey) writeCachedResponse(cacheKey, {});
+    return Promise.resolve({} as T);
+  }
+
+  return res.json().then((json) => {
+    const data = toCamel(json) as T;
+    if (cacheKey) writeCachedResponse(cacheKey, data);
+    return data;
+  });
+}
 
 export function setToken(token: string | null) {
   authToken = token;
@@ -111,6 +173,10 @@ async function handleFailedResponse(res: Response, path: string) {
 
   if (res.status === 403) {
     const body = await getErrorBody(res);
+    if (path === '/auth/login') {
+      const details = [body.error, body.motivo].filter(Boolean).join(': ');
+      throw new Error(details || 'Acesso negado');
+    }
     throw new Error(body.error || body.motivo || 'Acesso negado');
   }
 
@@ -131,13 +197,16 @@ async function request<T = any>(
   path: string,
   options: RequestInit = {}
 ): Promise<T> {
+  const method = (options.method || 'GET').toUpperCase();
+  const cacheKey = method === 'GET' ? buildCacheKey('api', path, authToken) : null;
+  const isPublicAuthRoute = PUBLIC_AUTH_PATHS.has(path);
   const extraHeaders = options.headers as Record<string, string> | undefined;
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
   if (extraHeaders) Object.assign(headers, extraHeaders);
 
-  if (authToken) {
+  if (authToken && !isPublicAuthRoute) {
     headers['Authorization'] = `Bearer ${authToken}`;
   }
 
@@ -154,6 +223,9 @@ async function request<T = any>(
     });
   } catch (err: any) {
     clearTimeout(timeoutId);
+    if (err.name !== 'AbortError') {
+      return getCachedOrThrow<T>(cacheKey, 'Sem conexão com o servidor. Verifique sua internet.');
+    }
     if (err.name === 'AbortError') {
       throw new Error('Servidor demorou para responder. Tente novamente.');
     }
@@ -166,9 +238,7 @@ async function request<T = any>(
     await handleFailedResponse(res, path);
   }
 
-  if (res.status === 204) return {} as T;
-  const json = await res.json();
-  return toCamel(json) as T;
+  return parseJsonResponse<T>(res, cacheKey);
 }
 
 /* Wrapper para enviar body */
@@ -551,6 +621,8 @@ export function getPortalToken(): string | null {
 }
 
 async function portalRequest<T = any>(path: string, options: RequestInit = {}): Promise<T> {
+  const method = (options.method || 'GET').toUpperCase();
+  const cacheKey = method === 'GET' ? buildCacheKey('portal', path, portalToken) : null;
   const extraHeaders = options.headers as Record<string, string> | undefined;
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -558,7 +630,12 @@ async function portalRequest<T = any>(path: string, options: RequestInit = {}): 
   if (extraHeaders) Object.assign(headers, extraHeaders);
   if (portalToken) headers['Authorization'] = `Bearer ${portalToken}`;
 
-  const res = await fetch(`${PORTAL_BASE}/portal${path}`, { ...options, headers });
+  let res: Response;
+  try {
+    res = await fetch(`${PORTAL_BASE}/portal${path}`, { ...options, headers });
+  } catch {
+    return getCachedOrThrow<T>(cacheKey, 'Sem conexão com o servidor. Verifique sua internet.');
+  }
 
   if (res.status === 401) {
     const had = !!portalToken;
@@ -570,9 +647,7 @@ async function portalRequest<T = any>(path: string, options: RequestInit = {}): 
     const body = await res.json().catch(() => ({}));
     throw new Error(body.error || `Erro ${res.status}`);
   }
-  if (res.status === 204) return {} as T;
-  const json = await res.json();
-  return toCamel(json) as T;
+  return parseJsonResponse<T>(res, cacheKey);
 }
 
 function portalPost<T = any>(path: string, data: any) {

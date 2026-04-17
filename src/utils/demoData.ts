@@ -1,6 +1,99 @@
 import type { UserRole } from '../types';
 
-const DEMO_DATA_VERSION = 5;
+const DEMO_DATA_VERSION = 6;
+
+const DEMO_TEXT_REPLACEMENTS: Array<[string, string]> = [
+  ['S�o', 'São'],
+  ['Edif�cio', 'Edifício'],
+  ['Condom�nio', 'Condomínio'],
+  ['Ip�s', 'Ipês'],
+  ['tubula��o', 'tubulação'],
+  ['qu�mico', 'químico'],
+  ['�rea', 'área'],
+  ['�reas', 'áreas'],
+  ['�rvore', 'árvore'],
+  ['�rvores', 'árvores'],
+  ['l�mpada', 'lâmpada'],
+  ['l�mpadas', 'lâmpadas'],
+  ['T�cnico', 'Técnico'],
+  ['t�cnico', 'técnico'],
+  ['Conclu�do', 'Concluído'],
+  ['pend�ncias', 'pendências'],
+  ['Manuten��o', 'Manutenção'],
+  ['manuten��o', 'manutenção'],
+  ['ru�do', 'ruído'],
+  ['�mido', 'úmido'],
+  ['ilumina��o', 'iluminação'],
+  ['recep��o', 'recepção'],
+  ['Desinsetiza��o', 'Desinsetização'],
+  ['desinsetiza��o', 'desinsetização'],
+  ['Funcion�rio', 'Funcionário'],
+  ['Reposi��o', 'Reposição'],
+  ['Inspe��o', 'Inspeção'],
+  ['Descart�veis', 'Descartáveis'],
+  ['Higi�nico', 'Higiênico'],
+  ['El�trica', 'Elétrica'],
+  ['Movimenta��es', 'Movimentações'],
+  ['Servi�o', 'Serviço'],
+  ['servi�o', 'serviço'],
+  ['Propriet�rio', 'Proprietário'],
+  ['ficar�', 'ficará'],
+  ['mar�o', 'março'],
+  ['Ordin�ria', 'Ordinária'],
+  ['cond�minos', 'condôminos'],
+  ['ordin�ria', 'ordinária'],
+  ['sal�o', 'salão'],
+  ['Sal�o', 'Salão'],
+  ['c�meras', 'câmeras'],
+  ['Instala��o', 'Instalação'],
+  ['corrim�os', 'corrimãos'],
+  ['port�o', 'portão'],
+  ['Execu��es', 'Execuções'],
+  ['Verifica��o', 'Verificação'],
+  ['n�vel', 'nível'],
+  ['m�veis', 'móveis'],
+  ['sPiso Molhados', 'Piso Molhado'],
+  ['sinaliza��o', 'sinalização'],
+  ['m�quina', 'máquina'],
+  ['press�o', 'pressão'],
+  ['sof�s', 'sofás'],
+  ['L�mpada', 'Lâmpada'],
+  ['Infiltra��o', 'Infiltração'],
+  ['Bot�es', 'Botões'],
+  ['Formul�rios', 'Formulários'],
+  ['Avalia��o', 'Avaliação'],
+  ['Formul�rio', 'Formulário'],
+  ['voc�', 'você'],
+  ['Observa��es', 'Observações'],
+  ['Ocorr�ncia', 'Ocorrência'],
+  ['N�vel', 'Nível'],
+  ['3�', '3º'],
+  ['1�', '1º'],
+  ['5�', '5º'],
+  ['10�', '10º'],
+  ['�s', 'às'],
+];
+
+function normalizeDemoValue<T>(value: T): T {
+  if (typeof value === 'string') {
+    return DEMO_TEXT_REPLACEMENTS.reduce<string>((text, [from, to]) => text.split(from).join(to), value) as T;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map(item => normalizeDemoValue(item)) as T;
+  }
+
+  if (value && typeof value === 'object') {
+    const normalizedEntries = Object.entries(value).map(([key, currentValue]) => [key, normalizeDemoValue(currentValue)]);
+    return Object.fromEntries(normalizedEntries) as T;
+  }
+
+  return value;
+}
+
+function setNormalizedDemoItem(key: string, value: unknown) {
+  localStorage.setItem(key, JSON.stringify(normalizeDemoValue(value)));
+}
 
 // Clear all demo-seeded localStorage keys (including legacy wrong keys)
 export function clearDemoData() {
@@ -23,6 +116,15 @@ export function clearDemoData() {
 
 // Seed demo data into localStorage for demo mode
 export function seedDemoData() {
+  const demoKeys = [
+    'manutencao-condominios', 'manutencao-ordens-servico', 'manutencao-checklists', 'manutencao_tarefas_agendadas',
+    'manutencao_tarefas_execucoes', 'manutencao-materiais', 'manutencao-materiais-movimentacoes', 'manutencao-escalas',
+    'manutencao-vencimentos', 'manutencao-moradores', 'manutencao-comunicados', 'manutencao-quadro-atividades',
+    'manutencao-vistorias', 'manutencao_roteiros_execucao', 'manutencao_roteiros_exec_log', 'manutencao-reportes',
+    'manutencao-inspecoes', 'manutencao-qrcodes', 'manutencao-equipamentos', 'manutencao-fornecedores',
+    'manutencao-planos-manutencao', 'manutencao-documentos', 'manutencao-solicitacoes', 'manutencao-controle-ponto',
+  ];
+
   const currentVersion = Number(localStorage.getItem('manutencao_demo_version') || '0');
   if (currentVersion < DEMO_DATA_VERSION) {
     clearDemoData();
@@ -35,11 +137,11 @@ export function seedDemoData() {
 
   // Condominios
   if (!localStorage.getItem('manutencao-condominios')) {
-    localStorage.setItem('manutencao-condominios', JSON.stringify([
+    setNormalizedDemoItem('manutencao-condominios', [
       { id: 'c1', nome: 'Residencial Aurora', endereco: 'Rua das Flores, 500', cidade: 'S�o Paulo', blocos: 3, unidades: 120, sindico: 'Carlos Mendes', telefone: '(11) 99999-0001', email: 'aurora@cond.com' },
       { id: 'c2', nome: 'Edif�cio Central Park', endereco: 'Av Paulista, 1500', cidade: 'S�o Paulo', blocos: 1, unidades: 60, sindico: 'Ana Oliveira', telefone: '(11) 99999-0002', email: 'centralpark@cond.com' },
       { id: 'c3', nome: 'Condom�nio Vila Verde', endereco: 'Rua dos Ip�s, 200', cidade: 'S�o Paulo', blocos: 2, unidades: 80, sindico: 'Roberto Lima', telefone: '(11) 99999-0003', email: 'vilaverde@cond.com' },
-    ]));
+    ]);
   }
 
   // Ordens de Serviço (key: manutencao-ordens-servico)
@@ -88,11 +190,11 @@ export function seedDemoData() {
   // Materiais / Estoque
   if (!localStorage.getItem('manutencao-materiais')) {
     localStorage.setItem('manutencao-materiais', JSON.stringify([
-      { id: 'm1', protocolo: 'MAT-20260301-1001', nome: 'Detergente Multiuso', categoria: 'Limpeza', unidade: 'Litros', qtd: 25, min: 10, custo: 18.90, emailNotificacao: 'estoque@condominio.com', condominio: 'Residencial Aurora' },
-      { id: 'm2', protocolo: 'MAT-20260301-1002', nome: 'Saco de Lixo 100L', categoria: 'Descart�veis', unidade: 'Pacotes', qtd: 8, min: 5, custo: 12.50, emailNotificacao: 'estoque@condominio.com', condominio: 'Residencial Aurora' },
-      { id: 'm3', protocolo: 'MAT-20260301-1003', nome: 'Desinfetante 5L', categoria: 'Limpeza', unidade: 'un', qtd: 15, min: 8, custo: 22.50, emailNotificacao: 'estoque@condominio.com', condominio: 'Residencial Aurora' },
-      { id: 'm4', protocolo: 'MAT-20260301-1004', nome: 'Papel Higi�nico', categoria: 'Higiene', unidade: 'Fardos', qtd: 3, min: 5, custo: 45.00, emailNotificacao: 'estoque@condominio.com', condominio: 'Residencial Aurora' },
-      { id: 'm5', protocolo: 'MAT-20260301-1005', nome: 'L�mpada LED 12W', categoria: 'El�trica', unidade: 'Unidades', qtd: 20, min: 10, custo: 8.90, emailNotificacao: 'estoque@condominio.com', condominio: 'Residencial Aurora' },
+      { id: 'm1', protocolo: 'MAT-20260301-1001', nome: 'Detergente Multiuso', categoria: 'Limpeza', unidade: 'Litros', qtd: 25, min: 10, custo: 18.9, emailNotificacao: 'estoque@condominio.com', condominio: 'Residencial Aurora' },
+      { id: 'm2', protocolo: 'MAT-20260301-1002', nome: 'Saco de Lixo 100L', categoria: 'Descart�veis', unidade: 'Pacotes', qtd: 8, min: 5, custo: 12.5, emailNotificacao: 'estoque@condominio.com', condominio: 'Residencial Aurora' },
+      { id: 'm3', protocolo: 'MAT-20260301-1003', nome: 'Desinfetante 5L', categoria: 'Limpeza', unidade: 'un', qtd: 15, min: 8, custo: 22.5, emailNotificacao: 'estoque@condominio.com', condominio: 'Residencial Aurora' },
+      { id: 'm4', protocolo: 'MAT-20260301-1004', nome: 'Papel Higi�nico', categoria: 'Higiene', unidade: 'Fardos', qtd: 3, min: 5, custo: 45, emailNotificacao: 'estoque@condominio.com', condominio: 'Residencial Aurora' },
+      { id: 'm5', protocolo: 'MAT-20260301-1005', nome: 'L�mpada LED 12W', categoria: 'El�trica', unidade: 'Unidades', qtd: 20, min: 10, custo: 8.9, emailNotificacao: 'estoque@condominio.com', condominio: 'Residencial Aurora' },
     ]));
   }
 
@@ -271,8 +373,8 @@ export function seedDemoData() {
   // Fornecedores
   if (!localStorage.getItem('manutencao-fornecedores')) {
     localStorage.setItem('manutencao-fornecedores', JSON.stringify([
-      { id: 'forn1', nome: 'Alpha Elevadores', tipo: 'prestador', especialidade: 'Manutenção de elevadores', telefone: '(11) 4000-3000', email: 'contato@alphaelevadores.com', cidade: 'São Paulo', estado: 'SP', contatoNome: 'Ricardo Silva', status: 'ativo', valorContrato: 1850.00, condominio: 'Residencial Aurora' },
-      { id: 'forn2', nome: 'HidroTec Bombas', tipo: 'assistencia_tecnica', especialidade: 'Bombas e sistemas hidráulicos', telefone: '(11) 4000-4000', email: 'suporte@hidrotec.com.br', cidade: 'São Paulo', estado: 'SP', contatoNome: 'Fernanda Oliveira', status: 'ativo', valorContrato: 980.00, condominio: 'Residencial Aurora' },
+      { id: 'forn1', nome: 'Alpha Elevadores', tipo: 'prestador', especialidade: 'Manutenção de elevadores', telefone: '(11) 4000-3000', email: 'contato@alphaelevadores.com', cidade: 'São Paulo', estado: 'SP', contatoNome: 'Ricardo Silva', status: 'ativo', valorContrato: 1850, condominio: 'Residencial Aurora' },
+      { id: 'forn2', nome: 'HidroTec Bombas', tipo: 'assistencia_tecnica', especialidade: 'Bombas e sistemas hidráulicos', telefone: '(11) 4000-4000', email: 'suporte@hidrotec.com.br', cidade: 'São Paulo', estado: 'SP', contatoNome: 'Fernanda Oliveira', status: 'ativo', valorContrato: 980, condominio: 'Residencial Aurora' },
       { id: 'forn3', nome: 'EletroSafe Instalações', tipo: 'prestador', especialidade: 'Instalações elétricas e SPDA', telefone: '(11) 4000-5000', email: 'orcamento@eletrosafe.com.br', cidade: 'São Paulo', estado: 'SP', contatoNome: 'Jorge Pereira', status: 'ativo', condominio: 'Residencial Aurora' },
     ]));
   }
@@ -280,8 +382,8 @@ export function seedDemoData() {
   // Planos de Manutenção
   if (!localStorage.getItem('manutencao-planos-manutencao')) {
     localStorage.setItem('manutencao-planos-manutencao', JSON.stringify([
-      { id: 'plano1', titulo: 'Plano Elevador Mensal', descricao: 'Manutenção preventiva mensal do elevador', equipamentoId: 'eq1', categoriaEquipamento: 'elevador', frequencia: 'mensal', diaExecucao: 5, itensVerificacao: [{ item: 'Checar cabos de aço', obrigatorio: true }, { item: 'Testar freio de emergência', obrigatorio: true }, { item: 'Lubrificar guias', obrigatorio: true }], responsavelId: 'demo-sup', fornecedorId: 'forn1', custoEstimado: 650.00, proximaExecucao: new Date(now + 10 * day).toISOString().slice(0, 10), autoGerarOs: true, status: 'ativo', condominio: 'Residencial Aurora' },
-      { id: 'plano2', titulo: 'Revisão Trimestral da Bomba', descricao: 'Inspeção do sistema de recalque', equipamentoId: 'eq2', categoriaEquipamento: 'bomba', frequencia: 'trimestral', diaExecucao: 10, itensVerificacao: [{ item: 'Verificar pressão', obrigatorio: true }, { item: 'Checar selo mecânico', obrigatorio: true }], responsavelId: 'demo-sup', fornecedorId: 'forn2', custoEstimado: 980.00, proximaExecucao: new Date(now + 60 * day).toISOString().slice(0, 10), autoGerarOs: true, status: 'ativo', condominio: 'Residencial Aurora' },
+      { id: 'plano1', titulo: 'Plano Elevador Mensal', descricao: 'Manutenção preventiva mensal do elevador', equipamentoId: 'eq1', categoriaEquipamento: 'elevador', frequencia: 'mensal', diaExecucao: 5, itensVerificacao: [{ item: 'Checar cabos de aço', obrigatorio: true }, { item: 'Testar freio de emergência', obrigatorio: true }, { item: 'Lubrificar guias', obrigatorio: true }], responsavelId: 'demo-sup', fornecedorId: 'forn1', custoEstimado: 650, proximaExecucao: new Date(now + 10 * day).toISOString().slice(0, 10), autoGerarOs: true, status: 'ativo', condominio: 'Residencial Aurora' },
+      { id: 'plano2', titulo: 'Revisão Trimestral da Bomba', descricao: 'Inspeção do sistema de recalque', equipamentoId: 'eq2', categoriaEquipamento: 'bomba', frequencia: 'trimestral', diaExecucao: 10, itensVerificacao: [{ item: 'Verificar pressão', obrigatorio: true }, { item: 'Checar selo mecânico', obrigatorio: true }], responsavelId: 'demo-sup', fornecedorId: 'forn2', custoEstimado: 980, proximaExecucao: new Date(now + 60 * day).toISOString().slice(0, 10), autoGerarOs: true, status: 'ativo', condominio: 'Residencial Aurora' },
     ]));
   }
 
@@ -316,8 +418,8 @@ export function seedDemoData() {
   // Orçamentos
   if (!localStorage.getItem('manutencao-orcamentos')) {
     localStorage.setItem('manutencao-orcamentos', JSON.stringify([
-      { id: 'orc1', titulo: 'Orçamento de pintura do hall', clienteNome: 'Residencial Aurora', descricaoGeral: 'Pintura completa do hall de entrada.', condicoesPagamento: '30% entrada / 70% entrega', validadeDias: 15, prazoExecucao: '7 dias úteis', status: 'enviado', valorTotal: 3500.00, valorFinal: 3500.00, itens: [{ descricao: 'Pintura acrílica premium', tipo: 'servico', quantidade: 1, valorUnitario: 2800.00, valorTotal: 2800.00 }, { descricao: 'Tinta Suvinil 18L', tipo: 'material', quantidade: 2, valorUnitario: 350.00, valorTotal: 700.00 }], criadoEm: new Date(now - 5 * day).toISOString(), condominio: 'Residencial Aurora' },
-      { id: 'orc2', titulo: 'Troca do portão automático', clienteNome: 'Residencial Aurora', descricaoGeral: 'Fornecimento e instalação de portão deslizante.', condicoesPagamento: 'À vista', validadeDias: 10, prazoExecucao: '15 dias úteis', status: 'rascunho', valorTotal: 8500.00, valorFinal: 8075.00, desconto: 5, itens: [{ descricao: 'Portão deslizante 5m', tipo: 'material', quantidade: 1, valorUnitario: 4500.00, valorTotal: 4500.00 }, { descricao: 'Motor PPA DZ Rio 800', tipo: 'material', quantidade: 1, valorUnitario: 1800.00, valorTotal: 1800.00 }, { descricao: 'Mão de obra', tipo: 'servico', quantidade: 1, valorUnitario: 2200.00, valorTotal: 2200.00 }], criadoEm: new Date(now - 2 * day).toISOString(), condominio: 'Residencial Aurora' },
+      { id: 'orc1', titulo: 'Orçamento de pintura do hall', clienteNome: 'Residencial Aurora', descricaoGeral: 'Pintura completa do hall de entrada.', condicoesPagamento: '30% entrada / 70% entrega', validadeDias: 15, prazoExecucao: '7 dias úteis', status: 'enviado', valorTotal: 3500, valorFinal: 3500, itens: [{ descricao: 'Pintura acrílica premium', tipo: 'servico', quantidade: 1, valorUnitario: 2800, valorTotal: 2800 }, { descricao: 'Tinta Suvinil 18L', tipo: 'material', quantidade: 2, valorUnitario: 350, valorTotal: 700 }], criadoEm: new Date(now - 5 * day).toISOString(), condominio: 'Residencial Aurora' },
+      { id: 'orc2', titulo: 'Troca do portão automático', clienteNome: 'Residencial Aurora', descricaoGeral: 'Fornecimento e instalação de portão deslizante.', condicoesPagamento: 'À vista', validadeDias: 10, prazoExecucao: '15 dias úteis', status: 'rascunho', valorTotal: 8500, valorFinal: 8075, desconto: 5, itens: [{ descricao: 'Portão deslizante 5m', tipo: 'material', quantidade: 1, valorUnitario: 4500, valorTotal: 4500 }, { descricao: 'Motor PPA DZ Rio 800', tipo: 'material', quantidade: 1, valorUnitario: 1800, valorTotal: 1800 }, { descricao: 'Mão de obra', tipo: 'servico', quantidade: 1, valorUnitario: 2200, valorTotal: 2200 }], criadoEm: new Date(now - 2 * day).toISOString(), condominio: 'Residencial Aurora' },
     ]));
   }
 
@@ -325,7 +427,7 @@ export function seedDemoData() {
   if (!localStorage.getItem('manutencao-geolocalizacao')) {
     localStorage.setItem('manutencao-geolocalizacao', JSON.stringify([
       { id: 'geo1', userId: 'demo-func', latitude: -23.5505, longitude: -46.6333, endereco: 'Rua das Flores, 500', horaChegada: new Date(now - day).toISOString(), tempoTotal: 540, data: new Date(now - day).toISOString().slice(0, 10), funcaoId: 'limpeza' },
-      { id: 'geo2', userId: 'demo-func', latitude: -23.5510, longitude: -46.6340, endereco: 'Av Paulista, 1500', horaChegada: new Date(now - 2 * day).toISOString(), tempoTotal: 480, data: new Date(now - 2 * day).toISOString().slice(0, 10), funcaoId: 'manutencao' },
+      { id: 'geo2', userId: 'demo-func', latitude: -23.551, longitude: -46.634, endereco: 'Av Paulista, 1500', horaChegada: new Date(now - 2 * day).toISOString(), tempoTotal: 480, data: new Date(now - 2 * day).toISOString().slice(0, 10), funcaoId: 'manutencao' },
     ]));
   }
 
@@ -351,6 +453,17 @@ export function seedDemoData() {
       { funcionario: { nome: 'Funcion�rio Demo', email: 'demo-func@manutencao.com', cargo: 'Auxiliar de Limpeza', perfil: 'funcionario' }, tipo: 'saida', dataHora: ante16h.toISOString(), geolocalizacao: { latitude: -23.5505, longitude: -46.6333 }, endereco: 'Rua das Flores, 500 - S�o Paulo', permanencia: '08h45min' },
     ]));
   }
+
+  demoKeys.forEach((key) => {
+    const raw = localStorage.getItem(key);
+    if (!raw) return;
+
+    try {
+      setNormalizedDemoItem(key, JSON.parse(raw));
+    } catch {
+      localStorage.removeItem(key);
+    }
+  });
 }
 
 // Demo user profiles

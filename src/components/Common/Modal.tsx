@@ -1,6 +1,7 @@
 import React from 'react';
 import styles from './Modal.module.css';
 import { X } from 'lucide-react';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 
 interface Props {
   aberto: boolean;
@@ -11,6 +12,8 @@ interface Props {
 }
 
 const Modal: React.FC<Props> = ({ aberto, onFechar, titulo, children, largura = 'md' }) => {
+  useEscapeKey(onFechar, aberto);
+
   if (!aberto) return null;
 
   return (
