@@ -21,6 +21,9 @@ import {
 } from 'recharts';
 import { dashboard as dashboardApi, usuarios as usuariosApi, auth as authApi } from '../../services/api';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
+import MobileMenuGrid from '../../components/Layout/MobileMenuGrid';
+import { menuCatalog, type MenuConfigItem } from '../../components/Layout/menuCatalog';
+import { safeStorage } from '../../utils/storage';
 import type { User, UserRole } from '../../types';
 import styles from './Dashboard.module.css';
 
@@ -287,6 +290,94 @@ function escapeCsvValue(value: unknown) {
 function formatDate(d?: string | number) {
   return d ? new Date(d).toLocaleDateString('pt-BR') : '—';
 }
+
+const ORDEM_KEY = 'manutencao-sidebar-ordem';
+const FAVORITOS_KEY = 'manutencao-sidebar-favoritos';
+const OCULTOS_KEY = 'manutencao-sidebar-ocultos-v2';
+
+function readStoredSet(key: string, fallback: Set<string>) {
+  const value = safeStorage.getItem(key);
+  if (!value) return new Set<string>(fallback);
+
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed)
+      ? new Set<string>(parsed.filter((item): item is string => typeof item === 'string'))
+      : new Set<string>(fallback);
+  } catch {
+    return new Set<string>(fallback);
+  }
+}
+
+function readStoredOrder(key: string) {
+  const value = safeStorage.getItem(key);
+  if (!value) return [] as string[];
+
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+const HIDDEN_BY_DEFAULT = new Set(menuCatalog.filter(item => item.hiddenByDefault).map(item => item.id));
+
+const MobileDashboardHome: React.FC = () => {
+  const navigate = useNavigate();
+  const { roleNivel, podeVer } = usePermissions();
+  const [favoritosIds, setFavoritosIds] = useState<Set<string>>(() => readStoredSet(FAVORITOS_KEY, new Set()));
+  const [ocultosIds] = useState<Set<string>>(() => readStoredSet(OCULTOS_KEY, HIDDEN_BY_DEFAULT));
+  const [ordemIds] = useState<string[]>(() => readStoredOrder(ORDEM_KEY));
+
+  const toggleFavorito = useCallback((id: string) => {
+    setFavoritosIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      safeStorage.setItem(FAVORITOS_KEY, JSON.stringify([...next]));
+      return next;
+    });
+  }, []);
+
+  const mobileItems = useMemo(() => {
+    const base = menuCatalog.filter(item => (
+      item.id !== 'dashboard'
+      && roleNivel >= item.minRole
+      && podeVer(item.id)
+      && !ocultosIds.has(item.id)
+    ));
+
+    if (ordemIds.length === 0) return base;
+
+    const map = new Map(base.map(item => [item.id, item]));
+    const ordered: MenuConfigItem[] = [];
+
+    for (const id of ordemIds) {
+      const item = map.get(id);
+      if (item) {
+        ordered.push(item);
+        map.delete(id);
+      }
+    }
+
+    map.forEach(item => ordered.push(item));
+    return ordered;
+  }, [ocultosIds, ordemIds, podeVer, roleNivel]);
+
+  return (
+    <div className={styles.mobileDashboardHome}>
+      <MobileMenuGrid
+        items={mobileItems}
+        favoritosIds={favoritosIds}
+        currentPath="/dashboard"
+        onNavigate={navigate}
+        onToggleFavorite={toggleFavorito}
+        showDashboardBar={false}
+        tone="light"
+      />
+    </div>
+  );
+};
 
 const MasterDashboard: React.FC<{ usuario: User }> = ({ usuario }) => {
   const navigate = useNavigate();
@@ -1265,6 +1356,17 @@ const StandardDashboard: React.FC = () => {
 /* ══════════ MAIN WRAPPER ══════════ */
 const DashboardPage: React.FC = () => {
   const { usuario } = useAuth();
+  const [isMobile, setIsMobile] = useState(() => globalThis.innerWidth <= 768);
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(globalThis.innerWidth <= 768);
+    globalThis.addEventListener('resize', onResize);
+    return () => globalThis.removeEventListener('resize', onResize);
+  }, []);
+
+  if (isMobile) {
+    return <MobileDashboardHome />;
+  }
 
   if (usuario?.role === 'master') {
     return <MasterDashboard usuario={usuario} />;

@@ -156,9 +156,12 @@ async function handleUnauthorizedResponse(res: Response, path: string) {
 
   if (!isRedirecting && authToken) {
     isRedirecting = true;
+    const tokenAtError = authToken;
     globalThis.setTimeout(() => {
-      setToken(null);
-      globalThis.dispatchEvent(new Event('auth:unauthorized'));
+      if (authToken === tokenAtError) {
+        setToken(null);
+        globalThis.dispatchEvent(new Event('auth:unauthorized'));
+      }
       isRedirecting = false;
     }, 300);
   }

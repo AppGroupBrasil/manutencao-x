@@ -45,6 +45,24 @@ interface Movimentacao {
   funcionario: string;
 }
 
+const toSafeNumber = (value: unknown) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const normalizeMaterial = (material: any): Material => ({
+  id: String(material?.id ?? ''),
+  protocolo: String(material?.protocolo ?? ''),
+  nome: String(material?.nome ?? ''),
+  categoria: String(material?.categoria ?? 'Outros'),
+  unidade: String(material?.unidade ?? 'un'),
+  qtd: toSafeNumber(material?.qtd),
+  min: toSafeNumber(material?.min),
+  custo: toSafeNumber(material?.custo),
+  emailNotificacao: String(material?.emailNotificacao ?? ''),
+  condominio: String(material?.condominio ?? ''),
+});
+
 /* ── Helpers ── */
 const gerarProtocolo = () => {
   const now = new Date();
@@ -97,7 +115,7 @@ const MateriaisPage: React.FC = () => {
       materiaisApi.list(),
       condominiosApi.list().catch(() => []),
     ]).then(([mats, conds]) => {
-      setMateriais(mats as Material[]);
+      setMateriais(Array.isArray(mats) ? mats.map(normalizeMaterial) : []);
       setCondominiosList((conds as any[]).map(c => c.nome));
     }).catch(console.error).finally(() => setLoading(false));
   }, []);
@@ -145,11 +163,12 @@ const MateriaisPage: React.FC = () => {
         emailNotificacao: form.email.trim(),
         condominio: form.condominio,
       }) as Material;
-      setMateriais(prev => [...prev, criado]);
+      const materialCriado = normalizeMaterial(criado);
+      setMateriais(prev => [...prev, materialCriado]);
 
       if (!ehGestor) {
         const emailDest = form.email.trim() || EMAIL_RESPONSAVEL;
-        setNotificacao({ visivel: true, material: criado.nome, email: emailDest });
+        setNotificacao({ visivel: true, material: materialCriado.nome, email: emailDest });
         setTimeout(() => setNotificacao(null), 6000);
       }
 
@@ -287,7 +306,7 @@ const MateriaisPage: React.FC = () => {
           </div>
           <div className={styles.toastContent}>
             <strong>Notificação enviada!</strong>
-            <span>O responsável (<strong>{notificacao.email}</strong>) foi notificado sobre o novo material <strong>s{notificacao.material}s</strong>.</span>
+            <span>O responsável (<strong>{notificacao.email}</strong>) foi notificado sobre o novo material <strong>{notificacao.material}</strong>.</span>
           </div>
           <button className={styles.toastClose} onClick={() => setNotificacao(null)}>
             <X size={14} />
@@ -378,7 +397,7 @@ const MateriaisPage: React.FC = () => {
                     <span>Qtd: <strong style={{ color: baixo ? '#d32f2f' : 'var(--cor-texto)' }}>{mat.qtd}</strong> {mat.unidade}</span>
                     <span>Mín: {mat.min}</span>
                   </div>
-                  <span className={styles.cardCusto}>R$ {mat.custo.toFixed(2)}/{mat.unidade}</span>
+                  <span className={styles.cardCusto}>R$ {toSafeNumber(mat.custo).toFixed(2)}/{mat.unidade}</span>
 
                   {mat.emailNotificacao && (
                     <div className={styles.emailNotif} style={baixo ? { background: '#fff3e0', borderColor: '#ff9800' } : {}}>

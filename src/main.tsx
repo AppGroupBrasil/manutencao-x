@@ -7,6 +7,7 @@ import { PermissionsProvider } from './contexts/PermissionsContext';
 import { DemoProvider } from './contexts/DemoContext';
 import ErrorBoundary from './components/Common/ErrorBoundary';
 import App from './App';
+import 'leaflet/dist/leaflet.css';
 import './styles/global.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

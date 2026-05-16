@@ -120,6 +120,61 @@ ssh -i ~/.ssh/<SSH_KEY> root@<SERVER_IP> "docker logs --tail 40 manutencao-app"
 - WebSocket validado ao abrir dashboard com sessão autenticada
 - restore de backup testado pelo menos uma vez
 
+## Migração para TWA (PWA na Google Play)
+
+Para substituir o app nativo Capacitor por um TWA que carrega o PWA do servidor:
+
+### 1. Preencher assetlinks.json
+
+O arquivo [public/.well-known/assetlinks.json](public/.well-known/assetlinks.json) ja esta preenchido com o SHA-256 da keystore local (`6B:C3:71:B7:...`). Se a Play usa Google Play App Signing, substitua pelo SHA-256 da chave de assinatura da Play (Play Console > Integridade do app > Certificado de assinatura do app).
+
+### 2. Deploy do assetlinks.json
+
+Após o deploy web, confirme que o arquivo está acessível em:
+```
+https://manutencaox.com.br/.well-known/assetlinks.json
+```
+Deve retornar JSON puro sem redirecionamento.
+
+### 3. Gerar wrapper TWA com Bubblewrap
+
+```powershell
+npm install -g @aspect-build/aspect-bubblewrap
+npx @aspect-build/aspect-bubblewrap-start --manifest=https://manutencaox.com.br/manifest.webmanifest
+```
+
+Ou usando o Bubblewrap original:
+```powershell
+npm install -g @nicepkg/nicebw
+npx @nicepkg/nicebw init --manifest https://manutencaox.com.br/manifest.webmanifest
+```
+
+Durante a geração, use:
+- Package name: `com.appmanutencao.app`
+- Signing key: a mesma keystore `manutencaox.jks` usada anteriormente
+- URL de lançamento: `https://manutencaox.com.br/`
+
+### 4. Build do AAB
+
+```powershell
+cd twa-output
+./gradlew bundleRelease
+```
+
+O AAB fica em `app/build/outputs/bundle/release/`.
+
+### 5. Publicar na Play Console
+
+- Incremente o `versionCode` para valor maior que 1 (já publicado)
+- Faça upload do AAB como atualização do app existente
+- O package `com.appmanutencao.app` deve ser o mesmo
+
+### 6. Após a publicação
+
+A partir deste ponto, mudanças de frontend e backend entram por deploy web normal (passos 1-3 do Deploy Rápido). Novo AAB só quando mudar algo na camada Android (ícone nativo, permissões, splash, package, assinatura).
+
+---
+
 ## Riscos Conhecidos
 
 - Sem `SMTP_*`, a recuperação de senha não envia e-mail real; o backend apenas registra no log.

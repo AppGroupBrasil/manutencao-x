@@ -257,3 +257,13 @@
 .masterTable tbody tr:last-child td {
   border-bottom: none;
 }
+
+.mobileDashboardHome {
+  margin: -16px;
+}
+
+@media (min-width: 769px) {
+  .mobileDashboardHome {
+    margin: 0;
+  }
+}

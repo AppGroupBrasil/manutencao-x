@@ -1,0 +1,348 @@
+[
+  {
+    "id": "dashboard",
+    "label": "Dashboard",
+    "mobileLabel": "Dashboard",
+    "icon": "LayoutDashboard",
+    "rota": "/dashboard",
+    "minRole": 1,
+    "group": "gestao"
+  },
+  {
+    "id": "vencimentos",
+    "label": "Agenda de Vencimentos",
+    "mobileLabel": "Vencimentos",
+    "icon": "CalendarClock",
+    "rota": "/vencimentos",
+    "minRole": 2,
+    "group": "planejamento"
+  },
+  {
+    "id": "auditoria",
+    "label": "Auditoria & Métricas",
+    "mobileLabel": "Auditoria",
+    "icon": "Shield",
+    "rota": "/auditoria",
+    "minRole": 3,
+    "group": "gestao",
+    "hiddenByDefault": true
+  },
+  {
+    "id": "condominios",
+    "label": "Cadastro Local da Manutenção",
+    "mobileLabel": "Cadastro Local",
+    "icon": "Building2",
+    "rota": "/condominios",
+    "minRole": 2,
+    "group": "gestao"
+  },
+  {
+    "id": "moradores",
+    "label": "Cadastro de Moradores",
+    "mobileLabel": "Moradores",
+    "icon": "Contact",
+    "rota": "/moradores",
+    "minRole": 2,
+    "group": "gestao",
+    "hiddenByDefault": true
+  },
+  {
+    "id": "permissoes",
+    "label": "Cadastro de Permissões",
+    "mobileLabel": "Permissões",
+    "icon": "Shield",
+    "rota": "/permissoes",
+    "minRole": 3,
+    "group": "gestao",
+    "hiddenByDefault": true
+  },
+  {
+    "id": "usuarios",
+    "label": "Cadastro de Usuários",
+    "mobileLabel": "Usuários",
+    "icon": "Users",
+    "rota": "/usuarios",
+    "minRole": 3,
+    "group": "gestao"
+  },
+  {
+    "id": "calendario",
+    "label": "Calendário Manutenção",
+    "mobileLabel": "Calendário",
+    "icon": "CalendarDays",
+    "rota": "/calendario",
+    "minRole": 2,
+    "group": "planejamento"
+  },
+  {
+    "id": "checklists",
+    "label": "Checklists",
+    "mobileLabel": "Checklists",
+    "icon": "ClipboardCheck",
+    "rota": "/checklists",
+    "minRole": 1,
+    "group": "operacao"
+  },
+  {
+    "id": "comunicados",
+    "label": "Comunicados / Avisos",
+    "mobileLabel": "Avisos",
+    "icon": "Megaphone",
+    "rota": "/comunicados",
+    "minRole": 2,
+    "group": "apoio",
+    "hiddenByDefault": true
+  },
+  {
+    "id": "configuracoes",
+    "label": "Configurações",
+    "mobileLabel": "Config.",
+    "icon": "Settings",
+    "rota": "/configuracoes",
+    "minRole": 1,
+    "group": "gestao",
+    "hiddenByDefault": true
+  },
+  {
+    "id": "materiais",
+    "label": "Controle de Estoque",
+    "mobileLabel": "Estoque",
+    "icon": "Package",
+    "rota": "/materiais",
+    "minRole": 1,
+    "group": "apoio"
+  },
+  {
+    "id": "ponto",
+    "label": "Controle de Ponto",
+    "mobileLabel": "Ponto",
+    "icon": "Clock",
+    "rota": "/ponto",
+    "minRole": 1,
+    "group": "operacao",
+    "hiddenByDefault": true
+  },
+  {
+    "id": "sla",
+    "label": "Controle de SLA",
+    "mobileLabel": "SLA",
+    "icon": "ShieldCheck",
+    "rota": "/sla",
+    "minRole": 2,
+    "group": "operacao",
+    "hiddenByDefault": true
+  },
+  {
+    "id": "qrcode",
+    "label": "QR Code",
+    "mobileLabel": "QR Code",
+    "icon": "QrCode",
+    "rota": "/qrcode",
+    "minRole": 2,
+    "group": "campo"
+  },
+  {
+    "id": "documentos",
+    "label": "Documentação Técnica",
+    "mobileLabel": "Docs",
+    "icon": "FileText",
+    "rota": "/documentos",
+    "minRole": 2,
+    "group": "apoio",
+    "hiddenByDefault": true
+  },
+  {
+    "id": "equipamentos",
+    "label": "Equipamentos",
+    "mobileLabel": "Equipam.",
+    "icon": "Cog",
+    "rota": "/equipamentos",
+    "minRole": 2,
+    "group": "campo"
+  },
+  {
+    "id": "escalas",
+    "label": "Escalas",
+    "mobileLabel": "Escalas",
+    "icon": "Calendar",
+    "rota": "/escalas",
+    "minRole": 2,
+    "group": "planejamento"
+  },
+  {
+    "id": "fornecedores",
+    "label": "Fornecedores",
+    "mobileLabel": "Forneced.",
+    "icon": "Store",
+    "rota": "/fornecedores",
+    "minRole": 2,
+    "group": "apoio",
+    "hiddenByDefault": true
+  },
+  {
+    "id": "geolocalizacao",
+    "label": "Geolocalização",
+    "mobileLabel": "Geo",
+    "icon": "MapPin",
+    "rota": "/geolocalizacao",
+    "minRole": 2,
+    "group": "campo"
+  },
+  {
+    "id": "custos",
+    "label": "Gestão de Custos",
+    "mobileLabel": "Custos",
+    "icon": "DollarSign",
+    "rota": "/custos",
+    "minRole": 2,
+    "group": "apoio",
+    "hiddenByDefault": true
+  },
+  {
+    "id": "inspecoes",
+    "label": "Inspeções",
+    "mobileLabel": "Inspeções",
+    "icon": "Search",
+    "rota": "/inspecoes",
+    "minRole": 2,
+    "group": "campo"
+  },
+  {
+    "id": "kpis",
+    "label": "KPIs de Manutenção",
+    "mobileLabel": "KPIs",
+    "icon": "Activity",
+    "rota": "/kpis",
+    "minRole": 2,
+    "group": "gestao",
+    "hiddenByDefault": true
+  },
+  {
+    "id": "leitor-qrcode",
+    "label": "Leitor QR Code",
+    "mobileLabel": "Leitor QR",
+    "icon": "ScanLine",
+    "rota": "/leitor-qrcode",
+    "minRole": 1,
+    "group": "campo"
+  },
+  {
+    "id": "orcamentos",
+    "label": "Orçamentos",
+    "mobileLabel": "Orçam.",
+    "icon": "Receipt",
+    "rota": "/orcamentos",
+    "minRole": 2,
+    "group": "planejamento"
+  },
+  {
+    "id": "ordens",
+    "label": "Ordens de Serviço",
+    "mobileLabel": "OS",
+    "icon": "Wrench",
+    "rota": "/ordens-servico",
+    "minRole": 1,
+    "group": "operacao"
+  },
+  {
+    "id": "sindico",
+    "label": "Painel do Síndico",
+    "mobileLabel": "Síndico",
+    "icon": "Crown",
+    "rota": "/sindico",
+    "minRole": 3,
+    "group": "apoio"
+  },
+  {
+    "id": "planos-manutencao",
+    "label": "Planos Preventivos",
+    "mobileLabel": "Preventiv.",
+    "icon": "CalendarRange",
+    "rota": "/planos-manutencao",
+    "minRole": 2,
+    "group": "planejamento"
+  },
+  {
+    "id": "quadro-atividades",
+    "label": "Quadro de Atividades",
+    "mobileLabel": "Atividades",
+    "icon": "Columns3",
+    "rota": "/quadro-atividades",
+    "minRole": 1,
+    "group": "operacao"
+  },
+  {
+    "id": "mapa-calor",
+    "label": "Reclamações",
+    "mobileLabel": "Reclamaç.",
+    "icon": "Flame",
+    "rota": "/mapa-calor",
+    "minRole": 3,
+    "group": "apoio"
+  },
+  {
+    "id": "relatorios",
+    "label": "Relatórios",
+    "mobileLabel": "Relatórios",
+    "icon": "BarChart3",
+    "rota": "/relatorios",
+    "minRole": 2,
+    "group": "planejamento"
+  },
+  {
+    "id": "reportes",
+    "label": "Reportes",
+    "mobileLabel": "Reportes",
+    "icon": "FileWarning",
+    "rota": "/reportes",
+    "minRole": 1,
+    "group": "operacao"
+  },
+  {
+    "id": "roteiros",
+    "label": "Roteiro de Execução",
+    "mobileLabel": "Roteiro",
+    "icon": "BookOpen",
+    "rota": "/roteiros",
+    "minRole": 1,
+    "group": "operacao",
+    "hiddenByDefault": true
+  },
+  {
+    "id": "solicitacoes",
+    "label": "Solicitações",
+    "mobileLabel": "Solicit.",
+    "icon": "MessageSquareText",
+    "rota": "/respostas-qrcode",
+    "minRole": 2,
+    "group": "operacao"
+  },
+  {
+    "id": "tarefas",
+    "label": "Tarefas Agendadas",
+    "mobileLabel": "Tarefas",
+    "icon": "CalendarCheck",
+    "rota": "/tarefas",
+    "minRole": 1,
+    "group": "operacao"
+  },
+  {
+    "id": "vistorias",
+    "label": "Vistorias",
+    "mobileLabel": "Vistorias",
+    "icon": "Eye",
+    "rota": "/vistorias",
+    "minRole": 1,
+    "group": "campo"
+  },
+  {
+    "id": "whatsapp",
+    "label": "WhatsApp",
+    "mobileLabel": "WhatsApp",
+    "icon": "MessageCircle",
+    "rota": "/whatsapp",
+    "minRole": 3,
+    "group": "apoio",
+    "hiddenByDefault": true
+  }
+]

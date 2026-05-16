@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.appmanutencao.app",
+      "sha256_cert_fingerprints": [
+        "6B:C3:71:B7:A9:00:99:4C:EE:21:DE:80:2D:E7:E5:17:BD:8C:4F:C0:4A:5B:BF:DE:24:68:65:2E:A5:33:CB:9E"
+      ]
+    }
+  }
+]

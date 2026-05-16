@@ -32,7 +32,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: "3001"
-      DB_HOST: postgres
+      DB_HOST: manutencao-staging-db
       DB_PORT: "5432"
       DB_NAME: manutencao
       DB_USER: manutencao

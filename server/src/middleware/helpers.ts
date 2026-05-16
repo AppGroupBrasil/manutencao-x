@@ -3,21 +3,28 @@ import { AuthRequest } from './auth.js';
 
 const MAX_ATTEMPTS = 5;
 const WINDOW_MINUTES = 15;
+const isProduction = process.env.NODE_ENV === 'production';
 
 /** Check if login is rate-limited for this email/IP */
 export async function checkRateLimit(email: string, ip: string): Promise<{ blocked: boolean; remaining: number }> {
+  if (!isProduction) {
+    return { blocked: false, remaining: MAX_ATTEMPTS };
+  }
+
   const cutoff = new Date(Date.now() - WINDOW_MINUTES * 60 * 1000);
   const row = await queryOne<{ count: string }>(
     `SELECT COUNT(*) as count FROM login_attempts
      WHERE (email = $1 OR ip = $2) AND sucesso = false AND criado_em > $3`,
     [email, ip, cutoff]
   );
-  const count = parseInt(row?.count || '0');
+  const count = Number.parseInt(row?.count || '0', 10);
   return { blocked: count >= MAX_ATTEMPTS, remaining: Math.max(0, MAX_ATTEMPTS - count) };
 }
 
 /** Record a login attempt */
 export async function recordLoginAttempt(email: string, ip: string, sucesso: boolean) {
+  if (!isProduction) return;
+
   await query(
     'INSERT INTO login_attempts (email, ip, sucesso) VALUES ($1, $2, $3)',
     [email, ip, sucesso]

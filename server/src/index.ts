@@ -65,6 +65,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const httpServer = createServer(app);
 const PORT = Number.parseInt(process.env.PORT || '3001');
+const isProduction = process.env.NODE_ENV === 'production';
 
 const REQUIRED_ENV_VARS = ['DB_PASSWORD', 'JWT_SECRET', 'FRONTEND_URL', 'CORS_ORIGIN'] as const;
 
@@ -93,6 +94,17 @@ function expandAllowedOrigin(origin: string) {
   variants.add(origin.replace('https://www.', 'https://'));
 
   return Array.from(variants);
+}
+
+function isAllowedDevOrigin(origin: string) {
+  if (isProduction) return false;
+
+  try {
+    const { protocol, hostname } = new URL(origin);
+    return protocol === 'http:' && (hostname === 'localhost' || hostname === '127.0.0.1');
+  } catch {
+    return false;
+  }
 }
 
 async function checkDatabaseConnection() {
@@ -128,6 +140,9 @@ app.use(cors({
     // Permitir requests sem origin (mobile apps, curl, proxies internos)
     if (!origin) return cb(null, true);
     // Checar lista de origens permitidas
+    if (isAllowedDevOrigin(origin)) {
+      return cb(null, true);
+    }
     if (allowedOrigins.some(allowed => expandAllowedOrigin(allowed).includes(origin))) {
       return cb(null, true);
     }
@@ -142,16 +157,18 @@ app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 // ── Rate limiting ──
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 300,
+  max: isProduction ? 300 : 100000,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => !isProduction,
   message: { error: 'Muitas requisições. Tente novamente em 15 minutos.' },
 });
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20,
+  max: isProduction ? 20 : 100000,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => !isProduction,
   message: { error: 'Muitas tentativas de login. Tente novamente em 15 minutos.' },
 });
 app.use('/api', apiLimiter);

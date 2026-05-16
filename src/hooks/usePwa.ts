@@ -8,6 +8,9 @@ interface BeforeInstallPromptEvent extends Event {
 
 type UpdateServiceWorker = (reloadPage?: boolean) => Promise<void>;
 
+const PWA_RESET_VERSION = 'pwa-reset-2026-04-19-2';
+const PWA_RESET_STORAGE_KEY = 'manutencaox_pwa_reset_version';
+
 function isStandaloneMode() {
   return globalThis.matchMedia('(display-mode: standalone)').matches
     || (globalThis.navigator as Navigator & { standalone?: boolean }).standalone === true;
@@ -30,6 +33,30 @@ export function usePwa() {
   const [offlineReady, setOfflineReady] = useState(false);
   const [isInstalled, setIsInstalled] = useState(() => isStandaloneMode());
   const [showIosInstallHint, setShowIosInstallHint] = useState(() => isIosDevice() && !isStandaloneMode());
+
+  useEffect(() => {
+    if (!import.meta.env.PROD || !('serviceWorker' in globalThis.navigator)) return;
+
+    const appliedResetVersion = globalThis.localStorage.getItem(PWA_RESET_STORAGE_KEY);
+    if (appliedResetVersion === PWA_RESET_VERSION) return;
+
+    void (async () => {
+      try {
+        const registrations = await globalThis.navigator.serviceWorker.getRegistrations();
+        await Promise.all(registrations.map((registration) => registration.unregister()));
+
+        if ('caches' in globalThis) {
+          const cacheKeys = await globalThis.caches.keys();
+          await Promise.all(cacheKeys.map((cacheKey) => globalThis.caches.delete(cacheKey)));
+        }
+
+        globalThis.localStorage.setItem(PWA_RESET_STORAGE_KEY, PWA_RESET_VERSION);
+        globalThis.location.reload();
+      } catch {
+        // Ignore cleanup failures and allow the app to continue booting.
+      }
+    })();
+  }, []);
 
   useEffect(() => {
     if (!isLocalDevelopmentHost() || !('serviceWorker' in globalThis.navigator)) return;

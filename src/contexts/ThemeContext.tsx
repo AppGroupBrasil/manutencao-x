@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useRef } from 'react';
 import type { TemaConfig } from '../types';
-import { configuracoes as configApi, getToken } from '../services/api';
+import { configuracoes as configApi } from '../services/api';
+import { useAuth } from './AuthContext';
 import { safeStorage } from '../utils/storage';
 
 interface ThemeContextData {
@@ -52,6 +53,7 @@ function darken(hex: string, pct: number) {
 }
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { usuario } = useAuth();
   const [tema, setTema] = useState<TemaConfig>(() => {
     const saved = safeStorage.getItem('manutencao_tema');
     if (saved) {
@@ -107,25 +109,49 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
   }, [tema]);
 
+  const [themeSyncReady, setThemeSyncReady] = useState(false);
+
   useEffect(() => {
     safeStorage.setItem('manutencao_tema', JSON.stringify(tema));
-    if (getToken()) configApi.setTema(tema).catch(() => {});
     const root = document.documentElement;
     Object.entries(cssVars).forEach(([key, val]) => root.style.setProperty(key, val));
     document.body.style.backgroundColor = cssVars['--cor-fundo'];
     document.body.style.color = cssVars['--cor-texto'];
   }, [cssVars, tema]);
 
-  // Load theme from API on mount (only if logged in — overrides localStorage cache)
-  const loadedRef = useRef(false);
   useEffect(() => {
-    if (loadedRef.current) return;
-    loadedRef.current = true;
-    if (!getToken()) return;
-    configApi.getTema().then((apiTema: any) => {
-      if (apiTema && apiTema.corPrimaria) setTema(apiTema);
-    }).catch(() => {});
-  }, []);
+    let cancelled = false;
+
+    if (!usuario) {
+      setThemeSyncReady(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setThemeSyncReady(false);
+    configApi.getTema()
+      .then((apiTema: any) => {
+        if (!cancelled && apiTema && apiTema.corPrimaria) {
+          setTema(apiTema);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) {
+          setThemeSyncReady(true);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [usuario]);
+
+  useEffect(() => {
+    if (!usuario || !themeSyncReady) return;
+    configApi.setTema(tema).catch(() => {});
+  }, [tema, themeSyncReady, usuario]);
 
   const atualizarTema = (config: Partial<TemaConfig>) => {
     setTema(prev => ({ ...prev, ...config }));

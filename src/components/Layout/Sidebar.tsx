@@ -5,63 +5,14 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { usePermissions } from '../../contexts/PermissionsContext';
 import { useDemo } from '../../contexts/DemoContext';
 import {
-  LayoutDashboard, Users, ClipboardCheck, Wrench, Calendar,
-  Package, Search, MapPin, Settings, LogOut, ChevronLeft,
-    ChevronRight, Building2, BarChart3, Shield, Menu, FileWarning, Eye, QrCode, ScanLine, Flame, CalendarCheck, BookOpen, CalendarClock, Contact, Megaphone, Columns3, GripVertical, RotateCcw, Bell, User, Star,
-  Cog, Store, CalendarRange, DollarSign, Activity, FileText, MessageSquareText, ShieldCheck, CalendarDays, MessageCircle, Crown, Clock, Receipt, EyeOff
+  LogOut, ChevronLeft, ChevronRight, Menu, Eye, GripVertical, RotateCcw, Bell, User, Star, EyeOff
 } from 'lucide-react';
 import styles from './Sidebar.module.css';
 import logoImg from '../../assets/logo.png';
 import { notificacoes as notificacoesApi } from '../../services/api';
 import { safeStorage } from '../../utils/storage';
-
-interface MenuItem {
-  id: string;
-  label: string;
-  icon: React.ReactNode;
-  rota: string;
-  minRole: number;
-}
-
-const menuItems: MenuItem[] = [
-  { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} />, rota: '/dashboard', minRole: 1 },
-  { id: 'vencimentos', label: 'Agenda de Vencimentos', icon: <CalendarClock size={20} />, rota: '/vencimentos', minRole: 2 },
-  { id: 'auditoria', label: 'Auditoria & Métricas', icon: <Shield size={20} />, rota: '/auditoria', minRole: 3 },
-  { id: 'condominios', label: 'Cadastro Local da Manutenção', icon: <Building2 size={20} />, rota: '/condominios', minRole: 2 },
-  { id: 'moradores', label: 'Cadastro de Moradores', icon: <Contact size={20} />, rota: '/moradores', minRole: 2 },
-  { id: 'permissoes', label: 'Cadastro de Permissões', icon: <Shield size={20} />, rota: '/permissoes', minRole: 3 },
-  { id: 'usuarios', label: 'Cadastro de Usuários', icon: <Users size={20} />, rota: '/usuarios', minRole: 3 },
-  { id: 'calendario', label: 'Calendário Manutenção', icon: <CalendarDays size={20} />, rota: '/calendario', minRole: 2 },
-  { id: 'checklists', label: 'Checklists', icon: <ClipboardCheck size={20} />, rota: '/checklists', minRole: 1 },
-  { id: 'comunicados', label: 'Comunicados / Avisos', icon: <Megaphone size={20} />, rota: '/comunicados', minRole: 2 },
-  { id: 'configuracoes', label: 'Configurações', icon: <Settings size={20} />, rota: '/configuracoes', minRole: 1 },
-  { id: 'materiais', label: 'Controle de Estoque', icon: <Package size={20} />, rota: '/materiais', minRole: 1 },
-  { id: 'ponto', label: 'Controle de Ponto', icon: <Clock size={20} />, rota: '/ponto', minRole: 1 },
-  { id: 'sla', label: 'Controle de SLA', icon: <ShieldCheck size={20} />, rota: '/sla', minRole: 2 },
-  { id: 'qrcode', label: 'QR Code', icon: <QrCode size={20} />, rota: '/qrcode', minRole: 2 },
-  { id: 'documentos', label: 'Documentação Técnica', icon: <FileText size={20} />, rota: '/documentos', minRole: 2 },
-  { id: 'equipamentos', label: 'Equipamentos', icon: <Cog size={20} />, rota: '/equipamentos', minRole: 2 },
-  { id: 'escalas', label: 'Escalas', icon: <Calendar size={20} />, rota: '/escalas', minRole: 2 },
-  { id: 'fornecedores', label: 'Fornecedores', icon: <Store size={20} />, rota: '/fornecedores', minRole: 2 },
-  { id: 'geolocalizacao', label: 'Geolocalização', icon: <MapPin size={20} />, rota: '/geolocalizacao', minRole: 2 },
-  { id: 'custos', label: 'Gestão de Custos', icon: <DollarSign size={20} />, rota: '/custos', minRole: 2 },
-  { id: 'inspecoes', label: 'Inspeções', icon: <Search size={20} />, rota: '/inspecoes', minRole: 2 },
-  { id: 'kpis', label: 'KPIs de Manutenção', icon: <Activity size={20} />, rota: '/kpis', minRole: 2 },
-  { id: 'leitor-qrcode', label: 'Leitor QR Code', icon: <ScanLine size={20} />, rota: '/leitor-qrcode', minRole: 1 },
-  { id: 'orcamentos', label: 'Orçamentos', icon: <Receipt size={20} />, rota: '/orcamentos', minRole: 2 },
-  { id: 'ordens', label: 'Ordens de Serviço', icon: <Wrench size={20} />, rota: '/ordens-servico', minRole: 1 },
-  { id: 'sindico', label: 'Painel do Síndico', icon: <Crown size={20} />, rota: '/sindico', minRole: 3 },
-  { id: 'planos-manutencao', label: 'Planos Preventivos', icon: <CalendarRange size={20} />, rota: '/planos-manutencao', minRole: 2 },
-  { id: 'quadro-atividades', label: 'Quadro de Atividades', icon: <Columns3 size={20} />, rota: '/quadro-atividades', minRole: 1 },
-  { id: 'mapa-calor', label: 'Reclamações', icon: <Flame size={20} />, rota: '/mapa-calor', minRole: 3 },
-  { id: 'relatorios', label: 'Relatórios', icon: <BarChart3 size={20} />, rota: '/relatorios', minRole: 2 },
-  { id: 'reportes', label: 'Reportes', icon: <FileWarning size={20} />, rota: '/reportes', minRole: 1 },
-  { id: 'roteiros', label: 'Roteiro de Execução', icon: <BookOpen size={20} />, rota: '/roteiros', minRole: 1 },
-  { id: 'solicitacoes', label: 'Solicitações', icon: <MessageSquareText size={20} />, rota: '/respostas-qrcode', minRole: 2 },
-  { id: 'tarefas', label: 'Tarefas Agendadas', icon: <CalendarCheck size={20} />, rota: '/tarefas', minRole: 1 },
-  { id: 'vistorias', label: 'Vistorias', icon: <Eye size={20} />, rota: '/vistorias', minRole: 1 },
-  { id: 'whatsapp', label: 'WhatsApp', icon: <MessageCircle size={20} />, rota: '/whatsapp', minRole: 3 },
-];
+import MobileMenuGrid from './MobileMenuGrid';
+import { menuCatalog, renderMenuIcon, type MenuConfigItem } from './menuCatalog';
 
 const ORDEM_KEY = 'manutencao-sidebar-ordem';
 const FAVORITOS_KEY = 'manutencao-sidebar-favoritos';
@@ -96,24 +47,13 @@ function readStoredOrder(key: string) {
 
 // Itens ocultos por padrão — o usuário pode reativá-los em "Ocultar"
 const OCULTOS_PADRAO = new Set([
-  'auditoria',
-  'permissoes',
-  'comunicados',
-  'configuracoes',
-  'ponto',
-  'sla',
-  'documentos',
-  'fornecedores',
-  'custos',
-  'kpis',
-  'roteiros',
-  'whatsapp',
-  'moradores',
+  ...menuCatalog.filter(item => item.hiddenByDefault).map(item => item.id),
 ]);
 
 const Sidebar: React.FC = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(() => globalThis.innerWidth <= 768);
   const navigate = useNavigate();
   const location = useLocation();
   const { usuario, logout } = useAuth();
@@ -177,11 +117,31 @@ const Sidebar: React.FC = () => {
     }
   }, [isDemo]);
 
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = globalThis.innerWidth <= 768;
+      setIsMobileViewport(mobile);
+      if (mobile) {
+        setCollapsed(false);
+        setMobileOpen(false);
+      }
+    };
+
+    globalThis.addEventListener('resize', handleResize);
+    return () => globalThis.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    if (isMobileViewport) {
+      setMobileOpen(false);
+    }
+  }, [isMobileViewport, location.pathname]);
+
   const filteredItems = useMemo(() => {
-    const base = menuItems.filter(item => roleNivel >= item.minRole && podeVer(item.id));
+    const base = menuCatalog.filter(item => roleNivel >= item.minRole && podeVer(item.id));
     if (ordemIds.length === 0) return base;
     const mapa = new Map(base.map(item => [item.id, item]));
-    const ordenados: MenuItem[] = [];
+    const ordenados: MenuConfigItem[] = [];
     for (const id of ordemIds) {
       const item = mapa.get(id);
       if (item) { ordenados.push(item); mapa.delete(id); }
@@ -200,7 +160,7 @@ const Sidebar: React.FC = () => {
     return visibleItems.filter(item => favoritosIds.has(item.id) && !ocultosIds.has(item.id));
   }, [visibleItems, favoritosIds, ocultosIds]);
 
-  const salvarOrdem = useCallback((items: MenuItem[]) => {
+  const salvarOrdem = useCallback((items: MenuConfigItem[]) => {
     const ids = items.map(i => i.id);
     setOrdemIds(ids);
     safeStorage.setItem(ORDEM_KEY, JSON.stringify(ids));
@@ -270,6 +230,9 @@ const Sidebar: React.FC = () => {
         <div className={styles.topBar} style={{ backgroundColor: 'var(--cor-menu)' }}>
           <div className={styles.topBarHeader}>
             <div className={styles.topBarBrand}>
+              <button className={styles.topBarMenu} onClick={() => setMobileOpen(v => !v)}>
+                <Menu size={18} />
+              </button>
               {tema.logoUrl ? (
                 <img src={tema.logoUrl} alt="Logo" className={styles.logo} />
               ) : (
@@ -304,6 +267,24 @@ const Sidebar: React.FC = () => {
       </button>
 
       <div className={`${styles.overlay} ${mobileOpen ? styles.overlayVisible : ''}`} onClick={() => setMobileOpen(false)} />
+
+      {isMobileBarUser && (
+        <div className={`${styles.topBarDrawer} ${mobileOpen ? styles.topBarDrawerOpen : ''}`} style={{ backgroundColor: 'var(--cor-menu)' }}>
+          <MobileMenuGrid
+            items={visibleItems}
+            favoritosIds={favoritosIds}
+            currentPath={location.pathname}
+            onNavigate={handleNav}
+            onToggleFavorite={toggleFavorito}
+          />
+          <div className={styles.mobileFooter}>
+            <button className={styles.logoutBtn} onClick={handleLogout}>
+              <LogOut size={20} />
+              <span>Sair</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       <aside
         className={`${styles.sidebar} ${collapsed ? styles.collapsed : ''} ${mobileOpen ? styles.mobileOpen : ''} ${isMobileBarUser ? styles.hideAlways : ''}`}
@@ -354,132 +335,146 @@ const Sidebar: React.FC = () => {
           </div>
         )}
 
-        <nav className={styles.nav}>
-          {!collapsed && (
-            <div className={styles.reorderBar}>
-              <button
-                className={`${styles.reorderToggle} ${editandoOrdem ? styles.reorderToggleAtivo : ''}`}
-                onClick={() => { setEditandoOrdem(v => !v); setEditandoVisibilidade(false); }}
-                title="Reorganizar menu"
-                disabled={editandoVisibilidade}
-              >
-                <GripVertical size={14} />
-                {editandoOrdem ? 'Concluir' : 'Reorganizar'}
-              </button>
-              <button
-                className={`${styles.reorderToggle} ${editandoVisibilidade ? styles.reorderToggleAtivo : ''}`}
-                onClick={() => { setEditandoVisibilidade(v => !v); setEditandoOrdem(false); }}
-                title="Ocultar itens do menu"
-                disabled={editandoOrdem}
-              >
-                <EyeOff size={14} />
-                {editandoVisibilidade ? 'Concluir' : 'Ocultar'}
-              </button>
-              {editandoOrdem && (
-                <button className={styles.reorderReset} onClick={resetarOrdem} title="Restaurar ordem padrão">
-                  <RotateCcw size={13} />
+        <div className={styles.desktopContent}>
+          <nav className={styles.nav}>
+            {!collapsed && (
+              <div className={styles.reorderBar}>
+                <button
+                  className={`${styles.reorderToggle} ${editandoOrdem ? styles.reorderToggleAtivo : ''}`}
+                  onClick={() => { setEditandoOrdem(v => !v); setEditandoVisibilidade(false); }}
+                  title="Reorganizar menu"
+                  disabled={editandoVisibilidade}
+                >
+                  <GripVertical size={14} />
+                  {editandoOrdem ? 'Concluir' : 'Reorganizar'}
                 </button>
-              )}
-              {editandoVisibilidade && ocultosIds.size > 0 && (
-                <button className={styles.reorderReset} onClick={restaurarTodos} title="Mostrar todos">
-                  <RotateCcw size={13} />
+                <button
+                  className={`${styles.reorderToggle} ${editandoVisibilidade ? styles.reorderToggleAtivo : ''}`}
+                  onClick={() => { setEditandoVisibilidade(v => !v); setEditandoOrdem(false); }}
+                  title="Ocultar itens do menu"
+                  disabled={editandoOrdem}
+                >
+                  <EyeOff size={14} />
+                  {editandoVisibilidade ? 'Concluir' : 'Ocultar'}
                 </button>
-              )}
-            </div>
-          )}
+                {editandoOrdem && (
+                  <button className={styles.reorderReset} onClick={resetarOrdem} title="Restaurar ordem padrão">
+                    <RotateCcw size={13} />
+                  </button>
+                )}
+                {editandoVisibilidade && ocultosIds.size > 0 && (
+                  <button className={styles.reorderReset} onClick={restaurarTodos} title="Mostrar todos">
+                    <RotateCcw size={13} />
+                  </button>
+                )}
+              </div>
+            )}
 
-          {/* ★ Favoritos */}
-          {favoritoItems.length > 0 && !editandoOrdem && (
-            <>
-              {!collapsed && <div className={styles.favSection}>★ Favoritos</div>}
-              {favoritoItems.map(item => (
+            {favoritoItems.length > 0 && !editandoOrdem && (
+              <>
+                {!collapsed && <div className={styles.favSection}>★ Favoritos</div>}
+                {favoritoItems.map(item => (
+                  <div
+                    key={`fav-${item.id}`}
+                    className={`${styles.navItem} ${styles.navItemFav} ${location.pathname === item.rota ? styles.active : ''}`}
+                    onClick={() => handleNav(item.rota)}
+                    onKeyDown={event => handleItemKeyDown(event, () => handleNav(item.rota))}
+                    title={collapsed ? `★ ${item.label}` : undefined}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    <span className={styles.navIcon}>{renderMenuIcon(item.icon, 20)}</span>
+                    {!collapsed && <span className={styles.navLabel}>{item.label}</span>}
+                    {!collapsed && (
+                      <button
+                        className={styles.favBtn}
+                        onClick={e => { e.stopPropagation(); toggleFavorito(item.id); }}
+                        title="Remover dos favoritos"
+                      >
+                        <Star size={13} fill="#f59e0b" color="#f59e0b" />
+                      </button>
+                    )}
+                    {!collapsed && location.pathname === item.rota && <div className={styles.activeIndicator} />}
+                  </div>
+                ))}
+                {!collapsed && <div className={styles.favDivider} />}
+              </>
+            )}
+
+            {visibleItems.map((item, idx) => {
+              const isOculto = ocultosIds.has(item.id);
+              return (
                 <div
-                  key={`fav-${item.id}`}
-                  className={`${styles.navItem} ${styles.navItemFav} ${location.pathname === item.rota ? styles.active : ''}`}
-                  onClick={() => handleNav(item.rota)}
-                  onKeyDown={event => handleItemKeyDown(event, () => handleNav(item.rota))}
-                  title={collapsed ? `★ ${item.label}` : undefined}
+                  key={item.id}
+                  className={`${styles.navItem} ${location.pathname === item.rota ? styles.active : ''} ${dragOverIdx === idx ? styles.navItemDragOver : ''} ${isOculto && editandoVisibilidade ? styles.navItemOculto : ''}`}
+                  onClick={() => !editandoOrdem && !editandoVisibilidade && handleNav(item.rota)}
+                  onKeyDown={event => handleItemKeyDown(event, () => {
+                    if (!editandoOrdem && !editandoVisibilidade) handleNav(item.rota);
+                  })}
+                  title={collapsed ? item.label : undefined}
                   role="button"
                   tabIndex={0}
+                  draggable={editandoOrdem}
+                  onDragStart={() => handleDragStart(idx)}
+                  onDragOver={e => handleDragOver(e, idx)}
+                  onDrop={() => handleDrop(idx)}
+                  onDragEnd={handleDragEnd}
                 >
-                  <span className={styles.navIcon}>{item.icon}</span>
+                  {editandoOrdem && !collapsed && <GripVertical size={14} className={styles.dragHandle} />}
+                  <span className={styles.navIcon}>{renderMenuIcon(item.icon, 20)}</span>
                   {!collapsed && <span className={styles.navLabel}>{item.label}</span>}
-                  {!collapsed && (
+                  {!collapsed && editandoVisibilidade && (
+                    <button
+                      className={styles.visBtn}
+                      onClick={e => { e.stopPropagation(); toggleOculto(item.id); }}
+                      title={isOculto ? 'Mostrar no menu' : 'Ocultar do menu'}
+                    >
+                      {isOculto
+                        ? <EyeOff size={14} color="rgba(255,255,255,0.3)" />
+                        : <Eye size={14} color="rgba(255,255,255,0.8)" />}
+                    </button>
+                  )}
+                  {!collapsed && !editandoOrdem && !editandoVisibilidade && (
                     <button
                       className={styles.favBtn}
                       onClick={e => { e.stopPropagation(); toggleFavorito(item.id); }}
-                      title="Remover dos favoritos"
+                      title={favoritosIds.has(item.id) ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
                     >
-                      <Star size={13} fill="#f59e0b" color="#f59e0b" />
+                      <Star size={13} fill={favoritosIds.has(item.id) ? '#f59e0b' : 'none'} color={favoritosIds.has(item.id) ? '#f59e0b' : 'rgba(255,255,255,0.25)'} />
                     </button>
                   )}
                   {!collapsed && location.pathname === item.rota && <div className={styles.activeIndicator} />}
                 </div>
-              ))}
-              {!collapsed && <div className={styles.favDivider} />}
-            </>
-          )}
+              );
+            })}
+          </nav>
 
-          {/* Menu completo */}
-          {visibleItems.map((item, idx) => {
-            const isOculto = ocultosIds.has(item.id);
-            return (
-              <div
-                key={item.id}
-                className={`${styles.navItem} ${location.pathname === item.rota ? styles.active : ''} ${dragOverIdx === idx ? styles.navItemDragOver : ''} ${isOculto && editandoVisibilidade ? styles.navItemOculto : ''}`}
-                onClick={() => !editandoOrdem && !editandoVisibilidade && handleNav(item.rota)}
-                onKeyDown={event => handleItemKeyDown(event, () => {
-                  if (!editandoOrdem && !editandoVisibilidade) handleNav(item.rota);
-                })}
-                title={collapsed ? item.label : undefined}
-                role="button"
-                tabIndex={0}
-                draggable={editandoOrdem}
-                onDragStart={() => handleDragStart(idx)}
-                onDragOver={e => handleDragOver(e, idx)}
-                onDrop={() => handleDrop(idx)}
-                onDragEnd={handleDragEnd}
-              >
-                {editandoOrdem && !collapsed && <GripVertical size={14} className={styles.dragHandle} />}
-                <span className={styles.navIcon}>{item.icon}</span>
-                {!collapsed && <span className={styles.navLabel}>{item.label}</span>}
-                {/* Botão ocultar/mostrar no modo visibilidade */}
-                {!collapsed && editandoVisibilidade && (
-                  <button
-                    className={styles.visBtn}
-                    onClick={e => { e.stopPropagation(); toggleOculto(item.id); }}
-                    title={isOculto ? 'Mostrar no menu' : 'Ocultar do menu'}
-                  >
-                    {isOculto
-                      ? <EyeOff size={14} color="rgba(255,255,255,0.3)" />
-                      : <Eye size={14} color="rgba(255,255,255,0.8)" />}
-                  </button>
-                )}
-                {/* Botão favorito no modo normal */}
-                {!collapsed && !editandoOrdem && !editandoVisibilidade && (
-                  <button
-                    className={styles.favBtn}
-                    onClick={e => { e.stopPropagation(); toggleFavorito(item.id); }}
-                    title={favoritosIds.has(item.id) ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
-                  >
-                    <Star size={13} fill={favoritosIds.has(item.id) ? '#f59e0b' : 'none'} color={favoritosIds.has(item.id) ? '#f59e0b' : 'rgba(255,255,255,0.25)'} />
-                  </button>
-                )}
-                {!collapsed && location.pathname === item.rota && <div className={styles.activeIndicator} />}
-              </div>
-            );
-          })}
-        </nav>
+          <div className={styles.footer}>
+            <button className={styles.logoutBtn} onClick={handleLogout}>
+              <LogOut size={20} />
+              {!collapsed && <span>Sair</span>}
+            </button>
+          </div>
+        </div>
 
-        <div className={styles.footer}>
-          <button className={styles.logoutBtn} onClick={handleLogout}>
-            <LogOut size={20} />
-            {!collapsed && <span>Sair</span>}
-          </button>
+        <div className={styles.mobileGridWrapper}>
+          <MobileMenuGrid
+            items={visibleItems}
+            favoritosIds={favoritosIds}
+            currentPath={location.pathname}
+            onNavigate={handleNav}
+            onToggleFavorite={toggleFavorito}
+          />
+          <div className={styles.mobileFooter}>
+            <button className={styles.logoutBtn} onClick={handleLogout}>
+              <LogOut size={20} />
+              <span>Sair</span>
+            </button>
+          </div>
         </div>
       </aside>
 
-      {mostrarDica && !collapsed && !isMobileBarUser && (
+      {mostrarDica && !collapsed && !isMobileBarUser && !isMobileViewport && (
         <div className={styles.dicaOverlay} onClick={fecharDica}>
           <div className={styles.dicaPopup} onClick={e => e.stopPropagation()}>
             <EyeOff size={28} color="#f57c00" />

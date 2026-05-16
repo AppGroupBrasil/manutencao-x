@@ -101,15 +101,6 @@ export default defineConfig({
               cacheableResponse: { statuses: [0, 200] },
             },
           },
-          {
-            urlPattern: /^https:\/\/unpkg\.com\/leaflet.*/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'leaflet-cache',
-              expiration: { maxEntries: 5, maxAgeSeconds: 60 * 60 * 24 * 30 },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
         ],
       },
     }),
@@ -118,12 +109,11 @@ export default defineConfig({
     drop: ['console', 'debugger'],
   },
   server: {
-    port: 3000,
-    open: true,
+    port: 3003,
+    open: false,
     hmr: {
       protocol: 'ws',
       host: '127.0.0.1',
-      port: 3000,
     },
     proxy: {
       '/api': {

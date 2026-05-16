@@ -129,6 +129,17 @@ const useApiMode = () => {
   }
 };
 
+function isSessionRestoreAbortError(message?: string) {
+  if (!message) return false;
+
+  return (
+    message.includes('Muitas requisições')
+    || message.includes('Sem conexão com o servidor')
+    || message.includes('Servidor temporariamente indisponível')
+    || message.includes('Servidor demorou para responder')
+  );
+}
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [usuario, setUsuario] = useState<User | null>(null);
   const [carregando, setCarregando] = useState(true);
@@ -164,7 +175,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setErro('Sessão expirada. Faça login novamente.');
   }, []);
 
+  const clearSession = useCallback(() => {
+    setToken(null);
+    setUsuario(null);
+    persistUsuario(null);
+  }, []);
+
   const restoreSession = useCallback(async (attempts: number) => {
+    const tokenAtStart = getToken();
     for (let currentAttempt = attempts; currentAttempt >= 0; currentAttempt -= 1) {
       try {
         const data = await apiAuth.me();
@@ -174,8 +192,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setCarregando(false);
         return;
       } catch (err: any) {
+        if (getToken() !== tokenAtStart) {
+          setCarregando(false);
+          return;
+        }
         if (err.message?.includes('expirada') || err.message?.includes('inválido') || err.message?.includes('não encontrado')) {
           handleUnauthorized();
+          setCarregando(false);
+          return;
+        }
+
+        if (isSessionRestoreAbortError(err.message)) {
+          clearSession();
           setCarregando(false);
           return;
         }
@@ -188,7 +216,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await new Promise(resolve => globalThis.setTimeout(resolve, 2000));
       }
     }
-  }, [apiToUser, handleUnauthorized]);
+  }, [apiToUser, clearSession, handleUnauthorized]);
 
   useEffect(() => {
     globalThis.addEventListener('auth:unauthorized', handleUnauthorized);
