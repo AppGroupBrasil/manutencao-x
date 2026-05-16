@@ -76,11 +76,12 @@ export default defineConfig({
           },
           {
             urlPattern: /\/uploads\/.*/i,
-            handler: 'CacheFirst',
+            handler: 'NetworkFirst',
             options: {
               cacheName: 'uploads-cache',
-              expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 },
               cacheableResponse: { statuses: [0, 200] },
+              networkTimeoutSeconds: 5,
             },
           },
           {

@@ -3,11 +3,13 @@ import { AuthRequest } from './auth.js';
 
 const MAX_ATTEMPTS = 5;
 const WINDOW_MINUTES = 15;
-const isProduction = process.env.NODE_ENV === 'production';
+const rateLimitEnabled =
+  process.env.RATE_LIMIT_ENABLED === 'true' ||
+  (process.env.RATE_LIMIT_ENABLED !== 'false' && process.env.NODE_ENV === 'production');
 
 /** Check if login is rate-limited for this email/IP */
 export async function checkRateLimit(email: string, ip: string): Promise<{ blocked: boolean; remaining: number }> {
-  if (!isProduction) {
+  if (!rateLimitEnabled) {
     return { blocked: false, remaining: MAX_ATTEMPTS };
   }
 
@@ -23,7 +25,7 @@ export async function checkRateLimit(email: string, ip: string): Promise<{ block
 
 /** Record a login attempt */
 export async function recordLoginAttempt(email: string, ip: string, sucesso: boolean) {
-  if (!isProduction) return;
+  if (!rateLimitEnabled) return;
 
   await query(
     'INSERT INTO login_attempts (email, ip, sucesso) VALUES ($1, $2, $3)',

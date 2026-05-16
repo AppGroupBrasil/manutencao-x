@@ -6,11 +6,14 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "migrate": "tsx src/db/migrate-cli.ts",
     "start": "node dist/index.js",
     "db:seed": "tsx src/db/seed.ts",
     "db:seed:examples": "tsx src/db/seed-examples.ts"
   },
   "dependencies": {
+    "@sentry/node": "^8.45.0",
     "bcrypt": "^5.1.1",
     "compression": "^1.8.1",
     "cors": "^2.8.5",

@@ -4,6 +4,7 @@ import crypto from 'node:crypto';
 import { query, queryOne } from '../db/database.js';
 import { generateToken, AuthRequest, authMiddleware } from '../middleware/auth.js';
 import { checkRateLimit, recordLoginAttempt, auditLog, createNotification } from '../middleware/helpers.js';
+import { issueRefreshToken, consumeRefreshToken, revokeAllForUser } from '../services/refreshToken.js';
 import { sendEmail, emailResetSenha } from '../services/email.js';
 import { validate, loginSchema, registerSchema, selfRegisterSchema, forgotPasswordSchema, resetPasswordSchema, changePasswordSchema } from '../middleware/validation.js';
 
@@ -62,9 +63,14 @@ router.post('/login', validate(loginSchema), async (req, res: Response) => {
     await auditLog({ id: user.id, nome: user.nome, role: user.role } as any, 'login', 'usuarios', user.id, {}, ip);
 
     const token = generateToken({ userId: user.id, email: user.email, role: user.role });
+    const refreshToken = await issueRefreshToken(user.id, {
+      userAgent: req.headers['user-agent'] as string | undefined,
+      ip,
+    }).catch(err => { console.error('[REFRESH] Falha ao emitir:', err.message); return null; });
 
     res.json({
       token,
+      refreshToken,
       user: {
         id: user.id,
         email: user.email,
@@ -178,8 +184,8 @@ router.post('/self-register', validate(selfRegisterSchema), async (req, res: Res
       res.status(400).json({ error: 'Email, senha e nome são obrigatórios' });
       return;
     }
-    if (senha.length < 6) {
-      res.status(400).json({ error: 'A senha deve ter no mínimo 6 caracteres' });
+    if (senha.length < 8) {
+      res.status(400).json({ error: 'A senha deve ter no mínimo 8 caracteres' });
       return;
     }
 
@@ -290,6 +296,41 @@ router.post('/reset-password', validate(resetPasswordSchema), async (req, res: R
   await query('UPDATE reset_tokens SET used = true WHERE token = $1', [token]);
 
   res.json({ message: 'Senha redefinida com sucesso! Você já pode fazer login.' });
+});
+
+// POST /api/auth/refresh — rotação de refresh token
+router.post('/refresh', async (req, res: Response) => {
+  const { refreshToken } = req.body || {};
+  if (!refreshToken || typeof refreshToken !== 'string') {
+    res.status(400).json({ error: 'refreshToken obrigatório' });
+    return;
+  }
+  const rec = await consumeRefreshToken(refreshToken);
+  if (!rec) {
+    res.status(401).json({ error: 'Refresh token inválido ou expirado' });
+    return;
+  }
+  const user = await queryOne<any>(
+    'SELECT id, email, role, ativo, bloqueado FROM usuarios WHERE id = $1',
+    [rec.user_id]
+  );
+  if (!user || !user.ativo || user.bloqueado) {
+    res.status(403).json({ error: 'Conta desativada ou bloqueada' });
+    return;
+  }
+  const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.ip || '';
+  const newAccess = generateToken({ userId: user.id, email: user.email, role: user.role });
+  const newRefresh = await issueRefreshToken(user.id, {
+    userAgent: req.headers['user-agent'] as string | undefined,
+    ip,
+  });
+  res.json({ token: newAccess, refreshToken: newRefresh });
+});
+
+// POST /api/auth/logout — revoga todos os refresh tokens do usuário
+router.post('/logout', authMiddleware, async (req: AuthRequest, res: Response) => {
+  await revokeAllForUser(req.user!.id);
+  res.json({ ok: true });
 });
 
 export default router;

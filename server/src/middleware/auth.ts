@@ -2,14 +2,12 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { queryOne } from '../db/database.js';
 
-if (!process.env.JWT_SECRET) {
-  if (process.env.NODE_ENV === 'production') {
-    console.error('[SECURITY] ❌ JWT_SECRET não definido em produção! Encerrando.');
-    process.exit(1);
-  }
-  console.warn('[SECURITY] ⚠️  JWT_SECRET não definido! Usando fallback inseguro de desenvolvimento.');
+if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
+  console.error('[SECURITY] ❌ JWT_SECRET ausente ou curto (<32 chars). Encerrando.');
+  process.exit(1);
 }
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-only-unsafe-secret';
+const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_EXPIRES_IN = (process.env.JWT_EXPIRES_IN || '24h') as jwt.SignOptions['expiresIn'];
 
 export interface JwtPayload {
   userId: string;
@@ -32,7 +30,7 @@ export interface AuthRequest extends Request {
 }
 
 export function generateToken(payload: JwtPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '30d' });
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 }
 
 export function verifyToken(token: string): JwtPayload {

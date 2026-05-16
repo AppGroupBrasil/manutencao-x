@@ -30,7 +30,7 @@ export const loginSchema = z.object({
 
 export const registerSchema = z.object({
   email: z.string().email('E-mail inválido').max(255),
-  senha: z.string().min(6, 'Senha deve ter no mínimo 6 caracteres').max(128),
+  senha: z.string().min(8, 'Senha deve ter no mínimo 8 caracteres').max(128),
   nome: z.string().min(2, 'Nome deve ter no mínimo 2 caracteres').max(255),
   role: z.enum(['administrador', 'supervisor', 'funcionario']),
   cargo: z.string().max(100).optional().nullable(),
@@ -40,7 +40,7 @@ export const registerSchema = z.object({
 
 export const selfRegisterSchema = z.object({
   email: z.string().email('E-mail inválido').max(255),
-  senha: z.string().min(6, 'Senha deve ter no mínimo 6 caracteres').max(128),
+  senha: z.string().min(8, 'Senha deve ter no mínimo 8 caracteres').max(128),
   nome: z.string().min(2, 'Nome deve ter no mínimo 2 caracteres').max(255),
   telefone: z.string().max(30).optional().nullable(),
 });
@@ -51,12 +51,12 @@ export const forgotPasswordSchema = z.object({
 
 export const resetPasswordSchema = z.object({
   token: z.string().min(1, 'Token obrigatório').max(128),
-  novaSenha: z.string().min(6, 'Senha deve ter no mínimo 6 caracteres').max(128),
+  novaSenha: z.string().min(8, 'Senha deve ter no mínimo 8 caracteres').max(128),
 });
 
 export const changePasswordSchema = z.object({
   senhaAtual: z.string().min(1, 'Senha atual obrigatória').max(128),
-  novaSenha: z.string().min(6, 'Nova senha deve ter no mínimo 6 caracteres').max(128),
+  novaSenha: z.string().min(8, 'Nova senha deve ter no mínimo 8 caracteres').max(128),
 });
 
 export const ordemServicoSchema = z.object({

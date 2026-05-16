@@ -3,7 +3,11 @@ import { Server, Socket } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import { getCondominiosScope } from './middleware/rbac.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-only-unsafe-secret';
+if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
+  console.error('[SECURITY] ❌ JWT_SECRET ausente ou curto no socket. Encerrando.');
+  process.exit(1);
+}
+const JWT_SECRET = process.env.JWT_SECRET;
 
 let io: Server | null = null;
 

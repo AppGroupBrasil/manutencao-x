@@ -13,10 +13,13 @@ const pool = new Pool({
   password: process.env.DB_PASSWORD || 'manutencao_secret',
   max: 40,
   min: 4,
-  idleTimeoutMillis: 60000,
+  idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000,
+  statement_timeout: 30000,
   allowExitOnIdle: false,
-  ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
+  ssl: process.env.DB_SSL === 'true' || process.env.DB_SSL === 'strict'
+    ? { rejectUnauthorized: process.env.DB_SSL_STRICT !== 'false' }
+    : false,
 });
 
 pool.on('error', (err) => {

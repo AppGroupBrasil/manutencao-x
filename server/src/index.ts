@@ -59,6 +59,8 @@ import contratosRoutes from './routes/contratos.js';
 import orcamentosRoutes from './routes/orcamentos.js';
 import { iniciarScheduler } from './scheduler.js';
 import { initSocket } from './socket.js';
+import { runMigrations } from './db/migrate.js';
+import { initSentry } from './services/sentry.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -66,6 +68,9 @@ const app = express();
 const httpServer = createServer(app);
 const PORT = Number.parseInt(process.env.PORT || '3001');
 const isProduction = process.env.NODE_ENV === 'production';
+const rateLimitEnabled =
+  process.env.RATE_LIMIT_ENABLED === 'true' ||
+  (process.env.RATE_LIMIT_ENABLED !== 'false' && isProduction);
 
 const REQUIRED_ENV_VARS = ['DB_PASSWORD', 'JWT_SECRET', 'FRONTEND_URL', 'CORS_ORIGIN'] as const;
 
@@ -120,6 +125,12 @@ validateCriticalEnvironment();
 
 // ── Middlewares globais ──
 app.use(compression());
+app.use((req, res, next) => {
+  const id = (req.headers['x-request-id'] as string) || Math.random().toString(36).slice(2, 10);
+  (req as any).requestId = id;
+  res.setHeader('X-Request-Id', id);
+  next();
+});
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(helmet({
   contentSecurityPolicy: {
@@ -157,18 +168,18 @@ app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 // ── Rate limiting ──
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: isProduction ? 300 : 100000,
+  max: rateLimitEnabled ? 300 : 100000,
   standardHeaders: true,
   legacyHeaders: false,
-  skip: () => !isProduction,
+  skip: () => !rateLimitEnabled,
   message: { error: 'Muitas requisições. Tente novamente em 15 minutos.' },
 });
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: isProduction ? 20 : 100000,
+  max: rateLimitEnabled ? 20 : 100000,
   standardHeaders: true,
   legacyHeaders: false,
-  skip: () => !isProduction,
+  skip: () => !rateLimitEnabled,
   message: { error: 'Muitas tentativas de login. Tente novamente em 15 minutos.' },
 });
 app.use('/api', apiLimiter);
@@ -320,19 +331,42 @@ app.use((err: any, req: express.Request, res: express.Response, _next: express.N
     res.status(400).json({ error: 'Dados inválidos na requisição' });
     return;
   }
-  console.error(`[ERROR] ${req.method} ${req.path}:`, err.message, err.stack?.split('\n').slice(0, 3).join('\n'));
+  const reqId = (req as any).requestId;
+  if (isProduction) {
+    console.error(`[ERROR] [${reqId}] ${req.method} ${req.path}: ${err.message}`);
+  } else {
+    console.error(`[ERROR] [${reqId}] ${req.method} ${req.path}:`, err.message, err.stack?.split('\n').slice(0, 5).join('\n'));
+  }
   const status = err.status || 500;
   res.status(status).json({
-    error: process.env.NODE_ENV === 'production' ? 'Erro interno do servidor' : err.message,
+    error: isProduction ? 'Erro interno do servidor' : err.message,
+    requestId: reqId,
   });
 });
 
 // ── Start ──
-initSocket(httpServer);
-httpServer.listen(PORT, () => {
-  console.log(`API rodando em http://localhost:${PORT}`);
-  iniciarScheduler();
-});
+async function start() {
+  try {
+    await checkDatabaseConnection();
+    console.log('[DB] Conexão verificada.');
+  } catch (err: any) {
+    console.error('[DB] ❌ Falha na conexão inicial:', err.message);
+    process.exit(1);
+  }
+  try {
+    await runMigrations();
+  } catch (err: any) {
+    console.error('[MIGRATE] ❌ Erro nas migrações, encerrando:', err.message);
+    process.exit(1);
+  }
+  await initSentry(app);
+  initSocket(httpServer);
+  httpServer.listen(PORT, () => {
+    console.log(`API rodando em http://localhost:${PORT}`);
+    iniciarScheduler();
+  });
+}
+start();
 
 // ── Graceful shutdown ──
 const shutdown = async (signal: string) => {

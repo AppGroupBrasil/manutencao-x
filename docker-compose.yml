@@ -38,6 +38,11 @@
       DB_USER: manutencao
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD env var is required}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET env var is required}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-24h}
+      REFRESH_TOKEN_TTL_DAYS: ${REFRESH_TOKEN_TTL_DAYS:-7}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0.1}
+      SENTRY_RELEASE: ${SENTRY_RELEASE:-}
       CORS_ORIGIN: https://manutencaox.com.br
       FRONTEND_URL: https://manutencaox.com.br
       SMTP_HOST: ${SMTP_HOST:-}

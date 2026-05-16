@@ -47,6 +47,61 @@ function normalizeImportCell(value: unknown) {
 }
 
 /* ============ Componente ============ */
+function parseCsvText(text: string): Record<string, unknown>[] {
+  const lines = text.replace(/\r\n/g, '\n').split('\n').filter(l => l.trim() !== '');
+  if (lines.length === 0) return [];
+  const splitRow = (line: string): string[] => {
+    const out: string[] = [];
+    let cur = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (c === '"') {
+        if (inQuotes && line[i + 1] === '"') { cur += '"'; i++; }
+        else inQuotes = !inQuotes;
+      } else if ((c === ',' || c === ';') && !inQuotes) {
+        out.push(cur); cur = '';
+      } else cur += c;
+    }
+    out.push(cur);
+    return out;
+  };
+  const headers = splitRow(lines[0]).map(h => h.trim());
+  return lines.slice(1).map(line => {
+    const cells = splitRow(line);
+    const row: Record<string, unknown> = {};
+    headers.forEach((h, i) => { row[h] = (cells[i] ?? '').trim(); });
+    return row;
+  });
+}
+
+async function parsePlanilha(file: File, ext: string): Promise<Record<string, unknown>[]> {
+  if (ext === 'csv') {
+    return parseCsvText(await file.text());
+  }
+  if (ext === 'xls') {
+    throw new Error('Formato .xls antigo não suportado. Salve como .xlsx no Excel/LibreOffice e reenvie.');
+  }
+  const ExcelJS = (await import('exceljs')).default;
+  const wb = new ExcelJS.Workbook();
+  await wb.xlsx.load(await file.arrayBuffer());
+  const ws = wb.worksheets[0];
+  if (!ws) return [];
+  const headers: string[] = [];
+  ws.getRow(1).eachCell((cell, col) => { headers[col - 1] = String(cell.value ?? '').trim(); });
+  const rows: Record<string, unknown>[] = [];
+  ws.eachRow((row, rowNum) => {
+    if (rowNum === 1) return;
+    const obj: Record<string, unknown> = {};
+    headers.forEach((h, i) => {
+      const v = row.getCell(i + 1).value;
+      obj[h] = v == null ? '' : typeof v === 'object' && 'text' in (v as any) ? (v as any).text : v;
+    });
+    rows.push(obj);
+  });
+  return rows;
+}
+
 const MoradoresPage: React.FC = () => {
   const { tentarAcao } = useDemo();
   const [moradores, setMoradores] = useState<Morador[]>([]);
@@ -155,11 +210,7 @@ const MoradoresPage: React.FC = () => {
     }
 
     try {
-      const XLSX = await import('xlsx');
-      const data = new Uint8Array(await file.arrayBuffer());
-      const workbook = XLSX.read(data, { type: 'array' });
-      const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      const json = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: '' });
+      const json = await parsePlanilha(file, extensao!);
 
       if (json.length === 0) {
         setImportErro('A planilha está vazia.');
@@ -239,14 +290,19 @@ const MoradoresPage: React.FC = () => {
 
   /* Download template */
   const baixarModelo = async () => {
-    const XLSX = await import('xlsx');
-    const ws = XLSX.utils.aoa_to_sheet([
-      ['Nome', 'Condomínio', 'Bloco', 'Apartamento', 'WhatsApp', 'E-mail', 'Perfil'],
-      ['João Silva', 'Condomínio Aurora', 'A', '101', '(11) 99999-0001', 'joao@email.com', 'Proprietário'],
-    ]);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Moradores');
-    XLSX.writeFile(wb, 'modelo_moradores.xlsx');
+    const ExcelJS = (await import('exceljs')).default;
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Moradores');
+    ws.addRow(['Nome', 'Condomínio', 'Bloco', 'Apartamento', 'WhatsApp', 'E-mail', 'Perfil']);
+    ws.addRow(['João Silva', 'Condomínio Aurora', 'A', '101', '(11) 99999-0001', 'joao@email.com', 'Proprietário']);
+    const buf = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'modelo_moradores.xlsx';
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   /* Resumo por condomínio */

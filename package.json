@@ -7,6 +7,7 @@
     "dev": "vite",
     "dev:all": "concurrently \"npm run dev -- --host 127.0.0.1\" \"npm --prefix server run dev\"",
     "build": "tsc && vite build",
+    "typecheck": "tsc --noEmit",
     "preview": "vite preview",
     "cap:sync": "npx cap sync",
     "cap:android": "npx cap open android",
@@ -24,6 +25,7 @@
     "@capacitor/splash-screen": "^8.0.1",
     "@capacitor/status-bar": "^8.0.1",
     "date-fns": "^3.6.0",
+    "exceljs": "^4.4.0",
     "html2canvas": "^1.4.1",
     "jspdf": "^2.5.1",
     "jspdf-autotable": "^3.8.2",
@@ -35,8 +37,7 @@
     "react-leaflet": "^4.2.1",
     "react-router-dom": "^6.26.1",
     "recharts": "^2.12.7",
-    "socket.io-client": "^4.8.3",
-    "xlsx": "^0.18.5"
+    "socket.io-client": "^4.8.3"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.2.0",
