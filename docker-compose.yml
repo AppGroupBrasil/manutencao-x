@@ -21,6 +21,8 @@
 
   # ── API Backend ──
   manutencao-api:
+    env_file:
+      - .env
     build:
       context: ./server
       dockerfile: Dockerfile
