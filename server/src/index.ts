@@ -46,6 +46,7 @@ import custosRoutes from './routes/custos.js';
 import kpisRoutes from './routes/kpis.js';
 import documentosRoutes from './routes/documentos.js';
 import portalMoradorRoutes from './routes/portalMorador.js';
+import provisioningRoutes from './routes/provisioning.js';
 import solicitacoesRoutes from './routes/solicitacoes.js';
 import slaRoutes from './routes/sla.js';
 import pdfRoutes from './routes/pdf.js';
@@ -187,6 +188,7 @@ app.use('/api', apiLimiter);
 // ── Rotas públicas ──
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/portal', authLimiter, portalMoradorRoutes);
+app.use('/api/provisioning', provisioningRoutes);
 
 // ── Rotas protegidas ──
 const protectedRouter = express.Router();
