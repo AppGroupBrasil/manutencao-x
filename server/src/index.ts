@@ -66,6 +66,8 @@ import { initSentry } from './services/sentry.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
+// Traefik fica na frente -> confiar no primeiro proxy para X-Forwarded-For / IP real
+app.set('trust proxy', 1);
 const httpServer = createServer(app);
 const PORT = Number.parseInt(process.env.PORT || '3001');
 const isProduction = process.env.NODE_ENV === 'production';
