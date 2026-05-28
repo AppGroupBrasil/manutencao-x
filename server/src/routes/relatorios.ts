@@ -36,7 +36,7 @@ router.get('/resumo', async (req: AuthRequest, res: Response) => {
     `, ids),
     // Custos mensais
     query(`
-      SELECT TO_CHAR(criado_em, 'Mon') as mes, COALESCE(SUM(custo), 0)::numeric(10,2) as custo
+      SELECT TO_CHAR(criado_em, 'Mon') as mes, COALESCE(SUM(COALESCE(custo_material,0)+COALESCE(custo_mao_obra,0)+COALESCE(custo_externo,0)), 0)::numeric(10,2) as custo
       FROM ordens_servico
       WHERE condominio_id IN (${ph}) AND criado_em >= CURRENT_DATE - INTERVAL '6 months'
       GROUP BY TO_CHAR(criado_em, 'Mon'), DATE_TRUNC('month', criado_em)
