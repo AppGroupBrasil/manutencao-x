@@ -13,7 +13,7 @@
     "db:seed:examples": "tsx src/db/seed-examples.ts"
   },
   "dependencies": {
-    "@sentry/node": "^8.45.0",
+    "@sentry/node": "^10.55.0",
     "@types/bcryptjs": "^2.4.6",
     "bcryptjs": "^3.0.3",
     "compression": "^1.8.1",
