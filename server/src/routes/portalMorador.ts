@@ -1,5 +1,5 @@
 import { Router, Response } from 'express';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import pool, { queryOne, query, paginate } from '../db/database.js';
 import { generatePortalToken, portalAuthMiddleware, PortalRequest } from '../middleware/portalAuth.js';
 import { checkRateLimit, recordLoginAttempt, auditLog } from '../middleware/helpers.js';

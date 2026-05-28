@@ -1,4 +1,4 @@
-﻿import bcrypt from 'bcrypt';
+﻿import bcrypt from 'bcryptjs';
 import pool from './database.js';
 
 async function seed() {

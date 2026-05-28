@@ -57,20 +57,17 @@ jobs:
           done
           REMOTE
 
-      - name: Re-hash senha do admin via pgcrypto + testar login
+      - name: Pos-deploy - re-hash senha admin e testar login
         run: |
           ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} 'bash -s' <<"REMOTE"
           set -e
-          docker exec manutencao-db psql -U manutencao -d manutencao -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
-          docker exec manutencao-db psql -U manutencao -d manutencao -c "UPDATE usuarios SET senha_hash = crypt('123456', gen_salt('bf', 12)), ativo=true, bloqueado=false WHERE email='eduardodominikus@hotmail.com';"
-          docker exec manutencao-db psql -U manutencao -d manutencao -c "DELETE FROM login_attempts WHERE email='eduardodominikus@hotmail.com';"
-          echo "=== Hash final ==="
-          docker exec manutencao-db psql -U manutencao -d manutencao -tAc "SELECT senha_hash FROM usuarios WHERE email='eduardodominikus@hotmail.com';"
-          echo "=== Tentando login ==="
+          sleep 5
+          docker exec manutencao-db psql -U manutencao -d manutencao -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;" >/dev/null
+          docker exec manutencao-db psql -U manutencao -d manutencao -c "UPDATE usuarios SET senha_hash = crypt('123456', gen_salt('bf', 12)), ativo=true, bloqueado=false WHERE email='eduardodominikus@hotmail.com';" >/dev/null
+          docker exec manutencao-db psql -U manutencao -d manutencao -c "DELETE FROM login_attempts WHERE email='eduardodominikus@hotmail.com';" >/dev/null
+          echo "=== Resultado do login ==="
           curl -s -X POST http://localhost:3001/api/auth/login -H "Content-Type: application/json" -d '{"email":"eduardodominikus@hotmail.com","senha":"123456"}'
           echo
-          echo "=== bcrypt instalado no container API? ==="
-          docker exec -w /app manutencao-api sh -c "ls node_modules/bcrypt 2>&1 | head -5; test -f node_modules/bcrypt/lib/binding/napi-v3/bcrypt_lib.node && echo BINARIO_OK || echo BINARIO_FALTA"
           REMOTE
 
       - name: Health check

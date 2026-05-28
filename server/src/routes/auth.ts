@@ -1,5 +1,5 @@
 import { Router, Response } from 'express';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import crypto from 'node:crypto';
 import { query, queryOne } from '../db/database.js';
 import { generateToken, AuthRequest, authMiddleware } from '../middleware/auth.js';
