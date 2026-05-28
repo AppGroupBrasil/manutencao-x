@@ -57,10 +57,9 @@ jobs:
           done
           REMOTE
 
-      - name: Patch colunas faltantes em comunicados
+      - name: Dump logs runtime
         run: |
-          SQL="ALTER TABLE comunicados ADD COLUMN IF NOT EXISTS destinatario_tipo VARCHAR(100); ALTER TABLE comunicados ADD COLUMN IF NOT EXISTS emails_enviados TEXT[] DEFAULT '{}'; ALTER TABLE comunicados ADD COLUMN IF NOT EXISTS tracking JSONB DEFAULT '[]'; ALTER TABLE comunicados ADD COLUMN IF NOT EXISTS enviado_por UUID; ALTER TABLE comunicados ADD COLUMN IF NOT EXISTS enviado_por_nome VARCHAR(255);"
-          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "docker exec manutencao-db psql -U manutencao -d manutencao -c \"$SQL\""
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} 'docker logs --since 10m manutencao-api 2>&1 | tail -50'
 
       - name: Health check
         run: |
