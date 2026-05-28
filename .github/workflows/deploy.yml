@@ -59,16 +59,14 @@ jobs:
 
       - name: Diag POST comunicado
         run: |
-          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} 'bash -s' <<"REMOTE"
-          sleep 8
-          TOKEN=$(curl -s -X POST http://localhost/api/auth/login -H "Host: manutencaox.com.br" -H "Content-Type: application/json" -d '{"email":"eduardodominikus@hotmail.com","senha":"123456"}' | grep -oE '"token":"[^"]+"' | sed 's/"token":"//;s/"$//')
-          curl -s -X POST http://localhost/api/comunicados -H "Host: manutencaox.com.br" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"condominioId":"e284df7b-6885-4c17-a4db-7058573e6be6","titulo":"Diag","mensagem":"teste diag log"}' > /tmp/resp.txt
-          cat /tmp/resp.txt
+          sleep 15
+          TOKEN=$(curl -s -X POST https://manutencaox.com.br/api/auth/login -H "Content-Type: application/json" -d '{"email":"eduardodominikus@hotmail.com","senha":"123456"}' | grep -oE '"token":"[^"]+"' | sed 's/"token":"//;s/"$//')
+          echo "TOKEN OK: ${TOKEN:0:30}..."
+          echo "=== RESP ==="
+          curl -s -X POST https://manutencaox.com.br/api/comunicados -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"condominioId":"e284df7b-6885-4c17-a4db-7058573e6be6","titulo":"Diag","mensagem":"teste diag log"}'
           echo
-          sleep 1
-          echo "=== LOGS API ==="
-          docker logs --tail 30 manutencao-api 2>&1
-          REMOTE
+          sleep 2
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} 'docker logs --since 30s manutencao-api 2>&1 | tail -40'
 
       - name: Health check
         run: |
