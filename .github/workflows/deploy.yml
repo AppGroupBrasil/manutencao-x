@@ -57,18 +57,9 @@ jobs:
           done
           REMOTE
 
-      - name: Pos-deploy - re-hash senha admin e testar login
+      - name: Dump logs com erros
         run: |
-          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} 'bash -s' <<"REMOTE"
-          set -e
-          sleep 5
-          docker exec manutencao-db psql -U manutencao -d manutencao -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;" >/dev/null
-          docker exec manutencao-db psql -U manutencao -d manutencao -c "UPDATE usuarios SET senha_hash = crypt('123456', gen_salt('bf', 12)), ativo=true, bloqueado=false WHERE email='eduardodominikus@hotmail.com';" >/dev/null
-          docker exec manutencao-db psql -U manutencao -d manutencao -c "DELETE FROM login_attempts WHERE email='eduardodominikus@hotmail.com';" >/dev/null
-          echo "=== Resultado do login ==="
-          curl -s -X POST http://localhost:3001/api/auth/login -H "Content-Type: application/json" -d '{"email":"eduardodominikus@hotmail.com","senha":"123456"}'
-          echo
-          REMOTE
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} 'docker logs --tail 200 manutencao-api 2>&1 | grep -E "ERROR|column|relation|does not exist|undefined" | tail -30'
 
       - name: Health check
         run: |
