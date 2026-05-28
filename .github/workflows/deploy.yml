@@ -57,18 +57,10 @@ jobs:
           done
           REMOTE
 
-      - name: Patch colunas faltantes em tabelas legadas
+      - name: Patch colunas faltantes em comunicados
         run: |
-          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} 'bash -s' <<"REMOTE"
-          docker exec manutencao-db psql -U manutencao -d manutencao <<'SQL'
-ALTER TABLE comunicados ADD COLUMN IF NOT EXISTS destinatario_tipo VARCHAR(100);
-ALTER TABLE comunicados ADD COLUMN IF NOT EXISTS emails_enviados TEXT[] DEFAULT '{}';
-ALTER TABLE comunicados ADD COLUMN IF NOT EXISTS tracking JSONB DEFAULT '[]';
-ALTER TABLE comunicados ADD COLUMN IF NOT EXISTS enviado_por UUID;
-ALTER TABLE comunicados ADD COLUMN IF NOT EXISTS enviado_por_nome VARCHAR(255);
-SQL
-          echo "OK comunicados"
-          REMOTE
+          SQL="ALTER TABLE comunicados ADD COLUMN IF NOT EXISTS destinatario_tipo VARCHAR(100); ALTER TABLE comunicados ADD COLUMN IF NOT EXISTS emails_enviados TEXT[] DEFAULT '{}'; ALTER TABLE comunicados ADD COLUMN IF NOT EXISTS tracking JSONB DEFAULT '[]'; ALTER TABLE comunicados ADD COLUMN IF NOT EXISTS enviado_por UUID; ALTER TABLE comunicados ADD COLUMN IF NOT EXISTS enviado_por_nome VARCHAR(255);"
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "docker exec manutencao-db psql -U manutencao -d manutencao -c \"$SQL\""
 
       - name: Health check
         run: |
