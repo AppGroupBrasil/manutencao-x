@@ -47,6 +47,11 @@
   align-items: center;
   gap: 10px;
   cursor: pointer;
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
 }
 
 .navLogoImg {
