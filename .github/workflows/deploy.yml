@@ -57,9 +57,18 @@ jobs:
           done
           REMOTE
 
-      - name: Dump api logs apos tentativa de login
+      - name: Re-hash senha do admin e testar login
         run: |
-          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} 'curl -s -o /dev/null -X POST http://localhost:3001/api/auth/login -H "Content-Type: application/json" -d "{\"email\":\"eduardodominikus@hotmail.com\",\"senha\":\"123456\"}" ; sleep 1 ; docker logs --tail 60 manutencao-api 2>&1 | tail -40'
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} 'bash -s' <<"REMOTE"
+          set -e
+          HASH=$(docker exec manutencao-api node -e "const b=require('"'"'bcrypt'"'"'); console.log(b.hashSync('"'"'123456'"'"', 12))")
+          echo "Hash gerado: $HASH"
+          docker exec manutencao-db psql -U manutencao -d manutencao -c "UPDATE usuarios SET senha_hash='$HASH', ativo=true, bloqueado=false WHERE email='eduardodominikus@hotmail.com';"
+          docker exec manutencao-db psql -U manutencao -d manutencao -c "DELETE FROM login_attempts WHERE email='eduardodominikus@hotmail.com';"
+          echo "=== Tentando login ==="
+          curl -s -X POST http://localhost:3001/api/auth/login -H "Content-Type: application/json" -d '{"email":"eduardodominikus@hotmail.com","senha":"123456"}'
+          echo
+          REMOTE
 
       - name: Health check
         run: |
