@@ -57,9 +57,18 @@ jobs:
           done
           REMOTE
 
-      - name: Dump logs com erros
+      - name: Patch colunas faltantes em tabelas legadas
         run: |
-          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} 'docker logs --tail 200 manutencao-api 2>&1 | grep -E "ERROR|column|relation|does not exist|undefined" | tail -30'
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} 'bash -s' <<"REMOTE"
+          docker exec manutencao-db psql -U manutencao -d manutencao <<'SQL'
+ALTER TABLE comunicados ADD COLUMN IF NOT EXISTS destinatario_tipo VARCHAR(100);
+ALTER TABLE comunicados ADD COLUMN IF NOT EXISTS emails_enviados TEXT[] DEFAULT '{}';
+ALTER TABLE comunicados ADD COLUMN IF NOT EXISTS tracking JSONB DEFAULT '[]';
+ALTER TABLE comunicados ADD COLUMN IF NOT EXISTS enviado_por UUID;
+ALTER TABLE comunicados ADD COLUMN IF NOT EXISTS enviado_por_nome VARCHAR(255);
+SQL
+          echo "OK comunicados"
+          REMOTE
 
       - name: Health check
         run: |
