@@ -34,22 +34,28 @@ jobs:
             ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
             "cd ${{ env.APP_PATH }} && docker compose build --no-cache --pull manutencao-app manutencao-api && docker compose up -d --force-recreate --remove-orphans"
 
-      - name: Deep diagnose suspects
+      - name: Remove containers conflitantes (Coolify legado + /opt/manutencaox lixo)
         run: |
           ssh -o ServerAliveInterval=30 ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} 'bash -s' <<"REMOTE"
-          for c in manutencao-app manutencaox-app manutencao-staging-app app-manutencao vc84okoc0gkcg08wkskksg4o-101346839319; do
-            echo "=== $c ==="
-            docker inspect "$c" --format 'Image: {{.Config.Image}} | Created: {{.Created}} | Project: {{index .Config.Labels "com.docker.compose.project"}} | Workdir: {{index .Config.Labels "com.docker.compose.project.working_dir"}}' 2>/dev/null || echo 'nao existe'
-            docker inspect "$c" --format '{{range $k,$v := .Config.Labels}}{{if eq $k "traefik.http.routers.manutencao-https.rule"}}TraefikRule: {{$v}}{{end}}{{end}}' 2>/dev/null
-            echo
+          set -e
+          # Coolify legado (nao usado mais)
+          for c in $(docker ps -a --format '{{.Names}}' | grep -E '^vc84okoc0gkcg08wkskksg4o' || true); do
+            echo "Removendo Coolify: $c"
+            docker rm -f "$c" || true
+          done
+          # Stack manutencaox-* (lixo conforme CLAUDE.md)
+          if [ -d /opt/manutencaox ]; then
+            cd /opt/manutencaox && docker compose down -v --remove-orphans || true
+          fi
+          for c in manutencaox-app manutencaox-api manutencaox-backup manutencaox-db; do
+            docker rm -f "$c" 2>/dev/null || true
+          done
+          echo "=== Containers restantes com rule manutencaox.com.br ==="
+          for c in $(docker ps --format '{{.Names}}'); do
+            labels=$(docker inspect "$c" --format '{{json .Config.Labels}}' 2>/dev/null)
+            if echo "$labels" | grep -q manutencaox.com.br; then echo "--> $c"; fi
           done
           REMOTE
-
-      - name: Diagnose conflicting containers
-        run: |
-          ssh -o ServerAliveInterval=30 \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
-            "echo '=== Todos os containers manutencao* ===' ; docker ps -a --format '{{.Names}} | {{.Status}} | {{.Image}}' | grep -i manuten || true ; echo ; echo '=== Quem tem rule de manutencaox.com.br no Traefik ===' ; for c in \$(docker ps --format '{{.Names}}'); do labels=\$(docker inspect \$c --format '{{json .Config.Labels}}' 2>/dev/null); if echo \"\$labels\" | grep -q manutencaox.com.br; then echo \"--> \$c\"; fi; done"
 
       - name: Health check
         run: |
