@@ -16,8 +16,9 @@ COPY package.json package-lock.json* ./
 RUN npm ci --omit=dev
 
 COPY --from=builder /app/dist ./dist
-# SQL files nao sao compilados pelo tsc; copiar a pasta de migrations
+# SQL files nao sao compilados pelo tsc; copiar a pasta de migrations + schema.sql baseline
 COPY --from=builder /app/src/db/migrations ./dist/db/migrations
+COPY --from=builder /app/src/db/schema.sql ./dist/db/schema.sql
 
 # Criar diretórios de upload
 RUN mkdir -p uploads/avatars uploads/documentos uploads/fotos uploads/qrcodes \
