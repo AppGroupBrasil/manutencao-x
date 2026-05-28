@@ -34,9 +34,15 @@ jobs:
             ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
             "cd ${{ env.APP_PATH }} && docker compose build --no-cache --pull manutencao-app manutencao-api && docker compose up -d --force-recreate --remove-orphans"
 
+      - name: Diagnose conflicting containers
+        run: |
+          ssh -o ServerAliveInterval=30 \
+            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
+            "echo '=== Todos os containers manutencao* ===' ; docker ps -a --format '{{.Names}} | {{.Status}} | {{.Image}}' | grep -i manuten || true ; echo ; echo '=== Quem tem rule de manutencaox.com.br no Traefik ===' ; for c in \$(docker ps --format '{{.Names}}'); do labels=\$(docker inspect \$c --format '{{json .Config.Labels}}' 2>/dev/null); if echo \"\$labels\" | grep -q manutencaox.com.br; then echo \"--> \$c\"; fi; done"
+
       - name: Health check
         run: |
           sleep 10
           ssh -o ServerAliveInterval=30 \
             ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
-            "docker ps --filter name=manutencao- --format '{{.Names}}: {{.Status}}'"
+            "docker ps --filter name=manutencao --format '{{.Names}}: {{.Status}}'"
