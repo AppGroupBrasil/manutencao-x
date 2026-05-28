@@ -10,6 +10,8 @@ const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = (process.env.JWT_EXPIRES_IN || '24h') as jwt.SignOptions['expiresIn'];
 const APP_SLUG = 'manutencao-x';
 const STATUS_VALIDOS_LICENCA = new Set(['ativa', 'trial']);
+const ISSUER_CENTRAL = process.env.AUTH_CENTRAL_ISSUER || 'auth-central';
+const ISSUER_LOCAL = process.env.JWT_ISSUER || 'manutencao-x';
 
 function mapearRoleCentral(role: string): string {
   const r = (role || '').toLowerCase();
@@ -40,11 +42,11 @@ export interface AuthRequest extends Request {
 }
 
 export function generateToken(payload: JwtPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN, issuer: ISSUER_LOCAL });
 }
 
 export function verifyToken(token: string): JwtPayload {
-  return jwt.verify(token, JWT_SECRET) as JwtPayload;
+  return jwt.verify(token, JWT_SECRET, { issuer: [ISSUER_LOCAL, ISSUER_CENTRAL] }) as JwtPayload;
 }
 
 export async function authMiddleware(req: AuthRequest, res: Response, next: NextFunction) {
@@ -55,11 +57,15 @@ export async function authMiddleware(req: AuthRequest, res: Response, next: Next
   }
 
   try {
-    const raw: any = jwt.verify(header.slice(7), JWT_SECRET);
+    const raw: any = jwt.verify(header.slice(7), JWT_SECRET, { issuer: [ISSUER_LOCAL, ISSUER_CENTRAL] });
     const userId: string = raw.userId || raw.sub;
 
-    // Token do auth-central (com array apps[])
+    // Token do auth-central (com array apps[]) — exige iss === central explícito
     if (Array.isArray(raw.apps)) {
+      if (raw.iss !== ISSUER_CENTRAL) {
+        res.status(401).json({ error: 'Token inválido: emissor inesperado' });
+        return;
+      }
       const licenca = raw.apps.find((a: any) => a.slug === APP_SLUG);
       if (!licenca || !STATUS_VALIDOS_LICENCA.has(licenca.status)) {
         res.status(403).json({ error: 'Sem licença ativa para Manutenção X' });

@@ -16,7 +16,7 @@ function gerarProtocolo(): string {
 
 // GET /api/reportes
 router.get('/', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   if (ids.length === 0) { res.json([]); return; }
   const rows = await query(
     `SELECT r.*, c.nome as condominio_nome FROM reportes r
@@ -29,7 +29,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
 // POST /api/reportes
 router.post('/', validate(reporteSchema), async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const { condominioId, itemDesc, checklistId, vistoriaId, descricao, prioridade, imagens } = req.body;
   if (!condominioId || !ids.includes(condominioId)) {
     res.status(403).json({ error: 'Sem acesso' });
@@ -46,7 +46,7 @@ router.post('/', validate(reporteSchema), async (req: AuthRequest, res: Response
 
 // PATCH /api/reportes/:id/status
 router.patch('/:id/status', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const { status } = req.body;
   const row = await queryOne(
     'UPDATE reportes SET status = $1 WHERE id = $2 AND condominio_id = ANY($3) RETURNING *',
@@ -58,7 +58,7 @@ router.patch('/:id/status', async (req: AuthRequest, res: Response) => {
 
 // DELETE /api/reportes/:id
 router.delete('/:id', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const row = await queryOne('DELETE FROM reportes WHERE id = $1 AND condominio_id = ANY($2) RETURNING id', [req.params.id, ids]);
   if (!row) { res.status(404).json({ error: 'Reporte não encontrado' }); return; }
   res.json({ ok: true });

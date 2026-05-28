@@ -55,7 +55,7 @@ function construirEscalasDoMes(rows: any[], inicioMes: string, fimMes: string): 
 
 // GET /api/calendario — eventos consolidados com todas as fontes datadas
 router.get('/', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   if (ids.length === 0) {
     res.json({ eventos: [], os: [], planos: [], vencimentos: [], escalas: [], documentos: [], fornecedores: [], contratos: [] });
     return;
@@ -259,7 +259,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
 // GET /api/calendario/anotacoes?mes=YYYY-MM
 router.get('/anotacoes', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const mes = req.query.mes as string;
   let inicioMes: string, fimMes: string;
   if (mes && /^\d{4}-\d{2}$/.test(mes)) {
@@ -284,7 +284,7 @@ router.get('/anotacoes', async (req: AuthRequest, res: Response) => {
 
 // POST /api/calendario/anotacoes
 router.post('/anotacoes', async (req: AuthRequest, res: Response) => {
-  const condId = (req as any).condominioIds?.[0];
+  const condId = req.condominioIds!?.[0];
   if (!condId) { res.status(400).json({ error: 'Condomínio não selecionado' }); return; }
   const { data, texto, cor } = req.body;
   if (!data || !texto) { res.status(400).json({ error: 'Data e texto são obrigatórios' }); return; }
@@ -299,7 +299,7 @@ router.post('/anotacoes', async (req: AuthRequest, res: Response) => {
 
 // PUT /api/calendario/anotacoes/:id
 router.put('/anotacoes/:id', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const { texto, cor } = req.body;
   if (cor && !/^#[0-9a-fA-F]{6}$/.test(cor)) { res.status(400).json({ error: 'Cor inválida' }); return; }
   const [row] = await query(
@@ -313,7 +313,7 @@ router.put('/anotacoes/:id', async (req: AuthRequest, res: Response) => {
 
 // DELETE /api/calendario/anotacoes/:id
 router.delete('/anotacoes/:id', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const [row] = await query(
     'DELETE FROM calendario_anotacoes WHERE id = $1 AND condominio_id = ANY($2) RETURNING id',
     [req.params.id, ids]
@@ -326,7 +326,7 @@ router.delete('/anotacoes/:id', async (req: AuthRequest, res: Response) => {
 
 // GET /api/calendario/legendas
 router.get('/legendas', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const rows = await query(
     'SELECT id, cor, rotulo FROM calendario_legendas WHERE condominio_id = ANY($1) ORDER BY rotulo',
     [ids]
@@ -336,7 +336,7 @@ router.get('/legendas', async (req: AuthRequest, res: Response) => {
 
 // POST /api/calendario/legendas
 router.post('/legendas', async (req: AuthRequest, res: Response) => {
-  const condId = (req as any).condominioIds?.[0];
+  const condId = req.condominioIds!?.[0];
   if (!condId) { res.status(400).json({ error: 'Condomínio não selecionado' }); return; }
   const { cor, rotulo } = req.body;
   if (!cor || !rotulo) { res.status(400).json({ error: 'Cor e rótulo são obrigatórios' }); return; }
@@ -353,7 +353,7 @@ router.post('/legendas', async (req: AuthRequest, res: Response) => {
 
 // PUT /api/calendario/legendas/:id
 router.put('/legendas/:id', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const { cor, rotulo } = req.body;
   if (cor && !/^#[0-9a-fA-F]{6}$/.test(cor)) { res.status(400).json({ error: 'Cor inválida' }); return; }
   const [row] = await query(
@@ -367,7 +367,7 @@ router.put('/legendas/:id', async (req: AuthRequest, res: Response) => {
 
 // DELETE /api/calendario/legendas/:id
 router.delete('/legendas/:id', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const [row] = await query(
     'DELETE FROM calendario_legendas WHERE id = $1 AND condominio_id = ANY($2) RETURNING id',
     [req.params.id, ids]

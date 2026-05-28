@@ -7,7 +7,7 @@ const router = Router();
 // ── GET / — Listar solicitações (filtradas por condomínios do usuário) ──
 router.get('/', async (req: AuthRequest, res: Response) => {
   try {
-    const condIds = (req as any).condominioIds as string[];
+    const condIds = req.condominioIds! as string[];
     if (!condIds?.length) { res.json([]); return; }
 
     const ph = condIds.map((_, i) => `$${i + 1}`).join(',');
@@ -32,7 +32,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 // ── GET /resumo ──
 router.get('/resumo', async (req: AuthRequest, res: Response) => {
   try {
-    const condIds = (req as any).condominioIds as string[];
+    const condIds = req.condominioIds! as string[];
     if (!condIds?.length) {
       res.json({ total: 0, abertas: 0, emAndamento: 0, resolvidas: 0, porTipo: [] });
       return;
@@ -73,7 +73,7 @@ router.get('/resumo', async (req: AuthRequest, res: Response) => {
 // ── GET /:id ──
 router.get('/:id', async (req: AuthRequest, res: Response) => {
   try {
-    const condIds = (req as any).condominioIds as string[];
+    const condIds = req.condominioIds! as string[];
     if (!condIds?.length) { res.status(404).json({ error: 'Não encontrado' }); return; }
 
     const ph = condIds.map((_, i) => `$${i + 2}`).join(',');
@@ -108,7 +108,7 @@ router.patch('/:id/responder', async (req: AuthRequest, res: Response) => {
       return;
     }
 
-    const condIds = (req as any).condominioIds as string[];
+    const condIds = req.condominioIds! as string[];
     if (!condIds?.length) { res.status(404).json({ error: 'Não encontrado' }); return; }
 
     const ph = condIds.map((_, i) => `$${i + 5}`).join(',');
@@ -135,7 +135,7 @@ router.patch('/:id/responder', async (req: AuthRequest, res: Response) => {
 // ── PATCH /:id/converter-os — Converte solicitação em OS ──
 router.patch('/:id/converter-os', async (req: AuthRequest, res: Response) => {
   try {
-    const condIds = (req as any).condominioIds as string[];
+    const condIds = req.condominioIds! as string[];
     if (!condIds?.length) { res.status(404).json({ error: 'Não encontrado' }); return; }
 
     // Buscar solicitação

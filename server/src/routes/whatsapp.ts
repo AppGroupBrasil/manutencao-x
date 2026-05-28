@@ -8,7 +8,7 @@ const router = Router();
 
 // ── GET /api/whatsapp/config/:condominioId — configuração WhatsApp de um condomínio
 router.get('/config/:condominioId', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const { condominioId } = req.params;
   if (!ids.includes(condominioId)) { res.status(403).json({ error: 'Sem acesso a este condomínio' }); return; }
 
@@ -21,7 +21,7 @@ router.get('/config/:condominioId', async (req: AuthRequest, res: Response) => {
 
 // ── PUT /api/whatsapp/config/:condominioId — salvar/atualizar configuração
 router.put('/config/:condominioId', requireMinRole('administrador'), async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const { condominioId } = req.params;
   if (!ids.includes(condominioId)) { res.status(403).json({ error: 'Sem acesso a este condomínio' }); return; }
 
@@ -45,7 +45,7 @@ router.put('/config/:condominioId', requireMinRole('administrador'), async (req:
 
 // ── POST /api/whatsapp/enviar — enviar mensagem via WhatsApp
 router.post('/enviar', requireMinRole('administrador'), validate(whatsappEnviarSchema), async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const { condominio_id, destinatario, mensagem, tipo } = req.body;
 
   if (!condominio_id || !ids.includes(condominio_id)) {
@@ -122,7 +122,7 @@ router.post('/enviar', requireMinRole('administrador'), validate(whatsappEnviarS
 
 // ── GET /api/whatsapp/mensagens/:condominioId — log de mensagens
 router.get('/mensagens/:condominioId', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const { condominioId } = req.params;
   if (!ids.includes(condominioId)) { res.status(403).json({ error: 'Sem acesso a este condomínio' }); return; }
 
@@ -138,7 +138,7 @@ router.get('/mensagens/:condominioId', async (req: AuthRequest, res: Response) =
 
 // ── POST /api/whatsapp/testar/:condominioId — testar conexão
 router.post('/testar/:condominioId', requireMinRole('administrador'), async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const { condominioId } = req.params;
   if (!ids.includes(condominioId)) { res.status(403).json({ error: 'Sem acesso a este condomínio' }); return; }
 

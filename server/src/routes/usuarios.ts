@@ -1,9 +1,9 @@
 import { Router, Response } from 'express';
 import bcrypt from 'bcrypt';
-import { query, queryOne, execute, paginate } from '../db/database.js';
+import { query, queryOne, execute, paginate, transaction } from '../db/database.js';
 import { AuthRequest } from '../middleware/auth.js';
 import { requireMinRole } from '../middleware/rbac.js';
-import { validate, usuarioUpdateSchema } from '../middleware/validation.js';
+import { validate, usuarioUpdateSchema, usuarioBloquearSchema, usuarioResetSenhaSchema } from '../middleware/validation.js';
 import { auditLog } from '../middleware/helpers.js';
 
 const router = Router();
@@ -92,6 +92,10 @@ router.put('/:id', requireMinRole('administrador'), validate(usuarioUpdateSchema
   if (req.user!.role === 'administrador' && target.administrador_id !== req.user!.id) {
     res.status(403).json({ error: 'Usuário fora do seu escopo' }); return;
   }
+  // Novo role precisa ser estritamente inferior ao do caller (master pode tudo abaixo de master)
+  if ((ROLE_LEVEL[role] ?? 0) >= (ROLE_LEVEL[req.user!.role] ?? 0)) {
+    res.status(403).json({ error: 'Não pode atribuir role igual ou superior ao seu' }); return;
+  }
 
   const row = await queryOne(
     `UPDATE usuarios SET nome=$1, role=$2, ativo=$3, condominio_id=$4, supervisor_id=$5, telefone=$6, cargo=$7
@@ -103,68 +107,66 @@ router.put('/:id', requireMinRole('administrador'), validate(usuarioUpdateSchema
 });
 
 // PATCH /api/usuarios/:id/bloquear
-router.patch('/:id/bloquear', requireMinRole('administrador'), async (req: AuthRequest, res: Response) => {
+router.patch('/:id/bloquear', requireMinRole('administrador'), validate(usuarioBloquearSchema), async (req: AuthRequest, res: Response) => {
   const { bloqueado, motivo } = req.body;
   const targetId = req.params.id;
 
-  // 1. Block/unblock the target user
-  const row = await queryOne(
-    'UPDATE usuarios SET bloqueado = $1, motivo_bloqueio = $2 WHERE id = $3 RETURNING id, bloqueado, role',
-    [bloqueado, motivo || null, targetId]
-  );
-  if (!row) { res.status(404).json({ error: 'Usuário não encontrado' }); return; }
+  const result = await transaction(async (client) => {
+    const { rows } = await client.query(
+      'UPDATE usuarios SET bloqueado = $1, motivo_bloqueio = $2 WHERE id = $3 RETURNING id, bloqueado, role',
+      [bloqueado, motivo || null, targetId]
+    );
+    const row = rows[0];
+    if (!row) return null;
 
-  // 2. If target is administrador, cascade to all hierarchical users + QR codes
-  if (row.role === 'administrador') {
-    // Block/unblock all supervisors and funcionários under this admin
-    await execute(
-      'UPDATE usuarios SET bloqueado = $1, motivo_bloqueio = $2 WHERE administrador_id = $3',
-      [bloqueado, bloqueado ? (motivo || 'Administrador bloqueado') : null, targetId]
-    );
-    // Also block/unblock funcionários under supervisors of this admin
-    await execute(
-      `UPDATE usuarios SET bloqueado = $1, motivo_bloqueio = $2
-       WHERE supervisor_id IN (SELECT id FROM usuarios WHERE administrador_id = $3 AND role = 'supervisor')`,
-      [bloqueado, bloqueado ? (motivo || 'Administrador bloqueado') : null, targetId]
-    );
+    if (row.role === 'administrador') {
+      await client.query(
+        'UPDATE usuarios SET bloqueado = $1, motivo_bloqueio = $2 WHERE administrador_id = $3',
+        [bloqueado, bloqueado ? (motivo || 'Administrador bloqueado') : null, targetId]
+      );
+      await client.query(
+        `UPDATE usuarios SET bloqueado = $1, motivo_bloqueio = $2
+         WHERE supervisor_id IN (SELECT id FROM usuarios WHERE administrador_id = $3 AND role = 'supervisor')`,
+        [bloqueado, bloqueado ? (motivo || 'Administrador bloqueado') : null, targetId]
+      );
+      await client.query(
+        `UPDATE qrcodes SET ativo = $1
+         WHERE condominio_id IN (SELECT id FROM condominios WHERE criado_por = $2)`,
+        [!bloqueado, targetId]
+      );
+      await client.query(
+        `UPDATE qrcodes SET ativo = $1
+         WHERE criado_por = $2
+            OR criado_por IN (SELECT id FROM usuarios WHERE administrador_id = $2)
+            OR criado_por IN (
+              SELECT id FROM usuarios WHERE supervisor_id IN (
+                SELECT id FROM usuarios WHERE administrador_id = $2 AND role = 'supervisor'
+              )
+            )`,
+        [!bloqueado, targetId]
+      );
+    }
 
-    // Deactivate/reactivate QR codes of condominios owned by this admin
-    await execute(
-      `UPDATE qrcodes SET ativo = $1
-       WHERE condominio_id IN (SELECT id FROM condominios WHERE criado_por = $2)`,
-      [!bloqueado, targetId]
-    );
-    // Also QR codes created by this admin or their hierarchical users
-    await execute(
-      `UPDATE qrcodes SET ativo = $1
-       WHERE criado_por = $2
-          OR criado_por IN (SELECT id FROM usuarios WHERE administrador_id = $2)
-          OR criado_por IN (
-            SELECT id FROM usuarios WHERE supervisor_id IN (
-              SELECT id FROM usuarios WHERE administrador_id = $2 AND role = 'supervisor'
-            )
-          )`,
-      [!bloqueado, targetId]
-    );
-  }
+    if (row.role === 'supervisor') {
+      await client.query(
+        'UPDATE usuarios SET bloqueado = $1, motivo_bloqueio = $2 WHERE supervisor_id = $3',
+        [bloqueado, bloqueado ? (motivo || 'Supervisor bloqueado') : null, targetId]
+      );
+      await client.query(
+        `UPDATE qrcodes SET ativo = $1
+         WHERE criado_por = $2 OR criado_por IN (SELECT id FROM usuarios WHERE supervisor_id = $2)`,
+        [!bloqueado, targetId]
+      );
+    }
 
-  // 3. If target is supervisor, cascade to funcionários under them + their QR codes
-  if (row.role === 'supervisor') {
-    await execute(
-      'UPDATE usuarios SET bloqueado = $1, motivo_bloqueio = $2 WHERE supervisor_id = $3',
-      [bloqueado, bloqueado ? (motivo || 'Supervisor bloqueado') : null, targetId]
-    );
-    await execute(
-      `UPDATE qrcodes SET ativo = $1
-       WHERE criado_por = $2 OR criado_por IN (SELECT id FROM usuarios WHERE supervisor_id = $2)`,
-      [!bloqueado, targetId]
-    );
-  }
+    return row;
+  });
 
-  await auditLog(req.user!, bloqueado ? 'usuario_bloqueado' : 'usuario_desbloqueado', 'usuarios', targetId, { motivo, role: row.role }).catch(() => {});
-  res.json(row);
+  if (!result) { res.status(404).json({ error: 'Usuário não encontrado' }); return; }
+  await auditLog(req.user!, bloqueado ? 'usuario_bloqueado' : 'usuario_desbloqueado', 'usuarios', targetId, { motivo, role: result.role }).catch(() => {});
+  res.json(result);
 });
-router.patch('/:id/reset-senha', requireMinRole('administrador'), async (req: AuthRequest, res: Response) => {
+router.patch('/:id/reset-senha', requireMinRole('administrador'), validate(usuarioResetSenhaSchema), async (req: AuthRequest, res: Response) => {
   const target = await queryOne<any>('SELECT role FROM usuarios WHERE id = $1', [req.params.id]);
   if (!target) { res.status(404).json({ error: 'Usuário não encontrado' }); return; }
   if (ROLE_LEVEL[target.role] >= ROLE_LEVEL[req.user!.role]) {

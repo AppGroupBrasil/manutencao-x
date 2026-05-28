@@ -1,8 +1,18 @@
 import { Router, Response } from 'express';
 import bcrypt from 'bcrypt';
-import pool, { queryOne, query } from '../db/database.js';
+import pool, { queryOne, query, paginate } from '../db/database.js';
 import { generatePortalToken, portalAuthMiddleware, PortalRequest } from '../middleware/portalAuth.js';
 import { checkRateLimit, recordLoginAttempt, auditLog } from '../middleware/helpers.js';
+import {
+  validate,
+  portalLoginSchema,
+  portalPrimeiroAcessoSchema,
+  portalChangePasswordSchema,
+  portalPerfilUpdateSchema,
+  portalSolicitacaoSchema,
+} from '../middleware/validation.js';
+
+const BCRYPT_COST = 12;
 
 const router = Router();
 
@@ -11,14 +21,9 @@ const router = Router();
 // ════════════════════════════════════════════
 
 // ── POST /portal/login ──
-router.post('/login', async (req, res: Response) => {
+router.post('/login', validate(portalLoginSchema), async (req, res: Response) => {
   try {
     const { email, senha } = req.body;
-    if (!email || !senha) {
-      res.status(400).json({ error: 'E-mail e senha são obrigatórios' });
-      return;
-    }
-
     const ip = req.ip || req.socket.remoteAddress || '';
     const { blocked } = await checkRateLimit(email, ip);
     if (blocked) {
@@ -79,24 +84,21 @@ router.post('/login', async (req, res: Response) => {
 });
 
 // ── POST /portal/primeiro-acesso ──
-router.post('/primeiro-acesso', async (req, res: Response) => {
+router.post('/primeiro-acesso', validate(portalPrimeiroAcessoSchema), async (req, res: Response) => {
   try {
     const { token, senha } = req.body;
-    if (!token || !senha) {
-      res.status(400).json({ error: 'Token e senha são obrigatórios' });
-      return;
-    }
-    if (senha.length < 6) {
-      res.status(400).json({ error: 'Senha deve ter pelo menos 6 caracteres' });
-      return;
-    }
 
     const morador = await queryOne(
-      'SELECT id, nome, email, condominio_id, ativo FROM moradores WHERE token_acesso = $1',
+      `SELECT id, nome, email, condominio_id, ativo, token_acesso_expira_em, token_acesso_usado
+       FROM moradores WHERE token_acesso::text = $1`,
       [token]
     );
 
-    if (!morador) {
+    if (!morador || morador.token_acesso_usado) {
+      res.status(404).json({ error: 'Token inválido ou expirado' });
+      return;
+    }
+    if (morador.token_acesso_expira_em && new Date(morador.token_acesso_expira_em) < new Date()) {
       res.status(404).json({ error: 'Token inválido ou expirado' });
       return;
     }
@@ -105,9 +107,14 @@ router.post('/primeiro-acesso', async (req, res: Response) => {
       return;
     }
 
-    const hash = await bcrypt.hash(senha, 10);
+    const hash = await bcrypt.hash(senha, BCRYPT_COST);
     await pool.query(
-      'UPDATE moradores SET senha = $1, token_acesso = gen_random_uuid() WHERE id = $2',
+      `UPDATE moradores
+         SET senha = $1,
+             token_acesso = gen_random_uuid(),
+             token_acesso_usado = true,
+             token_acesso_expira_em = NULL
+       WHERE id = $2`,
       [hash, morador.id]
     );
 
@@ -153,7 +160,7 @@ router.get('/perfil', async (req: PortalRequest, res: Response) => {
 });
 
 // ── PUT /portal/perfil ──
-router.put('/perfil', async (req: PortalRequest, res: Response) => {
+router.put('/perfil', validate(portalPerfilUpdateSchema), async (req: PortalRequest, res: Response) => {
   try {
     const { nome, whatsapp, avatar_url } = req.body;
     const updated = await queryOne(
@@ -170,18 +177,9 @@ router.put('/perfil', async (req: PortalRequest, res: Response) => {
 });
 
 // ── PUT /portal/senha ──
-router.put('/senha', async (req: PortalRequest, res: Response) => {
+router.put('/senha', validate(portalChangePasswordSchema), async (req: PortalRequest, res: Response) => {
   try {
     const { senha_atual, nova_senha } = req.body;
-    if (!senha_atual || !nova_senha) {
-      res.status(400).json({ error: 'Senha atual e nova senha são obrigatórias' });
-      return;
-    }
-    if (nova_senha.length < 6) {
-      res.status(400).json({ error: 'Nova senha deve ter pelo menos 6 caracteres' });
-      return;
-    }
-
     const morador = await queryOne('SELECT senha FROM moradores WHERE id = $1', [req.morador!.id]);
     if (!morador?.senha) {
       res.status(400).json({ error: 'Senha não configurada' });
@@ -194,7 +192,7 @@ router.put('/senha', async (req: PortalRequest, res: Response) => {
       return;
     }
 
-    const hash = await bcrypt.hash(nova_senha, 10);
+    const hash = await bcrypt.hash(nova_senha, BCRYPT_COST);
     await pool.query('UPDATE moradores SET senha = $1 WHERE id = $2', [hash, req.morador!.id]);
     res.json({ message: 'Senha alterada com sucesso' });
   } catch (err: any) {
@@ -243,14 +241,16 @@ router.get('/resumo', async (req: PortalRequest, res: Response) => {
 // ── GET /portal/comunicados ──
 router.get('/comunicados', async (req: PortalRequest, res: Response) => {
   try {
-    const rows = await query(
+    const page = parseInt(req.query.page as string) || 1;
+    const pageSize = Math.min(50, parseInt(req.query.pageSize as string) || 20);
+    const result = await paginate(
       `SELECT id, tipo, titulo, mensagem, criado_em
        FROM comunicados
        WHERE condominio_id = $1
        ORDER BY criado_em DESC`,
-      [req.morador!.condominioId]
+      [req.morador!.condominioId], page, pageSize
     );
-    res.json(rows);
+    res.json(result);
   } catch (err: any) {
     console.error('Erro comunicados portal:', err);
     res.status(500).json({ error: 'Erro interno' });
@@ -276,13 +276,9 @@ router.get('/solicitacoes', async (req: PortalRequest, res: Response) => {
 });
 
 // ── POST /portal/solicitacoes ──
-router.post('/solicitacoes', async (req: PortalRequest, res: Response) => {
+router.post('/solicitacoes', validate(portalSolicitacaoSchema), async (req: PortalRequest, res: Response) => {
   try {
     const { tipo, titulo, descricao, fotos, local } = req.body;
-    if (!titulo) {
-      res.status(400).json({ error: 'Título é obrigatório' });
-      return;
-    }
 
     // Gera protocolo SOL-YYMMDD-XXXX
     const now = new Date();

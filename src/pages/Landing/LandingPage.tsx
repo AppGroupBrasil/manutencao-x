@@ -550,65 +550,6 @@ const LandingPage: React.FC = () => {
         <ContratoModal plano={planoContrato} onClose={() => setPlanoContrato(null)} />
       )}
 
-      {/* ═══ OUTROS SISTEMAS ═══ */}
-      <section className={styles.outrosSistemasSection}>
-        <div className={styles.sectionContainer}>
-          <div className={styles.sectionHeader}>
-            <span className={styles.sectionTag}>Ecossistema</span>
-            <h2 className={styles.sectionTitle}>Conheça Nossos Outros Sistemas</h2>
-            <p className={styles.sectionSubtitle}>Soluções completas para a gestão do seu condomínio</p>
-          </div>
-          <div className={styles.outrosSistemasGrid}>
-            <a href="https://appcorrespondencia.com.br" target="_blank" rel="noopener noreferrer" className={styles.outrosSistemasCard}>
-              <img src="/logo-appcorrespondencia.png" alt="App Correspondência" className={styles.outrosSistemasLogo} />
-              <span className={styles.outrosSistemasNome}>App Correspondência</span>
-              <span className={styles.outrosSistemasUrl}>appcorrespondencia.com.br</span>
-            </a>
-            <a href="https://portariax.com.br" target="_blank" rel="noopener noreferrer" className={styles.outrosSistemasCard}>
-              <img src="/logo-portariax.png" alt="Portaria X" className={styles.outrosSistemasLogo} />
-              <span className={styles.outrosSistemasNome}>Portaria X</span>
-              <span className={styles.outrosSistemasUrl}>portariax.com.br</span>
-            </a>
-            <a href="https://manutencaox.com.br" target="_blank" rel="noopener noreferrer" className={styles.outrosSistemasCard}>
-              <img src="/logo-manutencao.png" alt="Manutenção X" className={styles.outrosSistemasLogo} />
-              <span className={styles.outrosSistemasNome}>Manutenção X</span>
-              <span className={styles.outrosSistemasUrl}>manutencaox.com.br</span>
-            </a>
-          </div>
-
-          {/* ═══ CTA PARCERIA ═══ */}
-          <div className={styles.parceriaCta}>
-            <h3 className={styles.parceriaTitulo}>Gostou dos nossos sistemas?</h3>
-            <p className={styles.parceriaSubtitulo}>
-              Seja nosso sócio e tenha ganhos de até <strong>50%</strong> em recorrência.
-            </p>
-            <div className={styles.parceriaDestaques}>
-              <div className={styles.parceriaItem}>
-                <span className={styles.parceriaEmoji}>🚀</span>
-                <span className={styles.parceriaTexto}>1 Aplicativo novo lançado todo mês*</span>
-              </div>
-              <div className={styles.parceriaItem}>
-                <span className={styles.parceriaEmoji}>🎨</span>
-                <span className={styles.parceriaTexto}>1 Aplicativo 100% customizado ao seu gosto</span>
-              </div>
-              <div className={styles.parceriaItem}>
-                <span className={styles.parceriaEmoji}>♾️</span>
-                <span className={styles.parceriaTexto}>Recorrência por toda vida</span>
-              </div>
-            </div>
-            <a
-              href="https://wa.me/5511933284364?text=Ol%C3%A1%2C%20gostaria%20de%20saber%20mais%20sobre%20a%20parceria!"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={styles.parceriaBtn}
-            >
-              <MessageCircle size={20} />
-              Entre em contato e saiba mais
-            </a>
-          </div>
-        </div>
-      </section>
-
       {/* ═══ CTA FINAL ═══ */}
       <section className={styles.ctaSection}>
         <div className={styles.sectionContainer}>

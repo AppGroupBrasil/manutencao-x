@@ -1,16 +1,18 @@
 import { Router, Response } from 'express';
-import { query, queryOne, execute } from '../db/database.js';
+import { queryOne, execute, paginate } from '../db/database.js';
 import { AuthRequest } from '../middleware/auth.js';
 
 const router = Router();
 
-// GET /api/notificacoes — user's notifications
+// GET /api/notificacoes — user's notifications (paginated)
 router.get('/', async (req: AuthRequest, res: Response) => {
-  const rows = await query(
-    `SELECT * FROM notificacoes WHERE user_id = $1 ORDER BY criado_em DESC LIMIT 50`,
-    [req.user!.id]
+  const page = parseInt(req.query.page as string) || 1;
+  const pageSize = Math.min(100, parseInt(req.query.pageSize as string) || 30);
+  const result = await paginate(
+    `SELECT * FROM notificacoes WHERE user_id = $1 ORDER BY criado_em DESC`,
+    [req.user!.id], page, pageSize
   );
-  res.json(rows);
+  res.json(result);
 });
 
 // GET /api/notificacoes/unread-count

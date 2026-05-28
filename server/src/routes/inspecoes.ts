@@ -7,7 +7,7 @@ const router = Router();
 
 // GET /api/inspecoes
 router.get('/', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   if (ids.length === 0) { res.json([]); return; }
   const rows = await query(
     `SELECT i.*, c.nome as condominio_nome, u.nome as inspetor_nome
@@ -23,7 +23,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
 // GET /api/inspecoes/:id
 router.get('/:id', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const row = await queryOne(
     `SELECT i.*, c.nome as condominio_nome, u.nome as inspetor_nome
      FROM inspecoes i
@@ -38,7 +38,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
 
 // POST /api/inspecoes
 router.post('/', validate(inspecaoSchema), async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const { condominioId, tipo, local, itensVerificados, observacoes, fotos, status } = req.body;
   if (!condominioId || !ids.includes(condominioId)) {
     res.status(403).json({ error: 'Sem acesso' });
@@ -54,7 +54,7 @@ router.post('/', validate(inspecaoSchema), async (req: AuthRequest, res: Respons
 
 // PUT /api/inspecoes/:id
 router.put('/:id', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const { tipo, local, itensVerificados, observacoes, fotos, status } = req.body;
   const row = await queryOne(
     `UPDATE inspecoes SET tipo=$1, local=$2, itens_verificados=$3, observacoes=$4, fotos=$5, status=$6
@@ -67,7 +67,7 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
 
 // DELETE /api/inspecoes/:id
 router.delete('/:id', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const row = await queryOne('DELETE FROM inspecoes WHERE id = $1 AND condominio_id = ANY($2) RETURNING id', [req.params.id, ids]);
   if (!row) { res.status(404).json({ error: 'Inspeção não encontrada' }); return; }
   res.json({ ok: true });

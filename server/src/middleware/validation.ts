@@ -64,24 +64,32 @@ export const ordemServicoSchema = z.object({
   titulo: z.string().min(3, 'Título deve ter no mínimo 3 caracteres').max(255),
   descricao: z.string().max(5000).optional().nullable(),
   tipo: z.string().max(100).optional(),
-  prioridade: z.string().max(50).optional(),
+  prioridade: z.enum(['baixa', 'media', 'alta', 'urgente']).optional(),
+  local: z.string().max(255).optional().nullable(),
   responsavelId: z.string().uuid().optional().nullable(),
+  supervisorId: z.string().uuid().optional().nullable(),
   equipamentoId: z.string().uuid().optional().nullable(),
   fornecedorId: z.string().uuid().optional().nullable(),
   planoId: z.string().uuid().optional().nullable(),
   custoMaterial: z.number().min(0).optional().nullable(),
   custoMaoObra: z.number().min(0).optional().nullable(),
   custoExterno: z.number().min(0).optional().nullable(),
-}).passthrough();
+  dataPrevisao: z.string().max(30).optional().nullable(),
+});
 
 export const condominioSchema = z.object({
   nome: z.string().min(2, 'Nome deve ter no mínimo 2 caracteres').max(255),
-  endereco: z.string().max(500).optional(),
-  cidade: z.string().max(255).optional(),
-  estado: z.string().max(2).optional(),
-  cep: z.string().max(10).optional(),
-  cnpj: z.string().max(20).optional(),
-}).passthrough();
+  endereco: z.string().max(500).optional().nullable(),
+  cidade: z.string().max(255).optional().nullable(),
+  estado: z.string().max(2).optional().nullable(),
+  cep: z.string().max(10).optional().nullable(),
+  cnpj: z.string().max(20).optional().nullable(),
+  sindico: z.string().max(255).optional().nullable(),
+  telefone: z.string().max(30).optional().nullable(),
+  email: z.string().email().max(255).optional().nullable().or(z.literal('')),
+  blocos: z.number().int().min(0).optional(),
+  unidades: z.number().int().min(0).optional(),
+});
 
 export const comunicadoSchema = z.object({
   titulo: z.string().min(3, 'Título deve ter no mínimo 3 caracteres').max(255),
@@ -258,6 +266,71 @@ export const planoManutencaoSchema = z.object({
   frequencia: z.string().max(50).optional(),
 }).passthrough();
 
+// ── Portal Morador ──
+export const portalLoginSchema = z.object({
+  email: z.string().email('E-mail inválido').max(255),
+  senha: z.string().min(1, 'Senha obrigatória').max(128),
+});
+export const portalPrimeiroAcessoSchema = z.object({
+  token: z.string().min(8).max(128),
+  senha: z.string().min(8, 'Senha deve ter no mínimo 8 caracteres').max(128),
+});
+export const portalChangePasswordSchema = z.object({
+  senha_atual: z.string().min(1).max(128),
+  nova_senha: z.string().min(8, 'Senha deve ter no mínimo 8 caracteres').max(128),
+});
+export const portalPerfilUpdateSchema = z.object({
+  nome: z.string().min(2).max(255).optional(),
+  whatsapp: z.string().max(30).optional().nullable(),
+  avatar_url: z.string().max(500).optional().nullable(),
+}).strict();
+export const portalSolicitacaoSchema = z.object({
+  tipo: z.enum(['manutencao', 'reclamacao', 'sugestao', 'informacao', 'reserva']).optional(),
+  titulo: z.string().min(3).max(200),
+  descricao: z.string().max(5000).optional().nullable(),
+  fotos: z.array(z.string().url().max(500)).max(20).optional(),
+  local: z.string().max(200).optional().nullable(),
+});
+
+// ── Ordens de Serviço extras ──
+export const ordemServicoStatusSchema = z.object({
+  status: z.enum(['aberta', 'em_andamento', 'pausada', 'concluida', 'cancelada']),
+});
+export const ordemServicoAvaliacaoSchema = z.object({
+  nota: z.number().int().min(1).max(5),
+  comentario: z.string().max(2000).optional().nullable(),
+});
+export const ordemServicoUpdateSchema = z.object({
+  titulo: z.string().min(3).max(255).optional(),
+  descricao: z.string().max(5000).optional().nullable(),
+  tipo: z.string().max(100).optional(),
+  prioridade: z.enum(['baixa', 'media', 'alta', 'urgente']).optional(),
+  local: z.string().max(255).optional().nullable(),
+  responsavelId: z.string().uuid().optional().nullable(),
+  supervisorId: z.string().uuid().optional().nullable(),
+  observacoes: z.string().max(5000).optional().nullable(),
+  fotos: z.array(z.string().url().max(500)).max(20).optional(),
+  dataPrevisao: z.string().max(30).optional().nullable(),
+}).strict();
+
+// ── Condomínios PATCH status ──
+export const condominioStatusSchema = z.object({
+  plano: z.enum(['gratis', 'basico', 'premium', 'enterprise']).optional(),
+  status_plano: z.enum(['ativo', 'teste', 'inadimplente', 'bloqueado']).optional(),
+  ativo: z.boolean().optional(),
+  data_fim_teste: z.string().max(30).optional().nullable(),
+  valor_mensalidade: z.number().min(0).optional().nullable(),
+});
+
+// ── Bloquear usuário ──
+export const usuarioBloquearSchema = z.object({
+  bloqueado: z.boolean(),
+  motivo: z.string().max(500).optional().nullable(),
+});
+export const usuarioResetSenhaSchema = z.object({
+  novaSenha: z.string().min(8).max(128),
+});
+
 // ── Orçamentos ──
 export const orcamentoItemSchema = z.object({
   descricao: z.string().min(1, 'Descrição obrigatória').max(500),
@@ -288,4 +361,4 @@ export const orcamentoSchema = z.object({
     url: z.string().max(500),
     legenda: z.string().max(255).optional(),
   })).max(20).optional(),
-}).passthrough();
+});

@@ -10,7 +10,7 @@ import rateLimit from 'express-rate-limit';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import pool from './db/database.js';
-import { authMiddleware } from './middleware/auth.js';
+import { authMiddleware, AuthRequest } from './middleware/auth.js';
 import { scopeMiddleware } from './middleware/rbac.js';
 import { trackMetric } from './middleware/helpers.js';
 import authRoutes from './routes/auth.js';
@@ -128,7 +128,7 @@ validateCriticalEnvironment();
 app.use(compression());
 app.use((req, res, next) => {
   const id = (req.headers['x-request-id'] as string) || Math.random().toString(36).slice(2, 10);
-  (req as any).requestId = id;
+  req.requestId = id;
   res.setHeader('X-Request-Id', id);
   next();
 });
@@ -163,7 +163,11 @@ app.use(cors({
   },
   credentials: true,
 }));
-app.use(express.json({ limit: '10mb' }));
+// JSON parser: limites pequenos para auth, padrão moderado para o resto. Upload usa multipart e ignora isso.
+app.use('/api/auth', express.json({ limit: '64kb' }));
+app.use('/api/portal/login', express.json({ limit: '64kb' }));
+app.use('/api/portal/primeiro-acesso', express.json({ limit: '64kb' }));
+app.use(express.json({ limit: '2mb' }));
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 // ── Rate limiting ──
@@ -175,7 +179,7 @@ const apiLimiter = rateLimit({
   skip: () => !rateLimitEnabled,
   message: { error: 'Muitas requisições. Tente novamente em 15 minutos.' },
 });
-const authLimiter = rateLimit({
+const buildAuthLimiter = () => rateLimit({
   windowMs: 15 * 60 * 1000,
   max: rateLimitEnabled ? 20 : 100000,
   standardHeaders: true,
@@ -183,11 +187,13 @@ const authLimiter = rateLimit({
   skip: () => !rateLimitEnabled,
   message: { error: 'Muitas tentativas de login. Tente novamente em 15 minutos.' },
 });
+const authLimiter = buildAuthLimiter();
+const portalLimiter = buildAuthLimiter();
 app.use('/api', apiLimiter);
 
 // ── Rotas públicas ──
 app.use('/api/auth', authLimiter, authRoutes);
-app.use('/api/portal', authLimiter, portalMoradorRoutes);
+app.use('/api/portal', portalLimiter, portalMoradorRoutes);
 app.use('/api/provisioning', provisioningRoutes);
 
 // ── Rotas protegidas ──
@@ -196,11 +202,12 @@ protectedRouter.use(authMiddleware);
 protectedRouter.use(scopeMiddleware);
 
 // Metrics tracking (non-blocking, POST/PUT/PATCH/DELETE only)
-protectedRouter.use((req: any, _res, next) => {
-  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method) && req.user) {
+protectedRouter.use((req, _res, next) => {
+  const r = req as AuthRequest;
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method) && r.user) {
     const condId = req.condominioIds?.[0] || null;
     const acao = `${req.method} ${req.baseUrl}${req.path}`.slice(0, 100);
-    trackMetric(condId, req.user.id, acao);
+    trackMetric(condId, r.user.id, acao);
   }
   next();
 });
@@ -333,7 +340,7 @@ app.use((err: any, req: express.Request, res: express.Response, _next: express.N
     res.status(400).json({ error: 'Dados inválidos na requisição' });
     return;
   }
-  const reqId = (req as any).requestId;
+  const reqId = req.requestId;
   if (isProduction) {
     console.error(`[ERROR] [${reqId}] ${req.method} ${req.path}: ${err.message}`);
   } else {

@@ -6,7 +6,7 @@ const router = Router();
 
 // GET /api/custos — Resumo de custos com filtros
 router.get('/', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   if (ids.length === 0) { res.json({ items: [], resumo: {} }); return; }
 
   const { periodo, condominioId, equipamentoId, categoriaOs } = req.query;
@@ -88,7 +88,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
 // GET /api/custos/por-condominio — Custo total agrupado por condomínio
 router.get('/por-condominio', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   if (ids.length === 0) { res.json([]); return; }
 
   const rows = await query(
@@ -108,7 +108,7 @@ router.get('/por-condominio', async (req: AuthRequest, res: Response) => {
 
 // GET /api/custos/por-categoria — Custo agrupado por categoria de OS
 router.get('/por-categoria', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   if (ids.length === 0) { res.json([]); return; }
 
   const rows = await query(
@@ -127,7 +127,7 @@ router.get('/por-categoria', async (req: AuthRequest, res: Response) => {
 
 // GET /api/custos/evolucao — Custo mensal dos últimos 12 meses
 router.get('/evolucao', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   if (ids.length === 0) { res.json([]); return; }
 
   const rows = await query(
@@ -150,7 +150,7 @@ router.get('/evolucao', async (req: AuthRequest, res: Response) => {
 
 // GET /api/custos/por-equipamento — Top equipamentos por custo
 router.get('/por-equipamento', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   if (ids.length === 0) { res.json([]); return; }
 
   const rows = await query(

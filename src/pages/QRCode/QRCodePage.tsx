@@ -184,7 +184,7 @@ function getImageFormat(dataUrl: string) {
   return format === 'WEBP' ? 'JPEG' : format;
 }
 
-function buildQrPrintHtml(itemsHtml: string[]) {
+function buildQrPrintShell() {
   return `<!DOCTYPE html><html><head><title>QR Codes - Funções</title><style>
       @page { size: A4 portrait; margin: 10mm; }
       * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -200,7 +200,7 @@ function buildQrPrintHtml(itemsHtml: string[]) {
     </style></head><body>
     <div class="titulo">QR Codes — Acesso Rápido às Funções</div>
     <div class="subtitulo">Escaneie o QR Code para acessar a função diretamente no celular</div>
-    <div class="grid">${itemsHtml.join('')}</div>
+    <div class="grid" id="grid"></div>
     </body></html>`;
 }
 
@@ -1237,10 +1237,21 @@ const QRCodePage: React.FC = () => {
     if (!el) return;
     const win = globalThis.open('', '_blank');
     if (!win) return;
-    const itemsHtml = Array.from(el.querySelectorAll('[data-qr-item]')).map(item => item.innerHTML);
     win.document.open();
-    win.document.documentElement.innerHTML = buildQrPrintHtml(itemsHtml);
+    win.document.write(buildQrPrintShell());
     win.document.close();
+    const grid = win.document.getElementById('grid');
+    if (grid) {
+      el.querySelectorAll('[data-qr-item]').forEach(item => {
+        const clone = item.cloneNode(true) as HTMLElement;
+        clone.querySelectorAll('canvas').forEach(c => {
+          const img = win.document.createElement('img');
+          try { img.src = (c as HTMLCanvasElement).toDataURL('image/png'); } catch { /* tainted */ }
+          c.replaceWith(img);
+        });
+        grid.append(win.document.adoptNode(clone));
+      });
+    }
     setTimeout(() => { win.print(); }, 400);
   }, []);
 

@@ -7,7 +7,7 @@ const router = Router();
 
 // GET /api/qrcodes
 router.get('/', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const rows = await query(
     `SELECT * FROM qrcodes WHERE condominio_id IS NULL OR condominio_id = ANY($1) ORDER BY criado_em DESC`,
     [ids]
@@ -17,7 +17,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
 // GET /api/qrcodes/:id
 router.get('/:id', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const row = await queryOne('SELECT * FROM qrcodes WHERE id = $1 AND (condominio_id IS NULL OR condominio_id = ANY($2))', [req.params.id, ids]);
   if (!row) { res.status(404).json({ error: 'QR Code não encontrado' }); return; }
   res.json(row);
@@ -25,7 +25,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
 
 // POST /api/qrcodes
 router.post('/', validate(qrcodeSchema), async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const { nome, descricao, logo, blocos, dispensarIdentificacao, blocosCadastrados, condominioId } = req.body;
   if (condominioId && !ids.includes(condominioId)) {
     res.status(403).json({ error: 'Sem acesso' }); return;
@@ -40,7 +40,7 @@ router.post('/', validate(qrcodeSchema), async (req: AuthRequest, res: Response)
 
 // PUT /api/qrcodes/:id
 router.put('/:id', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const { nome, descricao, logo, blocos, dispensarIdentificacao, blocosCadastrados } = req.body;
   const row = await queryOne(
     `UPDATE qrcodes SET nome=$1, descricao=$2, logo=$3, blocos=$4, dispensar_identificacao=$5, blocos_cadastrados=$6
@@ -53,7 +53,7 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
 
 // DELETE /api/qrcodes/:id
 router.delete('/:id', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const row = await queryOne('DELETE FROM qrcodes WHERE id = $1 AND (condominio_id IS NULL OR condominio_id = ANY($2)) RETURNING id', [req.params.id, ids]);
   if (!row) { res.status(404).json({ error: 'QR Code não encontrado' }); return; }
   res.json({ ok: true });
@@ -84,7 +84,7 @@ ensureRespostasTable().catch(() => {});
 
 // GET /api/qrcodes/respostas/all
 router.get('/respostas/all', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const rows = await query(
     `SELECT r.* FROM respostas_qrcode r
      JOIN qrcodes q ON q.id = r.qrcode_id

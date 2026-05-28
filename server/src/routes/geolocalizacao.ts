@@ -66,7 +66,7 @@ router.patch('/:id/saida', async (req: AuthRequest, res: Response) => {
 
 // GET /api/geolocalizacao/sla
 router.get('/sla', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const rows = await query(
     `SELECT * FROM sla_registros WHERE condominio_id = ANY($1) ORDER BY abertura DESC`,
     [ids]
@@ -76,7 +76,7 @@ router.get('/sla', async (req: AuthRequest, res: Response) => {
 
 // POST /api/geolocalizacao/sla
 router.post('/sla', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const { blocoId, categoria, descricao, condominioId } = req.body;
   if (condominioId && !ids.includes(condominioId)) {
     res.status(403).json({ error: 'Sem acesso a este condomínio' }); return;
@@ -91,7 +91,7 @@ router.post('/sla', async (req: AuthRequest, res: Response) => {
 
 // PATCH /api/geolocalizacao/sla/:id
 router.patch('/sla/:id', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const { status } = req.body;
   const extra = status === 'em_atendimento' ? ', inicio_atendimento = NOW()' :
     status === 'resolvido' ? ', encerramento = NOW()' : '';

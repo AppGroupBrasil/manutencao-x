@@ -4,8 +4,8 @@ import { AuthRequest } from './auth.js';
 const cacheStore = new Map<string, { value: unknown; expiry: number }>();
 
 function buildCacheKey(req: AuthRequest) {
-  const scopeIds = Array.isArray((req as any).condominioIds)
-    ? [...(req as any).condominioIds].sort((left, right) => left.localeCompare(right)).join(',')
+  const scopeIds = Array.isArray(req.condominioIds!)
+    ? [...req.condominioIds!].sort((left, right) => left.localeCompare(right)).join(',')
     : 'all';
 
   return `__express__${req.originalUrl || req.url}__${scopeIds}`;

@@ -6,7 +6,7 @@ const router = Router();
 
 // GET /api/kpis — Todos os KPIs de manutenção
 router.get('/', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   if (ids.length === 0) {
     res.json({
       mtbf: 0, mttr: 0, disponibilidade: 100, backlog: 0,
@@ -129,7 +129,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
 // GET /api/kpis/equipamentos — KPIs por equipamento
 router.get('/equipamentos', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   if (ids.length === 0) { res.json([]); return; }
 
   const rows = await query(
@@ -153,7 +153,7 @@ router.get('/equipamentos', async (req: AuthRequest, res: Response) => {
 
 // GET /api/kpis/tendencia — Evolução mensal de KPIs
 router.get('/tendencia', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   if (ids.length === 0) { res.json([]); return; }
 
   const rows = await query(

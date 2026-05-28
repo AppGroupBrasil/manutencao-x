@@ -1,7 +1,7 @@
 import { Router, Response } from 'express';
 import { query, queryOne, execute, paginate } from '../db/database.js';
 import { AuthRequest } from '../middleware/auth.js';
-import { validate, ordemServicoSchema } from '../middleware/validation.js';
+import { validate, ordemServicoSchema, ordemServicoStatusSchema, ordemServicoAvaliacaoSchema, ordemServicoUpdateSchema } from '../middleware/validation.js';
 
 const router = Router();
 
@@ -16,7 +16,7 @@ function gerarProtocolo(): string {
 
 // GET /api/ordens-servico
 router.get('/', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   if (ids.length === 0) { res.json({ data: [], total: 0, page: 1, pageSize: 50, totalPages: 0 }); return; }
   const page = parseInt(req.query.page as string) || 1;
   const pageSize = parseInt(req.query.pageSize as string) || 50;
@@ -34,7 +34,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
 // GET /api/ordens-servico/:id
 router.get('/:id', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const row = await queryOne(
     `SELECT os.*, c.nome as condominio_nome FROM ordens_servico os
      LEFT JOIN condominios c ON c.id = os.condominio_id
@@ -50,7 +50,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
 
 // POST /api/ordens-servico
 router.post('/', validate(ordemServicoSchema), async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const { condominioId, titulo, descricao, tipo, prioridade, local, responsavelId, supervisorId, dataPrevisao } = req.body;
   if (!condominioId || !ids.includes(condominioId)) {
     res.status(403).json({ error: 'Sem acesso a este condomínio' });
@@ -66,8 +66,8 @@ router.post('/', validate(ordemServicoSchema), async (req: AuthRequest, res: Res
 });
 
 // PATCH /api/ordens-servico/:id/status
-router.patch('/:id/status', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+router.patch('/:id/status', validate(ordemServicoStatusSchema), async (req: AuthRequest, res: Response) => {
+  const ids: string[] = req.condominioIds!;
   const { status } = req.body;
   const extra = status === 'concluida' ? ', data_conclusao = NOW()' : '';
   const row = await queryOne(
@@ -79,8 +79,8 @@ router.patch('/:id/status', async (req: AuthRequest, res: Response) => {
 });
 
 // PATCH /api/ordens-servico/:id/avaliacao
-router.patch('/:id/avaliacao', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+router.patch('/:id/avaliacao', validate(ordemServicoAvaliacaoSchema), async (req: AuthRequest, res: Response) => {
+  const ids: string[] = req.condominioIds!;
   const { nota, comentario } = req.body;
   const row = await queryOne(
     `UPDATE ordens_servico SET avaliacao_nota = $1, avaliacao_comentario = $2 WHERE id = $3 AND condominio_id = ANY($4) RETURNING *`,
@@ -91,8 +91,8 @@ router.patch('/:id/avaliacao', async (req: AuthRequest, res: Response) => {
 });
 
 // PUT /api/ordens-servico/:id
-router.put('/:id', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+router.put('/:id', validate(ordemServicoUpdateSchema), async (req: AuthRequest, res: Response) => {
+  const ids: string[] = req.condominioIds!;
   const { titulo, descricao, tipo, prioridade, local, responsavelId, supervisorId, observacoes, fotos, dataPrevisao } = req.body;
   const row = await queryOne(
     `UPDATE ordens_servico SET titulo=$1, descricao=$2, tipo=$3, prioridade=$4, local=$5,
@@ -106,7 +106,7 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
 
 // DELETE /api/ordens-servico/:id
 router.delete('/:id', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const row = await queryOne('DELETE FROM ordens_servico WHERE id = $1 AND condominio_id = ANY($2) RETURNING id', [req.params.id, ids]);
   if (!row) { res.status(404).json({ error: 'OS não encontrada' }); return; }
   res.json({ ok: true });

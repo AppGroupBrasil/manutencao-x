@@ -9,7 +9,7 @@ const router = Router();
 
 // ── GET /api/orcamentos — Listar orçamentos ──
 router.get('/', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   if (ids.length === 0) { res.json({ data: [], total: 0, page: 1, pageSize: 20 }); return; }
 
   const { status, busca } = req.query;
@@ -51,7 +51,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
 // ── GET /api/orcamentos/:id — Detalhes de um orçamento ──
 router.get('/:id', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const orc = await queryOne<any>(
     `SELECT o.*, c.nome AS condominio_nome, u.nome AS criador_nome
      FROM orcamentos o
@@ -72,7 +72,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
 
 // ── POST /api/orcamentos — Criar orçamento ──
 router.post('/', validate(orcamentoSchema), async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const b = req.body;
 
   if (!ids.includes(b.condominio_id)) {
@@ -123,7 +123,7 @@ router.post('/', validate(orcamentoSchema), async (req: AuthRequest, res: Respon
 
 // ── PUT /api/orcamentos/:id — Atualizar orçamento ──
 router.put('/:id', validate(orcamentoSchema), async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const existing = await queryOne<any>('SELECT * FROM orcamentos WHERE id = $1', [req.params.id]);
   if (!existing || !ids.includes(existing.condominio_id)) {
     res.status(404).json({ error: 'Orçamento não encontrado' }); return;
@@ -175,7 +175,7 @@ router.put('/:id', validate(orcamentoSchema), async (req: AuthRequest, res: Resp
 
 // ── PATCH /api/orcamentos/:id/status — Mudar status ──
 router.patch('/:id/status', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const existing = await queryOne<any>('SELECT * FROM orcamentos WHERE id = $1', [req.params.id]);
   if (!existing || !ids.includes(existing.condominio_id)) {
     res.status(404).json({ error: 'Orçamento não encontrado' }); return;
@@ -193,7 +193,7 @@ router.patch('/:id/status', async (req: AuthRequest, res: Response) => {
 
 // ── DELETE /api/orcamentos/:id ──
 router.delete('/:id', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const existing = await queryOne<any>('SELECT * FROM orcamentos WHERE id = $1', [req.params.id]);
   if (!existing || !ids.includes(existing.condominio_id)) {
     res.status(404).json({ error: 'Orçamento não encontrado' }); return;
@@ -205,7 +205,7 @@ router.delete('/:id', async (req: AuthRequest, res: Response) => {
 
 // ── GET /api/orcamentos/:id/pdf — Gerar PDF do orçamento ──
 router.get('/:id/pdf', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const orc = await queryOne<any>(
     `SELECT o.*, c.nome AS condominio_nome, c.endereco AS condominio_endereco,
             u.nome AS criador_nome

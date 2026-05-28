@@ -16,7 +16,7 @@ function gerarProtocolo(): string {
 
 // GET /api/materiais
 router.get('/', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   if (ids.length === 0) { res.json([]); return; }
   const rows = await query(
     `SELECT m.*, c.nome as condominio_nome FROM materiais m
@@ -29,7 +29,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
 // POST /api/materiais
 router.post('/', validate(materialSchema), async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const { nome, categoria, unidade, quantidade, quantidadeMinima, custoUnitario, condominioId, emailNotificacao } = req.body;
   if (!condominioId || !ids.includes(condominioId)) {
     res.status(403).json({ error: 'Sem acesso' });
@@ -46,7 +46,7 @@ router.post('/', validate(materialSchema), async (req: AuthRequest, res: Respons
 
 // PUT /api/materiais/:id
 router.put('/:id', validate(materialSchema), async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const { nome, categoria, unidade, quantidadeMinima, custoUnitario, emailNotificacao } = req.body;
   const row = await queryOne(
     `UPDATE materiais SET nome=$1, categoria=$2, unidade=$3, quantidade_minima=$4, custo_unitario=$5, email_notificacao=$6
@@ -59,7 +59,7 @@ router.put('/:id', validate(materialSchema), async (req: AuthRequest, res: Respo
 
 // DELETE /api/materiais/:id
 router.delete('/:id', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const row = await queryOne('DELETE FROM materiais WHERE id = $1 AND condominio_id = ANY($2) RETURNING id', [req.params.id, ids]);
   if (!row) { res.status(404).json({ error: 'Material não encontrado' }); return; }
   res.json({ ok: true });
@@ -69,7 +69,7 @@ router.delete('/:id', async (req: AuthRequest, res: Response) => {
 
 // GET /api/materiais/:id/movimentacoes
 router.get('/:id/movimentacoes', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const rows = await query(
     `SELECT mm.* FROM materiais_movimentacoes mm
      JOIN materiais m ON m.id = mm.material_id
@@ -81,7 +81,7 @@ router.get('/:id/movimentacoes', async (req: AuthRequest, res: Response) => {
 
 // POST /api/materiais/:id/movimentacoes
 router.post('/:id/movimentacoes', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const { tipo, quantidade, observacao, fotos, notaFiscalUrl, audioUrl, funcionarioNome } = req.body;
   const materialId = req.params.id;
 

@@ -7,7 +7,7 @@ const router = Router();
 
 // GET /api/comunicados
 router.get('/', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   if (ids.length === 0) { res.json([]); return; }
   const rows = await query(
     `SELECT cm.*, c.nome as condominio_nome FROM comunicados cm
@@ -20,7 +20,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
 // POST /api/comunicados
 router.post('/', validate(comunicadoSchema), async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const { tipo, titulo, mensagem, destinatarioTipo, condominioId, emailsEnviados, tracking } = req.body;
   if (!condominioId || !ids.includes(condominioId)) {
     res.status(403).json({ error: 'Sem acesso' });
@@ -36,7 +36,7 @@ router.post('/', validate(comunicadoSchema), async (req: AuthRequest, res: Respo
 
 // PUT /api/comunicados/:id
 router.put('/:id', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const { tipo, titulo, mensagem, destinatarioTipo } = req.body;
   const row = await queryOne(
     `UPDATE comunicados SET tipo = COALESCE($1, tipo), titulo = COALESCE($2, titulo),
@@ -50,7 +50,7 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
 
 // DELETE /api/comunicados/:id
 router.delete('/:id', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const row = await queryOne('DELETE FROM comunicados WHERE id = $1 AND condominio_id = ANY($2) RETURNING id', [req.params.id, ids]);
   if (!row) { res.status(404).json({ error: 'Comunicado não encontrado' }); return; }
   res.json({ ok: true });

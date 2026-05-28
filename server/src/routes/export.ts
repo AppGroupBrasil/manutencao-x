@@ -6,7 +6,7 @@ const router = Router();
 
 // GET /api/export?entidade=ordens-servico&formato=csv
 router.get('/', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const entidade = req.query.entidade as string;
   const formato = (req.query.formato as string) || 'csv';
 

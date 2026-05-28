@@ -7,7 +7,7 @@ const router = Router();
 
 // GET /api/checklists
 router.get('/', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   if (ids.length === 0) { res.json([]); return; }
   const rows = await query(
     `SELECT ch.*, c.nome as condominio_nome, u.nome as responsavel_nome
@@ -23,7 +23,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
 // POST /api/checklists
 router.post('/', validate(checklistSchema), async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const { condominioId, local, tipo, itens, responsavelId, supervisorId, data } = req.body;
   if (!condominioId || !ids.includes(condominioId)) {
     res.status(403).json({ error: 'Sem acesso a este condomínio' });
@@ -41,7 +41,7 @@ router.post('/', validate(checklistSchema), async (req: AuthRequest, res: Respon
 
 // GET /api/checklists/locais
 router.get('/locais', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   if (ids.length === 0) { res.json([]); return; }
   const rows = await query(
     `SELECT * FROM checklists_locais WHERE condominio_id = ANY($1) OR condominio_id IS NULL ORDER BY nome`,
@@ -82,7 +82,7 @@ router.delete('/locais/:id', async (req: AuthRequest, res: Response) => {
 
 // PUT /api/checklists/:id
 router.put('/:id', validate(checklistSchema), async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const { local, tipo, itens, status, horaInicio, horaFim, assinatura } = req.body;
   const row = await queryOne(
     `UPDATE checklists SET local=$1, tipo=$2, itens=$3, status=$4, hora_inicio=$5, hora_fim=$6, assinatura=$7
@@ -95,7 +95,7 @@ router.put('/:id', validate(checklistSchema), async (req: AuthRequest, res: Resp
 
 // PATCH /api/checklists/:id/itens
 router.patch('/:id/itens', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const { itens, status, horaFim, assinatura } = req.body;
   const fields: string[] = ['itens = $1'];
   const params: any[] = [JSON.stringify(itens)];
@@ -115,7 +115,7 @@ router.patch('/:id/itens', async (req: AuthRequest, res: Response) => {
 
 // DELETE /api/checklists/:id
 router.delete('/:id', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const row = await queryOne('DELETE FROM checklists WHERE id = $1 AND condominio_id = ANY($2) RETURNING id', [req.params.id, ids]);
   if (!row) { res.status(404).json({ error: 'Checklist não encontrado' }); return; }
   res.json({ ok: true });

@@ -3,13 +3,13 @@ import { query, queryOne, execute } from '../db/database.js';
 import { AuthRequest } from '../middleware/auth.js';
 import { requireMinRole, requireRole } from '../middleware/rbac.js';
 import { auditLog } from '../middleware/helpers.js';
-import { validate, condominioSchema } from '../middleware/validation.js';
+import { validate, condominioSchema, condominioStatusSchema } from '../middleware/validation.js';
 
 const router = Router();
 
 // GET /api/condominios
 router.get('/', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   if (ids.length === 0) { res.json([]); return; }
   const isMaster = req.user?.role === 'master';
   const rows = await query(
@@ -23,7 +23,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
 // GET /api/condominios/:id
 router.get('/:id', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   if (!ids.includes(req.params.id)) {
     res.status(404).json({ error: 'Condomínio não encontrado' });
     return;
@@ -55,7 +55,7 @@ router.post('/', requireMinRole('administrador'), validate(condominioSchema), as
 
 // PUT /api/condominios/:id
 router.put('/:id', requireMinRole('administrador'), validate(condominioSchema), async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   if (!ids.includes(req.params.id)) {
     res.status(403).json({ error: 'Sem acesso a este condomínio' });
     return;
@@ -71,7 +71,7 @@ router.put('/:id', requireMinRole('administrador'), validate(condominioSchema), 
 });
 
 // PATCH /api/condominios/:id/status — Master gerencia plano e status
-router.patch('/:id/status', requireRole('master'), async (req: AuthRequest, res: Response) => {
+router.patch('/:id/status', requireRole('master'), validate(condominioStatusSchema), async (req: AuthRequest, res: Response) => {
   const { plano, status_plano, ativo, data_fim_teste, valor_mensalidade } = req.body;
   const fields: string[] = [];
   const values: any[] = [];
@@ -97,7 +97,7 @@ router.patch('/:id/status', requireRole('master'), async (req: AuthRequest, res:
 
 // DELETE /api/condominios/:id
 router.delete('/:id', requireMinRole('administrador'), async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   if (!ids.includes(req.params.id)) {
     res.status(403).json({ error: 'Sem acesso a este condomínio' });
     return;

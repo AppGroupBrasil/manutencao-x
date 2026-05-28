@@ -7,7 +7,7 @@ const router = Router();
 
 // GET /api/vistorias
 router.get('/', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   if (ids.length === 0) { res.json([]); return; }
   const rows = await query(
     `SELECT v.*, c.nome as condominio_nome FROM vistorias v
@@ -20,7 +20,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
 // GET /api/vistorias/:id
 router.get('/:id', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const row = await queryOne(
     `SELECT v.*, c.nome as condominio_nome FROM vistorias v
      LEFT JOIN condominios c ON c.id = v.condominio_id
@@ -33,7 +33,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
 
 // POST /api/vistorias
 router.post('/', validate(vistoriaSchema), async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const { titulo, condominioId, tipo, data, responsavelNome, itens } = req.body;
   if (!condominioId || !ids.includes(condominioId)) {
     res.status(403).json({ error: 'Sem acesso' });
@@ -49,7 +49,7 @@ router.post('/', validate(vistoriaSchema), async (req: AuthRequest, res: Respons
 
 // PUT /api/vistorias/:id
 router.put('/:id', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const { titulo, tipo, data, itens, status, responsavelNome } = req.body;
   const row = await queryOne(
     `UPDATE vistorias SET titulo=$1, tipo=$2, data=$3, itens=$4, status=$5, responsavel_nome=$6
@@ -62,7 +62,7 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
 
 // DELETE /api/vistorias/:id
 router.delete('/:id', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const row = await queryOne('DELETE FROM vistorias WHERE id = $1 AND condominio_id = ANY($2) RETURNING id', [req.params.id, ids]);
   if (!row) { res.status(404).json({ error: 'Vistoria não encontrada' }); return; }
   res.json({ ok: true });

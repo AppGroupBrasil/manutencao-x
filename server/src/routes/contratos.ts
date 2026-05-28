@@ -7,7 +7,7 @@ const router = Router();
 
 // GET /api/contratos — listar contratos (com filtros)
 router.get('/', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   if (ids.length === 0) { res.json({ data: [], total: 0, page: 1, pageSize: 50, totalPages: 0 }); return; }
 
   const { status, vencendo } = req.query;
@@ -41,7 +41,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
 // GET /api/contratos/resumo — resumo de contratos
 router.get('/resumo', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   if (ids.length === 0) { res.json({ vigentes: 0, vencendo: 0, encerrados: 0, valorTotal: 0 }); return; }
 
   const resumo = await queryOne(
@@ -59,7 +59,7 @@ router.get('/resumo', async (req: AuthRequest, res: Response) => {
 
 // GET /api/contratos/:id
 router.get('/:id', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const row = await queryOne(
     `SELECT fc.*, f.nome as fornecedor_nome, f.especialidade as fornecedor_especialidade,
             f.telefone as fornecedor_telefone, f.email as fornecedor_email,
@@ -77,7 +77,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
 
 // POST /api/contratos
 router.post('/', validate(contratoSchema), async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const {
     fornecedorId, condominioId, numeroContrato, descricao, valor,
     dataInicio, dataFim, renovacaoAutomatica, alertaDiasAntes,
@@ -112,7 +112,7 @@ router.post('/', validate(contratoSchema), async (req: AuthRequest, res: Respons
 
 // PUT /api/contratos/:id
 router.put('/:id', validate(contratoUpdateSchema), async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const {
     numeroContrato, descricao, valor, dataInicio, dataFim,
     renovacaoAutomatica, alertaDiasAntes, status, documentoUrl, observacoes
@@ -136,7 +136,7 @@ router.put('/:id', validate(contratoUpdateSchema), async (req: AuthRequest, res:
 
 // DELETE /api/contratos/:id
 router.delete('/:id', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   await execute('DELETE FROM fornecedores_contratos WHERE id = $1 AND condominio_id = ANY($2)', [req.params.id, ids]);
   res.json({ ok: true });
 });

@@ -7,7 +7,7 @@ const router = Router();
 
 // GET /api/vencimentos
 router.get('/', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   if (ids.length === 0) { res.json([]); return; }
   const rows = await query(
     `SELECT v.*, c.nome as condominio_nome FROM vencimentos v
@@ -20,7 +20,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
 // POST /api/vencimentos
 router.post('/', validate(vencimentoSchema), async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const { titulo, tipo, descricao, condominioId, dataVencimento, dataUltimaManutencao, dataProximaManutencao, emails, avisos, imagens } = req.body;
   if (!condominioId || !ids.includes(condominioId)) {
     res.status(403).json({ error: 'Sem acesso' });
@@ -36,7 +36,7 @@ router.post('/', validate(vencimentoSchema), async (req: AuthRequest, res: Respo
 
 // PUT /api/vencimentos/:id
 router.put('/:id', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const { titulo, tipo, descricao, dataVencimento, dataUltimaManutencao, dataProximaManutencao, emails, avisos, imagens, qtdNotificacoes } = req.body;
   const row = await queryOne(
     `UPDATE vencimentos SET titulo=$1, tipo=$2, descricao=$3, data_vencimento=$4, data_ultima_manutencao=$5,
@@ -50,7 +50,7 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
 
 // DELETE /api/vencimentos/:id
 router.delete('/:id', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const row = await queryOne('DELETE FROM vencimentos WHERE id = $1 AND condominio_id = ANY($2) RETURNING id', [req.params.id, ids]);
   if (!row) { res.status(404).json({ error: 'Vencimento não encontrado' }); return; }
   res.json({ ok: true });

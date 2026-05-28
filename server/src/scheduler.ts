@@ -249,7 +249,36 @@ async function verificarContratos() {
   if (contratos.length > 0) console.log(`[Scheduler] ${contratos.length} contratos próximos do vencimento.`);
 }
 
+/** Purge de tabelas voláteis. Evita crescimento sem limite. */
+async function purgarTabelasVolateis() {
+  console.log('[Scheduler] Purge de tabelas voláteis...');
+  const queries: [string, string][] = [
+    ['refresh_tokens', `DELETE FROM refresh_tokens WHERE expires_at < NOW() - INTERVAL '7 days' OR (revogado = true AND usado_em < NOW() - INTERVAL '7 days')`],
+    ['reset_tokens',   `DELETE FROM reset_tokens WHERE expires_at < NOW() - INTERVAL '7 days' OR used = true`],
+    ['login_attempts', `DELETE FROM login_attempts WHERE criado_em < NOW() - INTERVAL '7 days'`],
+    ['audit_logs',     `DELETE FROM audit_logs WHERE criado_em < NOW() - INTERVAL '180 days'`],
+    ['metricas_uso',   `DELETE FROM metricas_uso WHERE data < NOW() - INTERVAL '180 days'`],
+    ['notificacoes',   `DELETE FROM notificacoes WHERE lida = true AND criado_em < NOW() - INTERVAL '60 days'`],
+  ];
+  for (const [nome, sql] of queries) {
+    try { await query(sql); } catch (e: any) { console.error(`[Scheduler] Purge ${nome}:`, e.message); }
+  }
+}
+
+// Eleição simples para evitar duplicação em múltiplos containers.
+// Apenas o processo cujo PID coincide com o hash do dia roda o scheduler.
+const SCHEDULER_INSTANCE_ID = process.env.SCHEDULER_INSTANCE_ID || '';
+function deveRodarScheduler(): boolean {
+  if (process.env.DISABLE_SCHEDULER === 'true') return false;
+  if (SCHEDULER_INSTANCE_ID && SCHEDULER_INSTANCE_ID !== '1') return false;
+  return true;
+}
+
 export function iniciarScheduler() {
+  if (!deveRodarScheduler()) {
+    console.log('[Scheduler] desativado (SCHEDULER_INSTANCE_ID != 1 ou DISABLE_SCHEDULER=true)');
+    return;
+  }
   // A cada hora: verificar planos preventivos + SLA
   cron.schedule('0 * * * *', async () => {
     try { await processarPlanos(); } catch (e: any) { console.error('[Scheduler] Erro planos:', e.message); }
@@ -272,5 +301,10 @@ export function iniciarScheduler() {
     try { await verificarContratos(); } catch (e: any) { console.error('[Scheduler] Erro contratos:', e.message); }
   });
 
-  console.log('[Scheduler] Tarefas agendadas: planos (1h), SLA (1h), vencimentos (7h), contratos (8h)');
+  // Diariamente às 3h: purge de tabelas voláteis
+  cron.schedule('0 3 * * *', async () => {
+    try { await purgarTabelasVolateis(); } catch (e: any) { console.error('[Scheduler] Erro purge:', e.message); }
+  });
+
+  console.log('[Scheduler] Tarefas agendadas: planos (1h), SLA (1h), vencimentos (7h), contratos (8h), purge (3h)');
 }

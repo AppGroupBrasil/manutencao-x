@@ -16,27 +16,16 @@ router.post('/login', validate(loginSchema), async (req, res: Response) => {
     const { email, senha } = req.body;
     const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.ip || '';
 
-    if (!email || !senha) {
-      res.status(400).json({ error: 'Email e senha obrigatórios' });
+    const { blocked, remaining } = await checkRateLimit(email, ip);
+    if (blocked) {
+      res.status(429).json({ error: 'Muitas tentativas de login. Tente novamente em 15 minutos.' });
       return;
     }
-
-    let remaining: number;
 
     const user = await queryOne<any>(
       'SELECT * FROM usuarios WHERE email = $1',
       [email]
     );
-
-    const isMaster = user?.role === 'master';
-
-    // Rate limiting — applies to ALL users, including master
-    const { blocked, remaining: rem } = await checkRateLimit(email, ip);
-    if (blocked) {
-      res.status(429).json({ error: 'Muitas tentativas de login. Tente novamente em 15 minutos.' });
-      return;
-    }
-    remaining = rem;
 
     if (!user) {
       await recordLoginAttempt(email, ip, false);
@@ -44,8 +33,7 @@ router.post('/login', validate(loginSchema), async (req, res: Response) => {
       res.status(401).json({ error: 'Credenciais inválidas', remaining: remaining - 1 });
       return;
     }
-    // Block check (skip for master)
-    if (!isMaster && (!user.ativo || user.bloqueado)) {
+    if (!user.ativo || user.bloqueado) {
       await auditLog(null, 'login_falha', 'usuarios', user.id, { motivo: 'conta_bloqueada', email }, ip).catch(() => {});
       res.status(403).json({ error: 'Conta desativada ou bloqueada', motivo: user.motivo_bloqueio });
       return;
@@ -83,7 +71,7 @@ router.post('/login', validate(loginSchema), async (req, res: Response) => {
       },
     });
   } catch (err: any) {
-    console.error('[LOGIN ERROR]', err);
+    console.error('[LOGIN ERROR]', err?.message);
     res.status(500).json({ error: 'Erro interno no login' });
   }
 });
@@ -246,31 +234,15 @@ router.post('/forgot-password', validate(forgotPasswordSchema), async (req, res:
     const token = crypto.randomBytes(32).toString('hex');
     const expiry = new Date(Date.now() + 3600000); // 1 hour
 
-    // Create reset_tokens table if needed, or use a simple approach with a column
-    await query(
-      `CREATE TABLE IF NOT EXISTS reset_tokens (
-        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-        user_id UUID NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
-        token VARCHAR(64) NOT NULL UNIQUE,
-        expires_at TIMESTAMPTZ NOT NULL,
-        used BOOLEAN DEFAULT false,
-        created_at TIMESTAMPTZ DEFAULT NOW()
-      )`
-    );
-
-    // Invalidate previous tokens for this user
     await query('UPDATE reset_tokens SET used = true WHERE user_id = $1 AND used = false', [user.id]);
-
     await query(
       'INSERT INTO reset_tokens (user_id, token, expires_at) VALUES ($1, $2, $3)',
       [user.id, token, expiry]
     );
 
-    // Enviar e-mail com link de reset
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    const emailData = emailResetSenha(user.nome || email, token, `${frontendUrl}/esqueci-senha`);
-    emailData.to = email;
-    await sendEmail(emailData).catch(err => console.error('[RESET] Erro ao enviar email:', err));
+    const emailData = { ...emailResetSenha(user.nome || email, token, `${frontendUrl}/esqueci-senha`), to: email };
+    await sendEmail(emailData).catch(err => console.error('[RESET] Erro ao enviar email:', err?.message));
   }
 
   res.json({ message: 'Se o e-mail estiver cadastrado, você receberá instruções para redefinir sua senha.' });

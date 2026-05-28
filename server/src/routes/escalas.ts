@@ -7,7 +7,7 @@ const router = Router();
 
 // GET /api/escalas
 router.get('/', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   if (ids.length === 0) { res.json([]); return; }
   const rows = await query(
     `SELECT e.*, c.nome as condominio_nome, u.nome as funcionario_nome_real
@@ -23,7 +23,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
 // POST /api/escalas
 router.post('/', validate(escalaSchema), async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const { condominioId, funcionarioId, funcionarioNome, diaSemana, horaInicio, horaFim, local, funcao, observacoes } = req.body;
   if (!condominioId || !ids.includes(condominioId)) {
     res.status(403).json({ error: 'Sem acesso a este condomínio' });
@@ -39,7 +39,7 @@ router.post('/', validate(escalaSchema), async (req: AuthRequest, res: Response)
 
 // PUT /api/escalas/:id
 router.put('/:id', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const { funcionarioId, funcionarioNome, diaSemana, horaInicio, horaFim, local, funcao, observacoes } = req.body;
   const row = await queryOne(
     `UPDATE escalas SET funcionario_id=$1, funcionario_nome=$2, dia_semana=$3, hora_inicio=$4, hora_fim=$5, local=$6, funcao=$7, observacoes=$8
@@ -52,7 +52,7 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
 
 // DELETE /api/escalas/:id
 router.delete('/:id', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const row = await queryOne('UPDATE escalas SET ativo = false WHERE id = $1 AND condominio_id = ANY($2) RETURNING id', [req.params.id, ids]);
   if (!row) { res.status(404).json({ error: 'Escala não encontrada' }); return; }
   res.json({ ok: true });

@@ -66,10 +66,20 @@ const ConfiguracoesPage: React.FC = () => {
     </style></head><body>`);
     win.document.write(`<div class="titulo">QR Codes — Acesso Rápido às Funções</div>`);
     win.document.write(`<div class="subtitulo">Escaneie o QR Code para acessar a função diretamente no celular</div>`);
-    win.document.write('<div class="grid">');
-    const items = el.querySelectorAll('[data-qr-item]');
-    items.forEach(item => { win.document.write(item.innerHTML); });
-    win.document.write('</div></body></html>');
+    const grid = win.document.createElement('div');
+    grid.className = 'grid';
+    el.querySelectorAll('[data-qr-item]').forEach(item => {
+      const clone = item.cloneNode(true) as HTMLElement;
+      // converter canvas para img para garantir renderização na nova janela
+      clone.querySelectorAll('canvas').forEach(c => {
+        const img = win.document.createElement('img');
+        try { img.src = (c as HTMLCanvasElement).toDataURL('image/png'); } catch { /* tainted */ }
+        c.replaceWith(img);
+      });
+      grid.append(win.document.adoptNode(clone));
+    });
+    win.document.body.append(grid);
+    win.document.write('</body></html>');
     win.document.close();
     setTimeout(() => { win.print(); }, 400);
   }, []);

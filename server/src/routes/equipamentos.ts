@@ -15,7 +15,7 @@ function gerarCodigo(): string {
 
 // GET /api/equipamentos
 router.get('/', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   if (ids.length === 0) { res.json([]); return; }
   const rows = await query(
     `SELECT e.*, c.nome as condominio_nome, f.nome as fornecedor_nome
@@ -31,7 +31,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
 // GET /api/equipamentos/:id
 router.get('/:id', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const row = await queryOne(
     `SELECT e.*, c.nome as condominio_nome, f.nome as fornecedor_nome
      FROM equipamentos e
@@ -46,7 +46,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
 
 // POST /api/equipamentos
 router.post('/', validate(equipamentoSchema), async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const {
     nome, descricao, categoria, marca, modelo, numeroSerie,
     localizacao, andar, dataInstalacao, dataGarantia, vidaUtilAnos,
@@ -80,7 +80,7 @@ router.post('/', validate(equipamentoSchema), async (req: AuthRequest, res: Resp
 
 // PUT /api/equipamentos/:id
 router.put('/:id', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const {
     nome, descricao, categoria, marca, modelo, numeroSerie,
     localizacao, andar, dataInstalacao, dataGarantia, vidaUtilAnos,
@@ -108,7 +108,7 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
 
 // DELETE /api/equipamentos/:id
 router.delete('/:id', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   await execute('DELETE FROM equipamentos WHERE id = $1 AND condominio_id = ANY($2)', [req.params.id, ids]);
   res.json({ ok: true });
 });

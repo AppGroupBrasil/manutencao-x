@@ -7,7 +7,7 @@ const router = Router();
 
 // GET /api/moradores
 router.get('/', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   if (ids.length === 0) { res.json([]); return; }
   const rows = await query(
     `SELECT m.*, c.nome as condominio_nome FROM moradores m
@@ -20,7 +20,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
 // POST /api/moradores
 router.post('/', validate(moradorSchema), async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const { nome, condominioId, bloco, apartamento, whatsapp, email, perfil } = req.body;
   if (!condominioId || !ids.includes(condominioId)) {
     res.status(403).json({ error: 'Sem acesso' });
@@ -36,7 +36,7 @@ router.post('/', validate(moradorSchema), async (req: AuthRequest, res: Response
 
 // PUT /api/moradores/:id
 router.put('/:id', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const { nome, bloco, apartamento, whatsapp, email, perfil } = req.body;
   const row = await queryOne(
     `UPDATE moradores SET nome=$1, bloco=$2, apartamento=$3, whatsapp=$4, email=$5, perfil=$6
@@ -49,7 +49,7 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
 
 // DELETE /api/moradores/:id
 router.delete('/:id', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const row = await queryOne('DELETE FROM moradores WHERE id = $1 AND condominio_id = ANY($2) RETURNING id', [req.params.id, ids]);
   if (!row) { res.status(404).json({ error: 'Morador não encontrado' }); return; }
   res.json({ ok: true });
@@ -59,7 +59,7 @@ router.delete('/:id', async (req: AuthRequest, res: Response) => {
 
 // GET /api/moradores/whatsapp-contatos
 router.get('/whatsapp-contatos', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const rows = await query(
     `SELECT * FROM whats_contatos WHERE condominio_id IS NULL OR condominio_id = ANY($1) ORDER BY nome`,
     [ids]
@@ -69,7 +69,7 @@ router.get('/whatsapp-contatos', async (req: AuthRequest, res: Response) => {
 
 // POST /api/moradores/whatsapp-contatos
 router.post('/whatsapp-contatos', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const { nome, telefone, condominioId } = req.body;
   if (condominioId && !ids.includes(condominioId)) {
     res.status(403).json({ error: 'Sem acesso' }); return;
@@ -83,7 +83,7 @@ router.post('/whatsapp-contatos', async (req: AuthRequest, res: Response) => {
 
 // DELETE /api/moradores/whatsapp-contatos/:id
 router.delete('/whatsapp-contatos/:id', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const row = await queryOne('DELETE FROM whats_contatos WHERE id = $1 AND (condominio_id IS NULL OR condominio_id = ANY($2)) RETURNING id', [req.params.id, ids]);
   if (!row) { res.status(404).json({ error: 'Contato não encontrado' }); return; }
   res.json({ ok: true });

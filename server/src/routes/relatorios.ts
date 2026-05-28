@@ -6,7 +6,7 @@ const router = Router();
 
 // GET /api/relatorios/resumo
 router.get('/resumo', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   if (ids.length === 0) {
     res.json({ osMensal: [], osPorCondominio: [], custoMensal: [], produtividade: [], satisfacao: [] });
     return;

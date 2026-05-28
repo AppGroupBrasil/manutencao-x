@@ -7,7 +7,7 @@ const router = Router();
 
 // ── GET /api/pdf/ordem-servico/:id — gerar PDF de uma OS
 router.get('/ordem-servico/:id', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const os = await queryOne<any>(
     `SELECT os.*, c.nome as condominio_nome, u.nome as responsavel_nome, cr.nome as criador_nome
      FROM ordens_servico os
@@ -111,7 +111,7 @@ router.get('/ordem-servico/:id', async (req: AuthRequest, res: Response) => {
 
 // ── GET /api/pdf/relatorio-mensal — resumo mensal em PDF
 router.get('/relatorio-mensal', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   if (ids.length === 0) { res.status(400).json({ error: 'Sem condomínios' }); return; }
 
   const mes = (req.query.mes as string) || new Date().toISOString().slice(0, 7);

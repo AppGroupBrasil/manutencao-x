@@ -2,6 +2,11 @@ import { Response, NextFunction } from 'express';
 import { AuthRequest } from './auth.js';
 import { query } from '../db/database.js';
 
+export interface ScopedRequest extends AuthRequest {
+  condominioIds: string[];
+  requestId?: string;
+}
+
 const ROLE_LEVEL: Record<string, number> = {
   master: 4,
   administrador: 3,
@@ -88,6 +93,6 @@ export async function scopeMiddleware(req: AuthRequest, res: Response, next: Nex
     return;
   }
   const ids = await getCondominiosScope(req.user);
-  (req as any).condominioIds = ids;
+  (req as ScopedRequest).condominioIds = ids;
   next();
 }

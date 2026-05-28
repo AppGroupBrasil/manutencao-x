@@ -7,7 +7,7 @@ const router = Router();
 
 // GET /api/documentos — Lista documentos com filtros
 router.get('/', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   if (ids.length === 0) { res.json([]); return; }
 
   const { tipo, status, equipamentoId, fornecedorId, condominioId, vencidos } = req.query;
@@ -65,7 +65,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
 // GET /api/documentos/resumo — contagens por tipo e vencimentos
 router.get('/resumo', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   if (ids.length === 0) { res.json({ total: 0, porTipo: [], vencidos: 0, aVencer30: 0 }); return; }
 
   const [counts] = await query(
@@ -92,7 +92,7 @@ router.get('/resumo', async (req: AuthRequest, res: Response) => {
 
 // GET /api/documentos/:id
 router.get('/:id', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const row = await queryOne(
     `SELECT d.*,
             c.nome AS condominio_nome,
@@ -113,7 +113,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
 
 // POST /api/documentos
 router.post('/', validate(documentoSchema), async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const {
     titulo, descricao, tipo, status, arquivoUrl, arquivoNome, arquivoTamanho, arquivoTipo,
     condominioId, equipamentoId, fornecedorId, planoId,
@@ -145,7 +145,7 @@ router.post('/', validate(documentoSchema), async (req: AuthRequest, res: Respon
 
 // PUT /api/documentos/:id
 router.put('/:id', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const {
     titulo, descricao, tipo, status, arquivoUrl, arquivoNome, arquivoTamanho, arquivoTipo,
     equipamentoId, fornecedorId, planoId,
@@ -174,7 +174,7 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
 
 // DELETE /api/documentos/:id
 router.delete('/:id', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const row = await queryOne('DELETE FROM documentos_tecnicos WHERE id = $1 AND condominio_id = ANY($2) RETURNING id', [req.params.id, ids]);
   if (!row) { res.status(404).json({ error: 'Documento não encontrado' }); return; }
   res.json({ ok: true });

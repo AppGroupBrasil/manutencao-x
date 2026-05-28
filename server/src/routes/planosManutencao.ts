@@ -29,7 +29,7 @@ function calcularProximaExecucao(frequencia: string, ultimaExecucao: Date | null
 
 // GET /api/planos-manutencao
 router.get('/', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   if (ids.length === 0) { res.json([]); return; }
   const rows = await query(
     `SELECT p.*, c.nome as condominio_nome, e.nome as equipamento_nome, e.codigo as equipamento_codigo,
@@ -48,7 +48,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
 // GET /api/planos-manutencao/:id
 router.get('/:id', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const row = await queryOne(
     `SELECT p.*, c.nome as condominio_nome, e.nome as equipamento_nome
      FROM planos_manutencao p
@@ -63,7 +63,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
 
 // POST /api/planos-manutencao
 router.post('/', validate(planoManutencaoSchema), async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const {
     titulo, descricao, equipamentoId, categoriaEquipamento,
     frequencia, diaExecucao, itensVerificacao, responsavelId,
@@ -98,7 +98,7 @@ router.post('/', validate(planoManutencaoSchema), async (req: AuthRequest, res: 
 
 // PUT /api/planos-manutencao/:id
 router.put('/:id', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const {
     titulo, descricao, equipamentoId, categoriaEquipamento,
     frequencia, diaExecucao, itensVerificacao, responsavelId,
@@ -132,7 +132,7 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
 
 // DELETE /api/planos-manutencao/:id
 router.delete('/:id', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const row = await queryOne('DELETE FROM planos_manutencao WHERE id = $1 AND condominio_id = ANY($2) RETURNING id', [req.params.id, ids]);
   if (!row) { res.status(404).json({ error: 'Plano não encontrado' }); return; }
   res.json({ ok: true });
@@ -142,7 +142,7 @@ router.delete('/:id', async (req: AuthRequest, res: Response) => {
 
 // GET /api/planos-manutencao/:id/execucoes
 router.get('/:id/execucoes', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const rows = await query(
     `SELECT pe.*, u.nome as executor_nome, f.nome as fornecedor_nome_rel
      FROM planos_execucoes pe
@@ -158,7 +158,7 @@ router.get('/:id/execucoes', async (req: AuthRequest, res: Response) => {
 
 // POST /api/planos-manutencao/:id/execucoes
 router.post('/:id/execucoes', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const { dataExecucao, fornecedorId, custoReal, itensResultado, observacoes, fotos, status } = req.body;
   const planoId = req.params.id;
 
@@ -195,7 +195,7 @@ router.post('/:id/execucoes', async (req: AuthRequest, res: Response) => {
 
 // GET /api/planos-manutencao/calendario/proximos
 router.get('/calendario/proximos', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   if (ids.length === 0) { res.json([]); return; }
   const rows = await query(
     `SELECT p.id, p.titulo, p.frequencia, p.proxima_execucao, p.status,

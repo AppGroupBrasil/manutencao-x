@@ -6,7 +6,7 @@ const router = Router();
 
 // GET /api/ponto — listar registros de ponto (com filtro de data)
 router.get('/', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const data = req.query.data as string; // formato YYYY-MM-DD
   const userId = req.query.userId as string;
 

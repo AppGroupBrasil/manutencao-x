@@ -9,7 +9,7 @@ const router = Router();
 
 // GET /api/tarefas
 router.get('/', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   if (ids.length === 0) { res.json([]); return; }
   const rows = await query(
     `SELECT t.*, c.nome as condominio_nome FROM tarefas_agendadas t
@@ -22,7 +22,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
 // POST /api/tarefas
 router.post('/', validate(tarefaSchema), async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const { titulo, descricao, funcionarioId, funcionarioNome, condominioId, bloco, local, recorrencia, diasSemana, dataEspecifica, diaMes, prioridade } = req.body;
   if (!condominioId || !ids.includes(condominioId)) {
     res.status(403).json({ error: 'Sem acesso' });
@@ -38,7 +38,7 @@ router.post('/', validate(tarefaSchema), async (req: AuthRequest, res: Response)
 
 // PUT /api/tarefas/:id
 router.put('/:id', validate(tarefaSchema), async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const { titulo, descricao, funcionarioId, funcionarioNome, bloco, local, recorrencia, diasSemana, dataEspecifica, diaMes, prioridade } = req.body;
   const row = await queryOne(
     `UPDATE tarefas_agendadas SET titulo=$1, descricao=$2, funcionario_id=$3, funcionario_nome=$4, bloco=$5, local=$6, recorrencia=$7, dias_semana=$8, data_especifica=$9, dia_mes=$10, prioridade=$11
@@ -51,7 +51,7 @@ router.put('/:id', validate(tarefaSchema), async (req: AuthRequest, res: Respons
 
 // DELETE /api/tarefas/:id
 router.delete('/:id', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const row = await queryOne('DELETE FROM tarefas_agendadas WHERE id = $1 AND condominio_id = ANY($2) RETURNING id', [req.params.id, ids]);
   if (!row) { res.status(404).json({ error: 'Tarefa não encontrada' }); return; }
   res.json({ ok: true });
@@ -61,7 +61,7 @@ router.delete('/:id', async (req: AuthRequest, res: Response) => {
 
 // GET /api/tarefas/:id/execucoes
 router.get('/:id/execucoes', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const rows = await query(
     `SELECT te.* FROM tarefas_execucoes te
      JOIN tarefas_agendadas ta ON ta.id = te.tarefa_id
@@ -73,7 +73,7 @@ router.get('/:id/execucoes', async (req: AuthRequest, res: Response) => {
 
 // GET /api/tarefas/execucoes/all
 router.get('/execucoes/all', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   if (ids.length === 0) { res.json([]); return; }
   const rows = await query(
     `SELECT te.*, ta.titulo as tarefa_titulo, ta.condominio_id
@@ -88,7 +88,7 @@ router.get('/execucoes/all', async (req: AuthRequest, res: Response) => {
 
 // POST /api/tarefas/:id/execucoes
 router.post('/:id/execucoes', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   // Verify tarefa belongs to user scope
   const tarefa = await queryOne('SELECT id FROM tarefas_agendadas WHERE id = $1 AND condominio_id = ANY($2)', [req.params.id, ids]);
   if (!tarefa) { res.status(404).json({ error: 'Tarefa não encontrada' }); return; }

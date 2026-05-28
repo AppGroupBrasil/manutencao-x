@@ -7,7 +7,7 @@ const router = Router();
 
 // GET /api/fornecedores
 router.get('/', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   if (ids.length === 0) { res.json({ data: [], total: 0, page: 1, pageSize: 50, totalPages: 0 }); return; }
   const page = parseInt(req.query.page as string) || 1;
   const pageSize = parseInt(req.query.pageSize as string) || 50;
@@ -24,7 +24,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
 // GET /api/fornecedores/:id
 router.get('/:id', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const row = await queryOne(
     `SELECT f.*, c.nome as condominio_nome
      FROM fornecedores f
@@ -38,7 +38,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
 
 // POST /api/fornecedores
 router.post('/', validate(fornecedorSchema), async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const {
     nome, cnpj, tipo, especialidade, telefone, email, endereco, cidade, estado,
     contatoNome, contatoTelefone, contatoEmail, observacoes,
@@ -70,7 +70,7 @@ router.post('/', validate(fornecedorSchema), async (req: AuthRequest, res: Respo
 
 // PUT /api/fornecedores/:id
 router.put('/:id', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const {
     nome, cnpj, tipo, especialidade, telefone, email, endereco, cidade, estado,
     contatoNome, contatoTelefone, contatoEmail, observacoes,
@@ -97,7 +97,7 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
 
 // DELETE /api/fornecedores/:id
 router.delete('/:id', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   await execute('DELETE FROM fornecedores WHERE id = $1 AND condominio_id = ANY($2)', [req.params.id, ids]);
   res.json({ ok: true });
 });

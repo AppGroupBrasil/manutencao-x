@@ -2,11 +2,11 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { queryOne } from '../db/database.js';
 
-if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
-  console.error('[SECURITY] ❌ JWT_SECRET não definido em produção! Encerrando.');
+if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
+  console.error('[SECURITY] ❌ JWT_SECRET ausente ou curto (<32 chars). Encerrando.');
   process.exit(1);
 }
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-only-unsafe-secret';
+const JWT_SECRET = process.env.JWT_SECRET;
 const PORTAL_ISSUER = 'portal-morador';
 
 export interface PortalJwtPayload {

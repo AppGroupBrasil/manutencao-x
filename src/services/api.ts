@@ -11,7 +11,9 @@ const PUBLIC_AUTH_PATHS = new Set([
 ]);
 
 let authToken: string | null = safeStorage.getItem('manutencao_token');
+let refreshToken: string | null = safeStorage.getItem('manutencao_refresh');
 let isRedirecting = false; // Previne múltiplos redirects simultâneos
+let refreshInFlight: Promise<string | null> | null = null;
 
 function hashScope(value: string | null) {
   if (!value) return 'public';
@@ -76,8 +78,45 @@ export function setToken(token: string | null) {
   }
 }
 
+export function setRefreshToken(token: string | null) {
+  refreshToken = token;
+  if (token) {
+    safeStorage.setItem('manutencao_refresh', token);
+  } else {
+    safeStorage.removeItem('manutencao_refresh');
+  }
+}
+
 export function getToken(): string | null {
   return authToken;
+}
+
+async function tryRefreshToken(): Promise<string | null> {
+  if (!refreshToken) return null;
+  if (refreshInFlight) return refreshInFlight;
+  refreshInFlight = (async () => {
+    try {
+      const res = await fetch(`${API_BASE}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken }),
+      });
+      if (!res.ok) {
+        setToken(null);
+        setRefreshToken(null);
+        return null;
+      }
+      const data = await res.json();
+      if (data?.token) setToken(data.token);
+      if (data?.refreshToken) setRefreshToken(data.refreshToken);
+      return data?.token ?? null;
+    } catch {
+      return null;
+    } finally {
+      refreshInFlight = null;
+    }
+  })();
+  return refreshInFlight;
 }
 
 async function secureDownload(url: string, defaultFilename: string) {
@@ -160,6 +199,7 @@ async function handleUnauthorizedResponse(res: Response, path: string) {
     globalThis.setTimeout(() => {
       if (authToken === tokenAtError) {
         setToken(null);
+        setRefreshToken(null);
         globalThis.dispatchEvent(new Event('auth:unauthorized'));
       }
       isRedirecting = false;
@@ -237,6 +277,16 @@ async function request<T = any>(
     clearTimeout(timeoutId);
   }
 
+  if (res.status === 401 && !PUBLIC_AUTH_PATHS.has(path) && refreshToken) {
+    const newToken = await tryRefreshToken();
+    if (newToken) {
+      const retryHeaders = { ...headers, Authorization: `Bearer ${newToken}` };
+      const retry = await fetch(`${API_BASE}${path}`, { ...options, headers: retryHeaders });
+      if (!retry.ok) await handleFailedResponse(retry, path);
+      return parseJsonResponse<T>(retry, cacheKey);
+    }
+  }
+
   if (!res.ok) {
     await handleFailedResponse(res, path);
   }
@@ -260,11 +310,20 @@ function del<T = any>(path: string) {
 
 // ── Auth ──
 export const auth = {
-  login: (email: string, senha: string) =>
-    request<{ token: string; user: any }>('/auth/login', {
+  login: async (email: string, senha: string) => {
+    const res = await request<{ token: string; refreshToken: string | null; user: any }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, senha }),
-    }),
+    });
+    if (res.refreshToken) setRefreshToken(res.refreshToken);
+    else console.warn('[auth] refresh token ausente — sessão não poderá ser renovada');
+    return res;
+  },
+  logout: async () => {
+    try { await request('/auth/logout', { method: 'POST' }); } catch {}
+    setToken(null);
+    setRefreshToken(null);
+  },
   register: (data: { email: string; senha: string; nome: string; role: string; cargo?: string; condominioId?: string; supervisorId?: string }) =>
     post('/auth/register', data),
   me: () => request('/auth/me'),

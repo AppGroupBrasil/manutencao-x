@@ -9,7 +9,7 @@ const router = Router();
 
 // ── GET /api/sla/configuracoes — listar configs SLA do escopo
 router.get('/configuracoes', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   if (ids.length === 0) { res.json([]); return; }
   const rows = await query(
     `SELECT s.*, c.nome as condominio_nome
@@ -24,7 +24,7 @@ router.get('/configuracoes', async (req: AuthRequest, res: Response) => {
 
 // ── PUT /api/sla/configuracoes — upsert configurações SLA de um condomínio
 router.put('/configuracoes', requireMinRole('administrador'), async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const { condominioId, configuracoes } = req.body;
   if (!condominioId || !ids.includes(condominioId)) {
     res.status(403).json({ error: 'Sem acesso a este condomínio' });
@@ -64,7 +64,7 @@ router.put('/configuracoes', requireMinRole('administrador'), async (req: AuthRe
 
 // ── GET /api/sla/dashboard — resumo SLA
 router.get('/dashboard', apiCache(60), async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   if (ids.length === 0) {
     res.json({ total: 0, dentroPrazo: 0, emRisco: 0, violadas: 0, taxaCumprimento: 0, porPrioridade: [] });
     return;
@@ -108,7 +108,7 @@ router.get('/dashboard', apiCache(60), async (req: AuthRequest, res: Response) =
 
 // ── GET /api/sla/violacoes — OS com SLA violado ou em risco
 router.get('/violacoes', apiCache(60), async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   if (ids.length === 0) { res.json([]); return; }
   const rows = await query(
     `SELECT os.id, os.protocolo, os.titulo, os.prioridade, os.status, os.sla_status,
@@ -127,7 +127,7 @@ router.get('/violacoes', apiCache(60), async (req: AuthRequest, res: Response) =
 
 // ── PATCH /api/sla/recalcular — recalcular SLA de todas as OS abertas
 router.patch('/recalcular', requireMinRole('administrador'), async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const now = new Date();
 
   // Marcar "em_risco" quando faltam menos de 25% do tempo

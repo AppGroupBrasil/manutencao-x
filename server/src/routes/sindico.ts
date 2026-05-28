@@ -6,7 +6,7 @@ const router = Router();
 
 // GET /api/sindico/resumo — resumo do síndico (admin-level)
 router.get('/resumo', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   if (ids.length === 0) {
     res.json({ condominios: 0, osAbertas: 0, osConcluidas: 0, osConcluidasMes: 0, slaVioladas: 0, solicitacoesPendentes: 0, solicitacoesTotal: 0, moradores: 0, custoMes: 0, comunicadosMes: 0, osRecentes: [] });
     return;
@@ -82,7 +82,7 @@ router.get('/resumo', async (req: AuthRequest, res: Response) => {
 
 // GET /api/sindico/os-por-condominio
 router.get('/os-por-condominio', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const rows = await query(
     `SELECT c.nome, c.id,
        COUNT(*) FILTER (WHERE os.status NOT IN ('concluida','cancelada')) as abertas,
@@ -100,7 +100,7 @@ router.get('/os-por-condominio', async (req: AuthRequest, res: Response) => {
 
 // GET /api/sindico/evolucao-mensal
 router.get('/evolucao-mensal', async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   const rows = await query(
     `SELECT to_char(data_abertura, 'YYYY-MM') as mes,
        COUNT(*) as total,

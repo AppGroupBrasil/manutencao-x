@@ -8,7 +8,7 @@ const router = Router();
 
 // GET /api/dashboard/summary
 router.get('/summary', apiCache(60), async (req: AuthRequest, res: Response) => {
-  const ids: string[] = (req as any).condominioIds;
+  const ids: string[] = req.condominioIds!;
   if (ids.length === 0) {
     res.json({
       totalCondominios: 0, reportesAbertos: 0,
@@ -71,7 +71,7 @@ router.get('/summary', apiCache(60), async (req: AuthRequest, res: Response) => 
     query(`SELECT titulo, data_vencimento FROM vencimentos WHERE condominio_id IN (${ph}) AND data_vencimento BETWEEN CURRENT_DATE - INTERVAL '30 days' AND CURRENT_DATE + INTERVAL '15 days' ORDER BY data_vencimento LIMIT 10`, ids),
   ]);
 
-  const NOMES_DIA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'S�b'];
+  const NOMES_DIA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
   const NOMES_MES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
   const semanalArr = (semanalRows || []).map((r: any) => ({
@@ -95,14 +95,14 @@ router.get('/summary', apiCache(60), async (req: AuthRequest, res: Response) => 
 
   const now = Date.now();
   const formatarTempo = (ts: number) => {
-    if (!Number.isFinite(ts)) return '—';
+    if (!Number.isFinite(ts)) return 'â€”';
     const diff = now - ts;
     const min = Math.floor(diff / 60000);
     if (min < 1) return 'agora';
-    if (min < 60) return `${min} min atr�s`;
+    if (min < 60) return `${min} min atrás`;
     const h = Math.floor(min / 60);
-    if (h < 24) return `${h}h atr�s`;
-    return `${Math.floor(h / 24)}d atr�s`;
+    if (h < 24) return `${h}h atrás`;
+    return `${Math.floor(h / 24)}d atrás`;
   };
   const parseTimestamp = (dateValue: unknown, timeValue?: unknown) => {
     if (dateValue instanceof Date) {
@@ -127,7 +127,7 @@ router.get('/summary', apiCache(60), async (req: AuthRequest, res: Response) => 
   for (const r of (atividadeReportes || [])) {
     const t = parseTimestamp(r.data);
     atividades.push({
-      texto: `Reporte ${r.protocolo || ''} � ${r.status === 'resolvido' ? 'resolvido' : r.status === 'em_analise' ? 'em an�lise' : 'aberto'}`,
+      texto: `Reporte ${r.protocolo || ''} — ${r.status === 'resolvido' ? 'resolvido' : r.status === 'em_analise' ? 'em análise' : 'aberto'}`,
       tempo: formatarTempo(t), ts: t,
       tipo: r.status === 'resolvido' ? 'sucesso' : r.prioridade === 'urgente' || r.prioridade === 'alta' ? 'perigo' : 'info',
     });
@@ -135,7 +135,7 @@ router.get('/summary', apiCache(60), async (req: AuthRequest, res: Response) => 
   for (const e of (atividadeExecs || [])) {
     const t = parseTimestamp(e.data_execucao, e.hora_execucao || '00:00');
     atividades.push({
-      texto: `Tarefa ${e.status === 'realizada' ? 'conclu�da' : e.status === 'nao_executada' ? 'n�o executada' : 'pendente'} � ${e.funcionario_nome || ''}`,
+      texto: `Tarefa ${e.status === 'realizada' ? 'concluída' : e.status === 'nao_executada' ? 'não executada' : 'pendente'} — ${e.funcionario_nome || ''}`,
       tempo: formatarTempo(t), ts: t,
       tipo: e.status === 'realizada' ? 'sucesso' : e.status === 'nao_executada' ? 'perigo' : 'aviso',
     });
@@ -143,7 +143,7 @@ router.get('/summary', apiCache(60), async (req: AuthRequest, res: Response) => 
   for (const p of (atividadePonto || [])) {
     const t = parseTimestamp(p.data_hora);
     atividades.push({
-      texto: `${p.funcionario_nome || 'Funcion�rio'} � ${p.tipo === 'entrada' ? 'Check-in' : 'Check-out'}`,
+      texto: `${p.funcionario_nome || 'Funcionário'} — ${p.tipo === 'entrada' ? 'Check-in' : 'Check-out'}`,
       tempo: formatarTempo(t), ts: t, tipo: 'info',
     });
   }
@@ -172,7 +172,7 @@ router.get('/summary', apiCache(60), async (req: AuthRequest, res: Response) => 
   });
 });
 
-// GET /api/dashboard/master-summary (master only � system management overview)
+// GET /api/dashboard/master-summary (master only — system management overview)
 router.get('/master-summary', async (req: AuthRequest, res: Response) => {
   if (req.user?.role !== 'master') {
     res.status(403).json({ error: 'Acesso restrito ao master' });
