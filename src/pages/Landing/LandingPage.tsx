@@ -550,6 +550,9 @@ const LandingPage: React.FC = () => {
         <ContratoModal plano={planoContrato} onClose={() => setPlanoContrato(null)} />
       )}
 
+      {/* ═══ CARROSSEL APP GROUP BRASIL (fundo branco, full-width) ═══ */}
+      <div id="apps-carousel-root" style={{ width: '100%', background: '#fff' }} />
+
       {/* ═══ CTA FINAL ═══ */}
       <section className={styles.ctaSection}>
         <div className={styles.sectionContainer}>
