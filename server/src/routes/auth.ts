@@ -172,8 +172,8 @@ router.post('/self-register', validate(selfRegisterSchema), async (req, res: Res
       res.status(400).json({ error: 'Email, senha e nome são obrigatórios' });
       return;
     }
-    if (senha.length < 8) {
-      res.status(400).json({ error: 'A senha deve ter no mínimo 8 caracteres' });
+    if (senha.length < 6) {
+      res.status(400).json({ error: 'A senha deve ter no mínimo 6 caracteres' });
       return;
     }
 
