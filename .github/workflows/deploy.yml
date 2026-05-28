@@ -57,6 +57,10 @@ jobs:
           done
           REMOTE
 
+      - name: Dump api logs
+        run: |
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} 'docker logs --tail 100 manutencao-api 2>&1 | tail -60'
+
       - name: Health check
         run: |
           sleep 10
