@@ -78,6 +78,15 @@ jobs:
           CREATE INDEX IF NOT EXISTS idx_refresh_hash ON refresh_tokens(token_hash) WHERE revogado = false;"
           # ALTER TYPE precisa rodar separadamente (nao pode estar em transacao em PG antigo)
           ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "docker exec manutencao-db psql -U manutencao -d manutencao -c \"ALTER TYPE recorrencia ADD VALUE IF NOT EXISTS 'diaria';\" || true"
+          SQL2="ALTER TABLE ordens_servico ADD COLUMN IF NOT EXISTS custo_material NUMERIC(10,2) DEFAULT 0; ALTER TABLE ordens_servico ADD COLUMN IF NOT EXISTS custo_mao_obra NUMERIC(10,2) DEFAULT 0; ALTER TABLE ordens_servico ADD COLUMN IF NOT EXISTS custo_externo NUMERIC(10,2) DEFAULT 0;"
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "docker exec manutencao-db psql -U manutencao -d manutencao -c \"$SQL2\""
+          # Expande enums comuns (tipos de comunicado, recorrencia adicionais)
+          for v in informativo geral alerta urgente aviso reuniao manutencao; do
+            ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "docker exec manutencao-db psql -U manutencao -d manutencao -c \"ALTER TYPE tipo_comunicado ADD VALUE IF NOT EXISTS '$v';\" 2>/dev/null || true"
+          done
+          for v in mensal quinzenal anual; do
+            ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "docker exec manutencao-db psql -U manutencao -d manutencao -c \"ALTER TYPE recorrencia ADD VALUE IF NOT EXISTS '$v';\" 2>/dev/null || true"
+          done
           ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "docker exec -i manutencao-db psql -U manutencao -d manutencao" <<< "$SQL"
 
       - name: Diag POST comunicado tarefa relatorios
