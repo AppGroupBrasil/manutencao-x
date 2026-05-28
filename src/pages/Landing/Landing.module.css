@@ -710,6 +710,9 @@
   grid-template-columns: repeat(3, 1fr);
   gap: 24px;
   align-items: stretch;
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .planoCard {
