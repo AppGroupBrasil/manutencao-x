@@ -28,7 +28,7 @@ router.get('/resumo', async (req: AuthRequest, res: Response) => {
     `, ids),
     // OS por condomínio
     query(`
-      SELECT c.nome, COUNT(os.id)::int as os, COALESCE(AVG(os.nota), 0)::numeric(3,1) as avaliacao
+      SELECT c.nome, COUNT(os.id)::int as os, COALESCE(AVG(os.avaliacao_nota), 0)::numeric(3,1) as avaliacao
       FROM condominios c LEFT JOIN ordens_servico os ON os.condominio_id = c.id
       WHERE c.id IN (${ph})
       GROUP BY c.nome
