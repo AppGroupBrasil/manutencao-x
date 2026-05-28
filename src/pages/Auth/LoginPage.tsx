@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -6,15 +6,38 @@ import { Eye, EyeOff, Mail, Lock, MessageCircle, UserPlus } from 'lucide-react';
 import logoImg from '../../assets/logo.png';
 import styles from './Auth.module.css';
 
+const REMEMBER_STORAGE_KEY = 'manutencao_lembrar_credenciais';
+
+interface CredenciaisSalvas {
+  email: string;
+  senha: string;
+}
+
+function carregarCredenciais(): CredenciaisSalvas | null {
+  try {
+    const raw = localStorage.getItem(REMEMBER_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (typeof parsed?.email === 'string' && typeof parsed?.senha === 'string') return parsed;
+  } catch { /* ignore */ }
+  return null;
+}
+
 const LoginPage: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [senha, setSenha] = useState('');
+  const salvas = carregarCredenciais();
+  const [email, setEmail] = useState(salvas?.email ?? '');
+  const [senha, setSenha] = useState(salvas?.senha ?? '');
+  const [lembrar, setLembrar] = useState(!!salvas);
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState('');
   const { login } = useAuth();
   const { tema } = useTheme();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!lembrar) localStorage.removeItem(REMEMBER_STORAGE_KEY);
+  }, [lembrar]);
 
   const logoExibida = tema.logoUrl;
   const tituloExibido = tema.loginTitulo || 'Manutenção X';
@@ -34,6 +57,11 @@ const LoginPage: React.FC = () => {
     setErro('');
     try {
       await login(email, senha);
+      if (lembrar) {
+        localStorage.setItem(REMEMBER_STORAGE_KEY, JSON.stringify({ email, senha }));
+      } else {
+        localStorage.removeItem(REMEMBER_STORAGE_KEY);
+      }
       navigate('/dashboard');
     } catch (err: any) {
       const msg = err.message || 'Erro ao fazer login.';
@@ -141,6 +169,15 @@ const LoginPage: React.FC = () => {
             </button>
 
             <div className={styles.forgotRow}>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 14 }}>
+                <input
+                  type="checkbox"
+                  checked={lembrar}
+                  onChange={e => setLembrar(e.target.checked)}
+                  style={{ cursor: 'pointer' }}
+                />
+                Lembrar de mim
+              </label>
               <Link to="/esqueci-senha" className={styles.forgotLink}>Esqueceu sua senha?</Link>
             </div>
           </form>
