@@ -706,13 +706,19 @@
 }
 
 .planosGrid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   align-items: stretch;
+  gap: 24px;
   max-width: 900px;
   margin-left: auto;
   margin-right: auto;
+}
+
+.planosGrid > * {
+  flex: 0 1 280px;
+  max-width: 280px;
 }
 
 .planoCard {
