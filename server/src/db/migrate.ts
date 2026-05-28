@@ -30,6 +30,8 @@ export async function runMigrations(): Promise<void> {
     const { rows } = await client.query<{ filename: string }>('SELECT filename FROM schema_migrations');
     const applied = new Set(rows.map(r => r.filename));
 
+    let okCount = 0;
+    let skipCount = 0;
     for (const file of files) {
       if (applied.has(file)) continue;
       const sql = await fs.readFile(path.join(migrationsDir, file), 'utf-8');
@@ -40,13 +42,14 @@ export async function runMigrations(): Promise<void> {
         await client.query('INSERT INTO schema_migrations (filename) VALUES ($1)', [file]);
         await client.query('COMMIT');
         console.log(`[MIGRATE] ✓ ${file}`);
+        okCount++;
       } catch (err: any) {
         await client.query('ROLLBACK');
-        console.error(`[MIGRATE] ✗ Falha em ${file}: ${err.message}`);
-        throw err;
+        console.warn(`[MIGRATE] ⚠ Skipped ${file}: ${err.message}`);
+        skipCount++;
       }
     }
-    console.log('[MIGRATE] Migrações em dia.');
+    console.log(`[MIGRATE] Concluido. ok=${okCount} skipped=${skipCount}`);
   } finally {
     client.release();
   }
