@@ -36,17 +36,14 @@ jobs:
 
       - name: Deep diagnose suspects
         run: |
-          ssh -o ServerAliveInterval=30 \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
-            "for c in manutencao-app manutencaox-app manutencao-staging-app app-manutencao vc84okoc0gkcg08wkskksg4o-101346839319; do
-              echo '===' \$c '===';
-              docker inspect \$c --format 'Image: {{.Config.Image}}
-Created: {{.Created}}
-ComposeProject: {{index .Config.Labels \"com.docker.compose.project\"}}
-ComposeWorkdir: {{index .Config.Labels \"com.docker.compose.project.working_dir\"}}
-TraefikRule: {{range \$k,\$v := .Config.Labels}}{{if eq \$k \"traefik.http.routers.manutencao-https.rule\"}}{{\$v}}{{end}}{{end}}' 2>/dev/null || echo 'nao existe';
-              echo;
-            done"
+          ssh -o ServerAliveInterval=30 ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} 'bash -s' <<"REMOTE"
+          for c in manutencao-app manutencaox-app manutencao-staging-app app-manutencao vc84okoc0gkcg08wkskksg4o-101346839319; do
+            echo "=== $c ==="
+            docker inspect "$c" --format 'Image: {{.Config.Image}} | Created: {{.Created}} | Project: {{index .Config.Labels "com.docker.compose.project"}} | Workdir: {{index .Config.Labels "com.docker.compose.project.working_dir"}}' 2>/dev/null || echo 'nao existe'
+            docker inspect "$c" --format '{{range $k,$v := .Config.Labels}}{{if eq $k "traefik.http.routers.manutencao-https.rule"}}TraefikRule: {{$v}}{{end}}{{end}}' 2>/dev/null
+            echo
+          done
+          REMOTE
 
       - name: Diagnose conflicting containers
         run: |
