@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import { timingSafeEqual } from 'node:crypto';
 import { query, queryOne } from '../db/database.js';
 
 const router = Router();
@@ -14,7 +15,13 @@ function mapearRole(role: string): string {
 router.post('/usuario', async (req: Request, res: Response) => {
   const secret = req.headers['x-provisioning-secret'];
   const expected = process.env.PROVISIONING_SECRET;
-  if (!expected || secret !== expected) {
+  if (!expected || typeof secret !== 'string') {
+    res.status(403).json({ error: 'Assinatura inválida' });
+    return;
+  }
+  const secretBuf = Buffer.from(secret);
+  const expectedBuf = Buffer.from(expected);
+  if (secretBuf.length !== expectedBuf.length || !timingSafeEqual(secretBuf, expectedBuf)) {
     res.status(403).json({ error: 'Assinatura inválida' });
     return;
   }

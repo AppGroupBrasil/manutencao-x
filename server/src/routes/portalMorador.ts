@@ -90,7 +90,7 @@ router.post('/primeiro-acesso', validate(portalPrimeiroAcessoSchema), async (req
 
     const morador = await queryOne(
       `SELECT id, nome, email, condominio_id, ativo, token_acesso_expira_em, token_acesso_usado
-       FROM moradores WHERE token_acesso::text = $1`,
+       FROM moradores WHERE token_acesso = $1::uuid`,
       [token]
     );
 
@@ -166,7 +166,7 @@ router.put('/perfil', validate(portalPerfilUpdateSchema), async (req: PortalRequ
     const updated = await queryOne(
       `UPDATE moradores SET nome = COALESCE($1, nome), whatsapp = COALESCE($2, whatsapp),
               avatar_url = COALESCE($3, avatar_url)
-       WHERE id = $4 RETURNING *`,
+       WHERE id = $4 RETURNING id, nome, email, whatsapp, avatar_url, bloco, apartamento, condominio_id`,
       [nome, whatsapp, avatar_url, req.morador!.id]
     );
     res.json(updated);

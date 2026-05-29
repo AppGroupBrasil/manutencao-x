@@ -6,7 +6,7 @@ import { requireMinRole } from '../middleware/rbac.js';
 const router = Router();
 
 // GET /api/permissoes
-router.get('/', async (_req: AuthRequest, res: Response) => {
+router.get('/', requireMinRole('supervisor'), async (_req: AuthRequest, res: Response) => {
   const rows = await query('SELECT * FROM permissoes_funcoes ORDER BY nome');
   res.json(rows);
 });

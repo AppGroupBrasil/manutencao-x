@@ -19,8 +19,6 @@ router.get('/summary', apiCache(60), async (req: AuthRequest, res: Response) => 
     return;
   }
 
-  const ph = ids.map((_, i) => `$${i + 1}`).join(',');
-
   const [
     condominiosCount,
     reportesStats,
@@ -36,39 +34,39 @@ router.get('/summary', apiCache(60), async (req: AuthRequest, res: Response) => 
     atividadePonto,
     atividadeVenc,
   ] = await Promise.all([
-    queryOne(`SELECT COUNT(*)::int as total FROM condominios WHERE id IN (${ph}) AND ativo = true`, ids),
-    queryOne(`SELECT COUNT(*) FILTER (WHERE status != 'resolvido')::int as abertos FROM reportes WHERE condominio_id IN (${ph})`, ids),
-    queryOne(`SELECT COUNT(*)::int as total FROM tarefas_agendadas WHERE condominio_id IN (${ph})`, ids),
-    queryOne(`SELECT COUNT(*)::int as total FROM tarefas_execucoes te JOIN tarefas_agendadas ta ON ta.id = te.tarefa_id WHERE ta.condominio_id IN (${ph}) AND te.data_execucao = CURRENT_DATE`, ids),
-    queryOne(`SELECT COUNT(DISTINCT cp.funcionario_email)::int as total FROM controle_ponto cp JOIN usuarios u ON u.id = cp.funcionario_id WHERE cp.tipo = 'entrada' AND cp.data_hora::date = CURRENT_DATE AND u.condominio_id IN (${ph})`, ids),
-    queryOne(`SELECT COUNT(*)::int as total FROM vencimentos WHERE condominio_id IN (${ph}) AND data_vencimento BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '30 days'`, ids),
+    queryOne(`SELECT COUNT(*)::int as total FROM condominios WHERE id = ANY($1) AND ativo = true`, [ids]),
+    queryOne(`SELECT COUNT(*) FILTER (WHERE status != 'resolvido')::int as abertos FROM reportes WHERE condominio_id = ANY($1)`, [ids]),
+    queryOne(`SELECT COUNT(*)::int as total FROM tarefas_agendadas WHERE condominio_id = ANY($1)`, [ids]),
+    queryOne(`SELECT COUNT(*)::int as total FROM tarefas_execucoes te JOIN tarefas_agendadas ta ON ta.id = te.tarefa_id WHERE ta.condominio_id = ANY($1) AND te.data_execucao = CURRENT_DATE`, [ids]),
+    queryOne(`SELECT COUNT(DISTINCT cp.funcionario_email)::int as total FROM controle_ponto cp JOIN usuarios u ON u.id = cp.funcionario_id WHERE cp.tipo = 'entrada' AND cp.data_hora::date = CURRENT_DATE AND u.condominio_id = ANY($1)`, [ids]),
+    queryOne(`SELECT COUNT(*)::int as total FROM vencimentos WHERE condominio_id = ANY($1) AND data_vencimento BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '30 days'`, [ids]),
     // Weekly chart: last 7 days - reportes + execucoes
     query(`
       SELECT d::date as dia,
-        COALESCE((SELECT COUNT(*)::int FROM reportes WHERE condominio_id IN (${ph}) AND data = d::date), 0) as abertas,
-        COALESCE((SELECT COUNT(*)::int FROM reportes WHERE condominio_id IN (${ph}) AND data = d::date AND status = 'resolvido'), 0) +
-        COALESCE((SELECT COUNT(*)::int FROM tarefas_execucoes te JOIN tarefas_agendadas ta ON ta.id = te.tarefa_id WHERE ta.condominio_id IN (${ph}) AND te.data_execucao = d::date AND te.status = 'realizada'), 0) as concluidas
+        COALESCE((SELECT COUNT(*)::int FROM reportes WHERE condominio_id = ANY($1) AND data = d::date), 0) as abertas,
+        COALESCE((SELECT COUNT(*)::int FROM reportes WHERE condominio_id = ANY($1) AND data = d::date AND status = 'resolvido'), 0) +
+        COALESCE((SELECT COUNT(*)::int FROM tarefas_execucoes te JOIN tarefas_agendadas ta ON ta.id = te.tarefa_id WHERE ta.condominio_id = ANY($1) AND te.data_execucao = d::date AND te.status = 'realizada'), 0) as concluidas
       FROM generate_series(CURRENT_DATE - INTERVAL '6 days', CURRENT_DATE, '1 day') d
-      ORDER BY d`, ids),
+      ORDER BY d`, [ids]),
     // Category distribution from roteiros
-    query(`SELECT COALESCE(categoria, 'Outro') as nome, COUNT(*)::int as valor FROM roteiros WHERE condominio_id IN (${ph}) GROUP BY categoria ORDER BY valor DESC LIMIT 10`, ids),
+    query(`SELECT COALESCE(categoria, 'Outro') as nome, COUNT(*)::int as valor FROM roteiros WHERE condominio_id = ANY($1) GROUP BY categoria ORDER BY valor DESC LIMIT 10`, [ids]),
     // Monthly performance last 6 months
     query(`
       SELECT TO_CHAR(te.data_execucao, 'YYYY-MM') as mes,
         COUNT(*)::int as total,
         COUNT(*) FILTER (WHERE te.status = 'realizada')::int as realizadas
       FROM tarefas_execucoes te JOIN tarefas_agendadas ta ON ta.id = te.tarefa_id
-      WHERE ta.condominio_id IN (${ph}) AND te.data_execucao >= CURRENT_DATE - INTERVAL '6 months'
+      WHERE ta.condominio_id = ANY($1) AND te.data_execucao >= CURRENT_DATE - INTERVAL '6 months'
       GROUP BY TO_CHAR(te.data_execucao, 'YYYY-MM')
-      ORDER BY mes`, ids),
+      ORDER BY mes`, [ids]),
     // Recent activities: reportes
-    query(`SELECT protocolo, status, prioridade, data FROM reportes WHERE condominio_id IN (${ph}) ORDER BY data DESC LIMIT 10`, ids),
+    query(`SELECT protocolo, status, prioridade, data FROM reportes WHERE condominio_id = ANY($1) ORDER BY data DESC LIMIT 10`, [ids]),
     // Recent activities: execucoes
-    query(`SELECT te.status, te.data_execucao, te.hora_execucao, te.funcionario_nome FROM tarefas_execucoes te JOIN tarefas_agendadas ta ON ta.id = te.tarefa_id WHERE ta.condominio_id IN (${ph}) ORDER BY te.data_execucao DESC, te.hora_execucao DESC LIMIT 10`, ids),
+    query(`SELECT te.status, te.data_execucao, te.hora_execucao, te.funcionario_nome FROM tarefas_execucoes te JOIN tarefas_agendadas ta ON ta.id = te.tarefa_id WHERE ta.condominio_id = ANY($1) ORDER BY te.data_execucao DESC, te.hora_execucao DESC LIMIT 10`, [ids]),
     // Recent activities: ponto
-    query(`SELECT cp.funcionario_nome, cp.tipo, cp.data_hora FROM controle_ponto cp JOIN usuarios u ON u.id = cp.funcionario_id WHERE u.condominio_id IN (${ph}) ORDER BY cp.data_hora DESC LIMIT 10`, ids),
+    query(`SELECT cp.funcionario_nome, cp.tipo, cp.data_hora FROM controle_ponto cp JOIN usuarios u ON u.id = cp.funcionario_id WHERE u.condominio_id = ANY($1) ORDER BY cp.data_hora DESC LIMIT 10`, [ids]),
     // Recent vencimentos
-    query(`SELECT titulo, data_vencimento FROM vencimentos WHERE condominio_id IN (${ph}) AND data_vencimento BETWEEN CURRENT_DATE - INTERVAL '30 days' AND CURRENT_DATE + INTERVAL '15 days' ORDER BY data_vencimento LIMIT 10`, ids),
+    query(`SELECT titulo, data_vencimento FROM vencimentos WHERE condominio_id = ANY($1) AND data_vencimento BETWEEN CURRENT_DATE - INTERVAL '30 days' AND CURRENT_DATE + INTERVAL '15 days' ORDER BY data_vencimento LIMIT 10`, [ids]),
   ]);
 
   const NOMES_DIA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];

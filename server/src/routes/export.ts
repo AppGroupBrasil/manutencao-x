@@ -26,7 +26,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
     case 'ordens-servico':
       rows = await query(
         `SELECT os.protocolo, os.titulo, os.descricao, os.tipo, os.prioridade, os.status,
-                os.data_abertura, os.data_conclusao, os.custo_material, os.custo_mao_obra, os.custo_externo,
+                os.data_abertura, os.data_conclusao, os.custo_material, os.custo_mao_obra, os.custo_terceiros,
                 c.nome as condominio, u.nome as responsavel
          FROM ordens_servico os
          LEFT JOIN condominios c ON c.id = os.condominio_id

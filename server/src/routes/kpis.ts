@@ -1,11 +1,12 @@
 import { Router, Response } from 'express';
 import { query } from '../db/database.js';
 import { AuthRequest } from '../middleware/auth.js';
+import { requireMinRole } from '../middleware/rbac.js';
 
 const router = Router();
 
 // GET /api/kpis — Todos os KPIs de manutenção
-router.get('/', async (req: AuthRequest, res: Response) => {
+router.get('/', requireMinRole('supervisor'), async (req: AuthRequest, res: Response) => {
   const ids: string[] = req.condominioIds!;
   if (ids.length === 0) {
     res.json({

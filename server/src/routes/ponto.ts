@@ -12,18 +12,19 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
   let sql = `SELECT cp.*, u.nome as funcionario_nome, u.cargo as funcionario_cargo
      FROM controle_ponto cp
-     LEFT JOIN usuarios u ON u.id = cp.funcionario_id
+     INNER JOIN usuarios u ON u.id = cp.funcionario_id
      WHERE 1=1`;
   const params: any[] = [];
   let i = 1;
 
-  // Filtrar por scope (se não for master, filtrar por condominioIds via join no usuário)
-  if (req.user!.role !== 'master') {
-    // Funcionários só veem seus próprios registros
-    if (req.user!.role === 'funcionario') {
-      sql += ` AND cp.funcionario_id = $${i++}`;
-      params.push(req.user!.id);
-    }
+  // Filtrar por scope
+  if (req.user!.role === 'funcionario') {
+    sql += ` AND cp.funcionario_id = $${i++}`;
+    params.push(req.user!.id);
+  } else if (req.user!.role !== 'master') {
+    // supervisor e administrador: filtrar pelo condominio_id dos funcionários
+    sql += ` AND u.condominio_id = ANY($${i++})`;
+    params.push(req.condominioIds!);
   }
 
   if (data) {
@@ -108,7 +109,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
       req.user!.id,
       req.user!.nome,
       req.user!.email,
-      (req.user as any).cargo || '',
+      (req.user as AuthRequest['user'] & { cargo?: string })?.cargo || '',
       tipo,
       latitude || null,
       longitude || null,

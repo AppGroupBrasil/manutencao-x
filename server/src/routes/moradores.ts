@@ -35,7 +35,7 @@ router.post('/', validate(moradorSchema), async (req: AuthRequest, res: Response
 });
 
 // PUT /api/moradores/:id
-router.put('/:id', async (req: AuthRequest, res: Response) => {
+router.put('/:id', validate(moradorSchema), async (req: AuthRequest, res: Response) => {
   const ids: string[] = req.condominioIds!;
   const { nome, bloco, apartamento, whatsapp, email, perfil } = req.body;
   const row = await queryOne(

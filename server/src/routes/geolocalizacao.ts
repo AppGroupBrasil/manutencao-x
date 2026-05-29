@@ -10,13 +10,22 @@ router.get('/', async (req: AuthRequest, res: Response) => {
   const user = req.user!;
   let rows;
 
-  if (user.role === 'master' || user.role === 'administrador') {
+  const ids: string[] = req.condominioIds!;
+  if (user.role === 'master') {
     rows = await query(
       `SELECT g.*, u.nome as user_nome FROM geolocalizacao g
        LEFT JOIN usuarios u ON u.id = g.user_id
        WHERE ($1::date IS NULL OR g.data = $1::date)
        ORDER BY g.hora_chegada DESC LIMIT 500`,
       [data || null]
+    );
+  } else if (user.role === 'administrador') {
+    rows = await query(
+      `SELECT g.*, u.nome as user_nome FROM geolocalizacao g
+       LEFT JOIN usuarios u ON u.id = g.user_id
+       WHERE u.condominio_id = ANY($1) AND ($2::date IS NULL OR g.data = $2::date)
+       ORDER BY g.hora_chegada DESC LIMIT 500`,
+      [ids, data || null]
     );
   } else if (user.role === 'supervisor') {
     rows = await query(
@@ -82,9 +91,9 @@ router.post('/sla', async (req: AuthRequest, res: Response) => {
     res.status(403).json({ error: 'Sem acesso a este condomínio' }); return;
   }
   const row = await queryOne(
-    `INSERT INTO sla_registros (bloco_id, categoria, descricao, condominio_id)
-     VALUES ($1,$2,$3,$4) RETURNING *`,
-    [blocoId, categoria, descricao, condominioId]
+    `INSERT INTO sla_registros (bloco_id, categoria, descricao, condominio_id, criado_por)
+     VALUES ($1,$2,$3,$4,$5) RETURNING *`,
+    [blocoId, categoria, descricao, condominioId, req.user!.id]
   );
   res.status(201).json(row);
 });

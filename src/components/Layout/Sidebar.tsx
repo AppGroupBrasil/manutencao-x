@@ -227,7 +227,7 @@ const Sidebar: React.FC = () => {
     <>
       {/* Top bar for funcionario/supervisor — apenas header */}
       {isMobileBarUser && (
-        <div className={styles.topBar} style={{ backgroundColor: 'var(--cor-menu)' }}>
+        <div className={styles.topBar} style={{ background: 'linear-gradient(180deg, #1e1e3a 0%, #141428 100%)' }}>
           <div className={styles.topBarHeader}>
             <div className={styles.topBarBrand}>
               <button className={styles.topBarMenu} onClick={() => setMobileOpen(v => !v)}>
@@ -269,7 +269,7 @@ const Sidebar: React.FC = () => {
       <div className={`${styles.overlay} ${mobileOpen ? styles.overlayVisible : ''}`} onClick={() => setMobileOpen(false)} />
 
       {isMobileBarUser && (
-        <div className={`${styles.topBarDrawer} ${mobileOpen ? styles.topBarDrawerOpen : ''}`} style={{ backgroundColor: 'var(--cor-menu)' }}>
+        <div className={`${styles.topBarDrawer} ${mobileOpen ? styles.topBarDrawerOpen : ''}`} style={{ background: 'linear-gradient(180deg, #141428 0%, #0f0f22 100%)' }}>
           <MobileMenuGrid
             items={visibleItems}
             favoritosIds={favoritosIds}

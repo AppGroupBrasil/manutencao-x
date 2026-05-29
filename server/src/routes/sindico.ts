@@ -44,7 +44,7 @@ router.get('/resumo', async (req: AuthRequest, res: Response) => {
     ),
     queryOne<any>('SELECT COUNT(*) as total FROM moradores WHERE condominio_id = ANY($1) AND ativo = true', [ids]),
     queryOne<any>(
-      `SELECT COALESCE(SUM(custo_material + custo_mao_obra + custo_terceiros), 0) as total
+      `SELECT COALESCE(SUM(COALESCE(custo_material,0) + COALESCE(custo_mao_obra,0) + COALESCE(custo_terceiros,0)), 0) as total
        FROM ordens_servico
        WHERE condominio_id = ANY($1) AND data_abertura >= date_trunc('month', CURRENT_DATE)`,
       [ids]
@@ -105,7 +105,7 @@ router.get('/evolucao-mensal', async (req: AuthRequest, res: Response) => {
     `SELECT to_char(data_abertura, 'YYYY-MM') as mes,
        COUNT(*) as total,
        COUNT(*) FILTER (WHERE status = 'concluida') as concluidas,
-       COALESCE(SUM(custo_material + custo_mao_obra + custo_terceiros), 0) as custo
+       COALESCE(SUM(COALESCE(custo_material,0) + COALESCE(custo_mao_obra,0) + COALESCE(custo_terceiros,0)), 0) as custo
      FROM ordens_servico
      WHERE condominio_id = ANY($1) AND data_abertura >= NOW() - INTERVAL '12 months'
      GROUP BY to_char(data_abertura, 'YYYY-MM')

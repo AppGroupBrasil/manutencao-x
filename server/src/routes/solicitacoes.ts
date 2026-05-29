@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import { queryOne, query } from '../db/database.js';
 import { AuthRequest } from '../middleware/auth.js';
+import { requireMinRole } from '../middleware/rbac.js';
 
 const router = Router();
 
@@ -10,7 +11,6 @@ router.get('/', async (req: AuthRequest, res: Response) => {
     const condIds = req.condominioIds! as string[];
     if (!condIds?.length) { res.json([]); return; }
 
-    const ph = condIds.map((_, i) => `$${i + 1}`).join(',');
     const rows = await query(
       `SELECT s.*, m.nome as morador_nome, m.bloco, m.apartamento, m.email as morador_email,
               c.nome as condominio_nome, u.nome as respondido_por_nome
@@ -18,9 +18,9 @@ router.get('/', async (req: AuthRequest, res: Response) => {
        JOIN moradores m ON m.id = s.morador_id
        JOIN condominios c ON c.id = s.condominio_id
        LEFT JOIN usuarios u ON u.id = s.respondido_por
-       WHERE s.condominio_id IN (${ph})
+       WHERE s.condominio_id = ANY($1)
        ORDER BY s.criado_em DESC`,
-      condIds
+      [condIds]
     );
     res.json(rows);
   } catch (err: any) {
@@ -38,7 +38,6 @@ router.get('/resumo', async (req: AuthRequest, res: Response) => {
       return;
     }
 
-    const ph = condIds.map((_, i) => `$${i + 1}`).join(',');
     const [counts, porTipo] = await Promise.all([
       queryOne(
         `SELECT
@@ -46,14 +45,14 @@ router.get('/resumo', async (req: AuthRequest, res: Response) => {
            COUNT(*) FILTER (WHERE status = 'aberta') as abertas,
            COUNT(*) FILTER (WHERE status IN ('em_analise', 'em_andamento')) as em_andamento,
            COUNT(*) FILTER (WHERE status = 'resolvida') as resolvidas
-         FROM solicitacoes_morador WHERE condominio_id IN (${ph})`,
-        condIds
+         FROM solicitacoes_morador WHERE condominio_id = ANY($1)`,
+        [condIds]
       ),
       query(
         `SELECT tipo, COUNT(*) as total
-         FROM solicitacoes_morador WHERE condominio_id IN (${ph})
+         FROM solicitacoes_morador WHERE condominio_id = ANY($1)
          GROUP BY tipo ORDER BY total DESC`,
-        condIds
+        [condIds]
       ),
     ]);
 
@@ -76,7 +75,6 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
     const condIds = req.condominioIds! as string[];
     if (!condIds?.length) { res.status(404).json({ error: 'Não encontrado' }); return; }
 
-    const ph = condIds.map((_, i) => `$${i + 2}`).join(',');
     const row = await queryOne(
       `SELECT s.*, m.nome as morador_nome, m.bloco, m.apartamento, m.email as morador_email, m.whatsapp as morador_whatsapp,
               c.nome as condominio_nome, u.nome as respondido_por_nome
@@ -84,8 +82,8 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
        JOIN moradores m ON m.id = s.morador_id
        JOIN condominios c ON c.id = s.condominio_id
        LEFT JOIN usuarios u ON u.id = s.respondido_por
-       WHERE s.id = $1 AND s.condominio_id IN (${ph})`,
-      [req.params.id, ...condIds]
+       WHERE s.id = $1 AND s.condominio_id = ANY($2)`,
+      [req.params.id, condIds]
     );
 
     if (!row) {
@@ -100,7 +98,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
 });
 
 // ── PATCH /:id/responder ──
-router.patch('/:id/responder', async (req: AuthRequest, res: Response) => {
+router.patch('/:id/responder', requireMinRole('supervisor'), async (req: AuthRequest, res: Response) => {
   try {
     const { status, resposta } = req.body;
     if (!status) {
@@ -111,14 +109,13 @@ router.patch('/:id/responder', async (req: AuthRequest, res: Response) => {
     const condIds = req.condominioIds! as string[];
     if (!condIds?.length) { res.status(404).json({ error: 'Não encontrado' }); return; }
 
-    const ph = condIds.map((_, i) => `$${i + 5}`).join(',');
     const row = await queryOne(
       `UPDATE solicitacoes_morador
        SET status = $1, resposta = COALESCE($2, resposta),
            respondido_por = $3, respondido_em = NOW(), atualizado_em = NOW()
-       WHERE id = $4 AND condominio_id IN (${ph})
+       WHERE id = $4 AND condominio_id = ANY($5)
        RETURNING *`,
-      [status, resposta, req.user!.id, req.params.id, ...condIds]
+      [status, resposta, req.user!.id, req.params.id, condIds]
     );
 
     if (!row) {
@@ -133,19 +130,18 @@ router.patch('/:id/responder', async (req: AuthRequest, res: Response) => {
 });
 
 // ── PATCH /:id/converter-os — Converte solicitação em OS ──
-router.patch('/:id/converter-os', async (req: AuthRequest, res: Response) => {
+router.patch('/:id/converter-os', requireMinRole('supervisor'), async (req: AuthRequest, res: Response) => {
   try {
     const condIds = req.condominioIds! as string[];
     if (!condIds?.length) { res.status(404).json({ error: 'Não encontrado' }); return; }
 
     // Buscar solicitação
-    const phCond = condIds.map((_, i) => `$${i + 2}`).join(',');
     const sol = await queryOne(
       `SELECT s.*, m.nome as morador_nome, m.bloco, m.apartamento
        FROM solicitacoes_morador s
        JOIN moradores m ON m.id = s.morador_id
-       WHERE s.id = $1 AND s.condominio_id IN (${phCond})`,
-      [req.params.id, ...condIds]
+       WHERE s.id = $1 AND s.condominio_id = ANY($2)`,
+      [req.params.id, condIds]
     );
 
     if (!sol) {

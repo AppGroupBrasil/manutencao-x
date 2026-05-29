@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import { query, queryOne, execute } from '../db/database.js';
 import { AuthRequest } from '../middleware/auth.js';
+import { requireMinRole } from '../middleware/rbac.js';
 import { validate, qrcodeSchema } from '../middleware/validation.js';
 
 const router = Router();
@@ -61,27 +62,6 @@ router.delete('/:id', async (req: AuthRequest, res: Response) => {
 
 // ── Respostas dos Formulários QR Code ──
 
-// Garante que a tabela existe (migration automática)
-const ensureRespostasTable = async () => {
-  await execute(`
-    CREATE TABLE IF NOT EXISTS respostas_qrcode (
-      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-      qrcode_id UUID NOT NULL REFERENCES qrcodes(id) ON DELETE CASCADE,
-      qrcode_nome VARCHAR(255),
-      identificacao JSONB,
-      respostas JSONB NOT NULL DEFAULT '{}',
-      respondido_por UUID REFERENCES usuarios(id) ON DELETE SET NULL,
-      respondido_por_nome VARCHAR(255),
-      respondido_por_email VARCHAR(255),
-      respondido_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      latitude DOUBLE PRECISION,
-      longitude DOUBLE PRECISION,
-      endereco TEXT
-    )
-  `);
-};
-ensureRespostasTable().catch(() => {});
-
 // GET /api/qrcodes/respostas/all
 router.get('/respostas/all', async (req: AuthRequest, res: Response) => {
   const ids: string[] = req.condominioIds!;
@@ -97,9 +77,13 @@ router.get('/respostas/all', async (req: AuthRequest, res: Response) => {
 
 // GET /api/qrcodes/respostas/:qrcodeId
 router.get('/respostas/:qrcodeId', async (req: AuthRequest, res: Response) => {
+  const ids: string[] = req.condominioIds!;
   const rows = await query(
-    `SELECT * FROM respostas_qrcode WHERE qrcode_id = $1 ORDER BY respondido_em DESC LIMIT 500`,
-    [req.params.qrcodeId]
+    `SELECT r.* FROM respostas_qrcode r
+     JOIN qrcodes q ON q.id = r.qrcode_id
+     WHERE r.qrcode_id = $1 AND (q.condominio_id IS NULL OR q.condominio_id = ANY($2))
+     ORDER BY r.respondido_em DESC LIMIT 500`,
+    [req.params.qrcodeId, ids]
   );
   res.json(rows);
 });
@@ -120,7 +104,14 @@ router.post('/respostas', async (req: AuthRequest, res: Response) => {
 
 // GET /api/qrcodes/leituras
 router.get('/leituras/all', async (req: AuthRequest, res: Response) => {
-  const rows = await query('SELECT * FROM leituras_qrcode ORDER BY data_hora DESC LIMIT 500');
+  const ids: string[] = req.condominioIds!;
+  const rows = await query(
+    `SELECT l.* FROM leituras_qrcode l
+     JOIN usuarios u ON u.id = l.funcionario_id
+     WHERE u.condominio_id = ANY($1)
+     ORDER BY l.data_hora DESC LIMIT 500`,
+    [ids]
+  );
   res.json(rows);
 });
 
@@ -146,7 +137,14 @@ router.post('/leituras', async (req: AuthRequest, res: Response) => {
 
 // GET /api/qrcodes/ponto
 router.get('/ponto/all', async (req: AuthRequest, res: Response) => {
-  const rows = await query('SELECT * FROM controle_ponto ORDER BY data_hora DESC LIMIT 500');
+  const ids: string[] = req.condominioIds!;
+  const rows = await query(
+    `SELECT p.* FROM controle_ponto p
+     JOIN usuarios u ON u.id = p.funcionario_id
+     WHERE u.condominio_id = ANY($1)
+     ORDER BY p.data_hora DESC LIMIT 500`,
+    [ids]
+  );
   res.json(rows);
 });
 
@@ -167,7 +165,11 @@ router.post('/ponto', async (req: AuthRequest, res: Response) => {
 
 // GET /api/qrcodes/sla
 router.get('/sla/all', async (req: AuthRequest, res: Response) => {
-  const rows = await query('SELECT * FROM sla_registros ORDER BY abertura DESC LIMIT 500');
+  const ids: string[] = req.condominioIds!;
+  const rows = await query(
+    `SELECT * FROM sla_registros WHERE condominio_id = ANY($1) ORDER BY abertura DESC LIMIT 500`,
+    [ids]
+  );
   res.json(rows);
 });
 
@@ -206,7 +208,7 @@ router.get('/supervisor-perm', async (req: AuthRequest, res: Response) => {
 });
 
 // PUT /api/qrcodes/supervisor-perm
-router.put('/supervisor-perm', async (req: AuthRequest, res: Response) => {
+router.put('/supervisor-perm', requireMinRole('administrador'), async (req: AuthRequest, res: Response) => {
   const { autorizado } = req.body;
   await execute(
     `INSERT INTO configuracoes_gerais (chave, valor) VALUES ('qrcode_supervisor_autorizado', $1)

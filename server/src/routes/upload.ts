@@ -128,7 +128,6 @@ const router = Router();
 
 // POST /api/upload/image
 router.post('/image', imageUpload.single('file'), async (req: AuthRequest, res: Response) => {
-  if (!req.user) { res.status(401).json({ error: 'Não autenticado' }); return; }
   if (!req.file) {
     res.status(400).json({ error: 'Nenhum arquivo enviado' });
     return;
@@ -139,7 +138,7 @@ router.post('/image', imageUpload.single('file'), async (req: AuthRequest, res: 
     return;
   }
 
-  const quota = await enforceQuota(req.user.id, req.file.size);
+  const quota = await enforceQuota(req.user!.id, req.file.size);
   if (!quota.ok) { res.status(429).json({ error: quota.reason }); return; }
 
   const ALLOWED_FOLDERS = ['fotos', 'avatars', 'documentos', 'qrcodes'];
@@ -163,7 +162,6 @@ router.post('/image', imageUpload.single('file'), async (req: AuthRequest, res: 
 
 // POST /api/upload/avatar
 router.post('/avatar', imageUpload.single('file'), async (req: AuthRequest, res: Response) => {
-  if (!req.user) { res.status(401).json({ error: 'Não autenticado' }); return; }
   if (!req.file) {
     res.status(400).json({ error: 'Nenhum arquivo enviado' });
     return;
@@ -174,10 +172,10 @@ router.post('/avatar', imageUpload.single('file'), async (req: AuthRequest, res:
     return;
   }
 
-  const quota = await enforceQuota(req.user.id, req.file.size);
+  const quota = await enforceQuota(req.user!.id, req.file.size);
   if (!quota.ok) { res.status(429).json({ error: quota.reason }); return; }
 
-  const filename = `${req.user.id}.webp`;
+  const filename = `${req.user!.id}.webp`;
   const filepath = path.join(UPLOADS_DIR, 'avatars', filename);
 
   await sharp(req.file.buffer, { failOn: 'error', limitInputPixels: 24_000_000 })
@@ -192,7 +190,6 @@ router.post('/avatar', imageUpload.single('file'), async (req: AuthRequest, res:
 
 // POST /api/upload/document
 router.post('/document', documentUpload.single('file'), async (req: AuthRequest, res: Response) => {
-  if (!req.user) { res.status(401).json({ error: 'Não autenticado' }); return; }
   if (!req.file) {
     res.status(400).json({ error: 'Nenhum arquivo enviado' });
     return;
@@ -203,7 +200,7 @@ router.post('/document', documentUpload.single('file'), async (req: AuthRequest,
     return;
   }
 
-  const quota = await enforceQuota(req.user.id, req.file.size);
+  const quota = await enforceQuota(req.user!.id, req.file.size);
   if (!quota.ok) { res.status(429).json({ error: quota.reason }); return; }
 
   const ALLOWED_EXTS: Record<string, string> = { 'application/pdf': '.pdf', 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp' };

@@ -23,7 +23,7 @@ router.post('/login', validate(loginSchema), async (req, res: Response) => {
     }
 
     const user = await queryOne<any>(
-      'SELECT * FROM usuarios WHERE email = $1',
+      'SELECT id, email, nome, role, senha_hash, ativo, bloqueado, motivo_bloqueio, administrador_id, supervisor_id, condominio_id, avatar_url FROM usuarios WHERE email = $1',
       [email]
     );
 
@@ -81,11 +81,6 @@ router.post('/register', authMiddleware, validate(registerSchema), async (req: A
   try {
     const caller = req.user!;
     const { email, senha, nome, role, cargo, condominioId, supervisorId } = req.body;
-
-    if (!email || !senha || !nome || !role) {
-      res.status(400).json({ error: 'email, senha, nome e role são obrigatórios' });
-      return;
-    }
 
     // Validar hierarquia
     const roleLevel: Record<string, number> = { master: 4, administrador: 3, supervisor: 2, funcionario: 1 };
@@ -168,15 +163,6 @@ router.post('/self-register', validate(selfRegisterSchema), async (req, res: Res
   try {
     const { email, senha, nome, telefone } = req.body;
 
-    if (!email || !senha || !nome) {
-      res.status(400).json({ error: 'Email, senha e nome são obrigatórios' });
-      return;
-    }
-    if (senha.length < 6) {
-      res.status(400).json({ error: 'A senha deve ter no mínimo 6 caracteres' });
-      return;
-    }
-
     const exists = await queryOne('SELECT id FROM usuarios WHERE email = $1', [email]);
     if (exists) {
       res.status(409).json({ error: 'Este e-mail já está cadastrado' });
@@ -221,11 +207,6 @@ router.post('/self-register', validate(selfRegisterSchema), async (req, res: Res
 // POST /api/auth/forgot-password (public — generates reset token)
 router.post('/forgot-password', validate(forgotPasswordSchema), async (req, res: Response) => {
   const { email } = req.body;
-
-  if (!email) {
-    res.status(400).json({ error: 'Informe o e-mail' });
-    return;
-  }
 
   // Always return success to avoid email enumeration
   const user = await queryOne<any>('SELECT id, nome FROM usuarios WHERE email = $1', [email]);

@@ -56,12 +56,21 @@ router.post('/', validate(ordemServicoSchema), async (req: AuthRequest, res: Res
     res.status(403).json({ error: 'Sem acesso a este condomínio' });
     return;
   }
-  const protocolo = gerarProtocolo();
-  const row = await queryOne(
-    `INSERT INTO ordens_servico (protocolo, condominio_id, titulo, descricao, tipo, prioridade, local, responsavel_id, supervisor_id, data_previsao, criado_por)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
-    [protocolo, condominioId, titulo, descricao, tipo || 'limpeza', prioridade || 'media', local, responsavelId, supervisorId, dataPrevisao, req.user!.id]
-  );
+  let row: Record<string, unknown> | null = null;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const protocolo = gerarProtocolo();
+    try {
+      row = await queryOne(
+        `INSERT INTO ordens_servico (protocolo, condominio_id, titulo, descricao, tipo, prioridade, local, responsavel_id, supervisor_id, data_previsao, criado_por)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
+        [protocolo, condominioId, titulo, descricao, tipo || 'limpeza', prioridade || 'media', local, responsavelId, supervisorId, dataPrevisao, req.user!.id]
+      );
+      break;
+    } catch (err: any) {
+      if (err.code !== '23505') throw err;
+    }
+  }
+  if (!row) { res.status(500).json({ error: 'Não foi possível gerar protocolo único' }); return; }
   res.status(201).json(row);
 });
 
