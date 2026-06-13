@@ -47,6 +47,7 @@ import kpisRoutes from './routes/kpis.js';
 import documentosRoutes from './routes/documentos.js';
 import portalMoradorRoutes from './routes/portalMorador.js';
 import provisioningRoutes from './routes/provisioning.js';
+import ssoRoutes from './routes/sso.js';
 import solicitacoesRoutes from './routes/solicitacoes.js';
 import slaRoutes from './routes/sla.js';
 import pdfRoutes from './routes/pdf.js';
@@ -197,6 +198,7 @@ app.use('/api', apiLimiter);
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/portal', portalLimiter, portalMoradorRoutes);
 app.use('/api/provisioning', provisioningRoutes);
+app.use('/api/sso', ssoRoutes);
 
 // ── Rotas protegidas ──
 const protectedRouter = express.Router();

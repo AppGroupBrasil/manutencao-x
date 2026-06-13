@@ -41,6 +41,7 @@ const QuadroAtividadesPage = lazyPage(() => import('./pages/QuadroAtividades/Qua
 const DemoEntryPage = lazyPage(() => import('./pages/Demo/DemoEntryPage'));
 const CadastroPage = lazyPage(() => import('./pages/Auth/CadastroPage'));
 const EsqueciSenhaPage = lazyPage(() => import('./pages/Auth/EsqueciSenhaPage'));
+const SsoPage = lazyPage(() => import('./pages/Auth/SsoPage'));
 const PerfilPage = lazyPage(() => import('./pages/Perfil/PerfilPage'));
 const NotificacoesPage = lazyPage(() => import('./pages/Notificacoes/NotificacoesPage'));
 const AuditoriaPage = lazyPage(() => import('./pages/Auditoria/AuditoriaPage'));
@@ -140,6 +141,7 @@ const App: React.FC = () => {
       <Route path="/bloqueado" element={<BloqueadoPage />} />
       <Route path="/cadastro" element={<CadastroPage />} />
       <Route path="/esqueci-senha" element={<EsqueciSenhaPage />} />
+      <Route path="/sso" element={<SsoPage />} />
       <Route path="/demo/:perfil" element={<DemoEntryPage />} />
 
       {/* Portal do Morador */}
