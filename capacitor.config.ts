@@ -5,6 +5,7 @@ const config: CapacitorConfig = {
   appName: 'Manutenção X',
   webDir: 'dist',
   server: {
+    url: 'https://manutencaox.com.br',
     androidScheme: 'https',
   },
   plugins: {
