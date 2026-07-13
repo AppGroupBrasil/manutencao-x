@@ -110,12 +110,14 @@ const OrdensServicoPage: React.FC = () => {
 
   const atualizarStatus = async (id: string, novoStatus: StatusOS) => {
     if (!tentarAcao()) return;
-    try { await osApi.updateStatus(id, novoStatus); } catch { alert('Erro ao atualizar'); }
-    setOrdens(prev => prev.map(os => os.id === id ? {
-      ...os,
-      status: novoStatus,
-      ...(novoStatus === 'concluida' ? { dataConclusao: Date.now() } : {}),
-    } : os));
+    try {
+      await osApi.updateStatus(id, novoStatus);
+      setOrdens(prev => prev.map(os => os.id === id ? {
+        ...os,
+        status: novoStatus,
+        ...(novoStatus === 'concluida' ? { dataConclusao: Date.now() } : {}),
+      } : os));
+    } catch { alert('Erro ao atualizar'); }
   };
 
   const criarOS = async () => {
@@ -147,10 +149,10 @@ const OrdensServicoPage: React.FC = () => {
         criadoPor: created.criadoPor,
       };
       setOrdens(prev => [nova, ...prev]);
+      setNovaTitulo(''); setNovaDesc(''); setNovaTipo('limpeza');
+      setNovaPrioridade('media'); setNovaCond(condominiosList[0]?.id || ''); setNovaLocal('');
+      setModalNova(false);
     } catch { alert('Erro ao criar O.S.'); }
-    setNovaTitulo(''); setNovaDesc(''); setNovaTipo('limpeza');
-    setNovaPrioridade('media'); setNovaCond(condominiosList[0]?.id || ''); setNovaLocal('');
-    setModalNova(false);
   };
 
   return (

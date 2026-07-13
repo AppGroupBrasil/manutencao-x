@@ -29,7 +29,7 @@ npm run build                # produção
 - JWT 24h (`JWT_EXPIRES_IN`) + refresh token 7d com rotação obrigatória.
 - Rotas: `POST /api/auth/login` retorna `{token, refreshToken, user}`. `POST /api/auth/refresh` rotaciona. `POST /api/auth/logout` revoga todos os refresh.
 - Roles: `master` > `administrador` > `supervisor` > `funcionario`.
-- Frontend hoje só usa `token` — refresh está implementado no server mas cliente ainda não consome.
+- Frontend consome o refresh: `api.ts` renova o token automaticamente em 401 e repete a request.
 
 ## Padrões de código
 - Sem comentários explicativos (regra global).

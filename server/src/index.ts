@@ -22,6 +22,7 @@ import materiaisRoutes from './routes/materiais.js';
 import inspecoesRoutes from './routes/inspecoes.js';
 import vistoriasRoutes from './routes/vistorias.js';
 import reportesRoutes from './routes/reportes.js';
+import antesDepoisRoutes from './routes/antesdepois.js';
 import tarefasRoutes from './routes/tarefas.js';
 import roteirosRoutes from './routes/roteiros.js';
 import qrcodesRoutes from './routes/qrcodes.js';
@@ -170,7 +171,7 @@ app.use(cors({
 app.use('/api/auth', express.json({ limit: '64kb' }));
 app.use('/api/portal/login', express.json({ limit: '64kb' }));
 app.use('/api/portal/primeiro-acesso', express.json({ limit: '64kb' }));
-app.use(express.json({ limit: '2mb' }));
+app.use(express.json({ limit: '10mb' }));
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 // ── Rate limiting ──
@@ -224,6 +225,7 @@ protectedRouter.use('/materiais', materiaisRoutes);
 protectedRouter.use('/inspecoes', inspecoesRoutes);
 protectedRouter.use('/vistorias', vistoriasRoutes);
 protectedRouter.use('/reportes', reportesRoutes);
+protectedRouter.use('/antes-depois', antesDepoisRoutes);
 protectedRouter.use('/tarefas', tarefasRoutes);
 protectedRouter.use('/roteiros', roteirosRoutes);
 protectedRouter.use('/qrcodes', qrcodesRoutes);

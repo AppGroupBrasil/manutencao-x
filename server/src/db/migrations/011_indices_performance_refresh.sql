@@ -1,7 +1,7 @@
 -- Índices compostos para queries quentes + tabela de refresh tokens
 
 CREATE INDEX IF NOT EXISTS idx_os_cond_status_data
-  ON ordens_servico (condominio_id, status, criado_em DESC);
+  ON ordens_servico (condominio_id, status, data_abertura DESC);
 
 CREATE INDEX IF NOT EXISTS idx_os_responsavel
   ON ordens_servico (responsavel_id, status)

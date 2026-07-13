@@ -128,6 +128,7 @@ export const fornecedorSchema = z.object({
   tipo: z.string().max(100).optional(),
   especialidade: z.string().max(255).optional().nullable(),
   telefone: z.string().max(30).optional().nullable(),
+  contatoTelefone: z.string().max(30).optional().nullable(),
   email: z.string().email('E-mail inválido').max(255).optional().nullable().or(z.literal('')),
 }).passthrough();
 
@@ -219,6 +220,19 @@ export const reporteSchema = z.object({
   descricao: z.string().min(3, 'Descrição deve ter no mínimo 3 caracteres').max(5000),
   prioridade: z.string().max(50).optional(),
 }).passthrough();
+
+// ── Antes/Depois ──
+export const antesDepoisSchema = z.object({
+  condominioId: z.string().uuid('ID do condomínio inválido'),
+  checklistId: z.string().uuid().optional().nullable(),
+  vistoriaId: z.string().uuid().optional().nullable(),
+  itemId: z.string().max(100).optional().nullable(),
+  itemDesc: z.string().max(2000).optional().nullable(),
+  fotoAntes: z.string().max(4000000).optional().nullable(),
+  descAntes: z.string().max(5000).optional().nullable(),
+  fotoDepois: z.string().max(4000000).optional().nullable(),
+  descDepois: z.string().max(5000).optional().nullable(),
+});
 
 // ── Roteiros ──
 export const roteiroSchema = z.object({

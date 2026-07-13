@@ -102,7 +102,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
   }
 
   const row = await queryOne(
-    `INSERT INTO controle_ponto (funcionario_id, nome, email, cargo, tipo, latitude, longitude, endereco, permanencia)
+    `INSERT INTO controle_ponto (funcionario_id, funcionario_nome, funcionario_email, funcionario_cargo, tipo, latitude, longitude, endereco, permanencia)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
      RETURNING *`,
     [

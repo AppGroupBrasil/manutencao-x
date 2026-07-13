@@ -334,8 +334,10 @@ const QuadroAtividadesPage: React.FC = () => {
   /* ---- Save permissions ---- */
   const salvarConfig = async () => {
     if (!tentarAcao()) return;
-    try { await configApi.setQuadroPermissoes(permissoes); } catch {}
-    setModalConfig(false);
+    try {
+      await configApi.setQuadroPermissoes(permissoes);
+      setModalConfig(false);
+    } catch { alert('Erro ao salvar permissões. Tente novamente.'); }
   };
 
   const togglePerm = (tipo: 'cadastrar' | 'editar' | 'excluir', role: UserRole) => {

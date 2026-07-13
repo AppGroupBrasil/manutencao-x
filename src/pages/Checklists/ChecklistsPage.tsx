@@ -10,7 +10,7 @@ import type { ChecklistLimpeza } from '../../types';
 import { Plus, CheckCircle2, ClipboardCheck, MoreVertical, AlertTriangle, Camera, X, Upload, ChevronRight, MessageCircle, Settings, Save, Trash2, Hash, Search, Minus, Edit2 } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { useDemo } from '../../contexts/DemoContext';
-import { checklists as checklistsApi, reportes as reportesApi, moradores as moradoresApi } from '../../services/api';
+import { checklists as checklistsApi, reportes as reportesApi, moradores as moradoresApi, condominios as condominiosApi, antesDepois as antesDepoisApi } from '../../services/api';
 import LoadingSpinner from '../../components/Common/LoadingSpinner';
 import EmptyState from '../../components/Common/EmptyState';
 import Pagination from '../../components/Common/Pagination';
@@ -63,8 +63,9 @@ const ChecklistsPage: React.FC = () => {
   const [showNovoModal, setShowNovoModal] = useState(false);
   const [novoLocal, setNovoLocal] = useState('');
   const [novoTipo, setNovoTipo] = useState<'diaria' | 'semanal' | 'mensal' | 'especial'>('diaria');
-  const [novoCond, setNovoCond] = useState('c1');
+  const [novoCond, setNovoCond] = useState('');
   const [novosItens, setNovosItens] = useState<string[]>(['']);
+  const [condominiosList, setCondominiosList] = useState<{ id: string; nome: string }[]>([]);
 
   // Config Locais
   interface LocalPreset { id: number; nome: string; itens_padrao: string[]; condominio_id?: string; }
@@ -81,24 +82,25 @@ const ChecklistsPage: React.FC = () => {
   const criarChecklist = async () => {
     if (!tentarAcao()) return;
     if (!novoLocal.trim() || novosItens.every(i => !i.trim())) return;
+    if (!novoCond) { alert('Selecione um condomínio.'); return; }
     const payload = {
       condominioId: novoCond,
       local: novoLocal.trim(),
       tipo: novoTipo,
       itens: novosItens.filter(i => i.trim()).map((desc, idx) => ({ id: String(idx + 1), descricao: desc.trim(), concluido: false })),
-      responsavelId: 'func-001',
       data: new Date().toISOString().split('T')[0],
       status: 'pendente',
-      criadoPor: 'sup-001',
-      criadoEm: Date.now(),
     };
     try {
       const criado = await checklistsApi.create(payload) as ChecklistLimpeza;
       setChecklists(prev => [criado, ...prev]);
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao criar checklist. Tente novamente.');
+      return;
+    }
     setNovoLocal('');
     setNovoTipo('diaria');
-    setNovoCond('c1');
     setNovosItens(['']);
     setShowNovoModal(false);
   };
@@ -155,11 +157,15 @@ const ChecklistsPage: React.FC = () => {
       checklistsApi.list(),
       moradoresApi.listWhatsContatos().catch(() => []),
       checklistsApi.locais().catch(() => []),
-    ]).then(([cks, contatos, locs]) => {
+      condominiosApi.list().catch(() => []),
+    ]).then(([cks, contatos, locs, conds]) => {
       setChecklists(cks as ChecklistLimpeza[]);
       setContatosWhats(contatos as ContatoWhats[]);
       if (Array.isArray(locs)) setLocaisPresets(locs as LocalPreset[]);
       if ((contatos as ContatoWhats[]).length > 0) setContatoSelecionado((contatos as ContatoWhats[])[0].id);
+      const cl = (conds as any[]).map(c => ({ id: c.id, nome: c.nome }));
+      setCondominiosList(cl);
+      if (cl.length > 0) setNovoCond(cl[0].id);
     }).catch(console.error).finally(() => setLoading(false));
   }, []);
 
@@ -198,21 +204,25 @@ const ChecklistsPage: React.FC = () => {
 
   const enviarReporte = async () => {
     if (!tentarAcao()) return;
-    const reporte = {
-      protocolo,
-      itemDesc: problemaModal?.itemDesc || '',
-      checklistId: problema.checklistId,
-      descricao: problema.descricao,
-      status: problema.status,
-      prioridade: problema.prioridade,
-      imagens: problema.imagens,
-      data: new Date().toISOString(),
-    };
+    if (problema.descricao.trim().length < 3) { alert('Descreva o problema (mínimo 3 caracteres).'); return; }
+    const ck = checklists.find(c => c.id === problema.checklistId);
+    const condominioId = (ck as any)?.condominio_id || (ck as any)?.condominioId;
+    if (!condominioId) { alert('Não foi possível identificar o condomínio deste checklist.'); return; }
     try {
-      await reportesApi.create(reporte);
-    } catch { /* ignore */ }
-    alert('Problema reportado com sucesso! Protocolo: ' + protocolo);
-    setProblemaModal(null);
+      const criado = await reportesApi.create({
+        condominioId,
+        checklistId: problema.checklistId,
+        itemDesc: problemaModal?.itemDesc || '',
+        descricao: problema.descricao.trim(),
+        prioridade: problema.prioridade,
+        imagens: problema.imagens,
+      }) as any;
+      alert('Problema reportado com sucesso! Protocolo: ' + (criado?.protocolo || protocolo));
+      setProblemaModal(null);
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao enviar o reporte. Tente novamente.');
+    }
   };
 
   const abrirAcoes = (ckId: string, itemId: string, itemDesc: string) => {
@@ -232,6 +242,31 @@ const ChecklistsPage: React.FC = () => {
     setAntesDepois({ itemId: acoesModal.itemId, checklistId: acoesModal.ckId, fotoAntes: null, descAntes: '', fotoDepois: null, descDepois: '' });
     setAntesDepoisModal({ ...acoesModal });
     setAcoesModal(null);
+  };
+
+  const salvarAntesDepois = async () => {
+    if (!tentarAcao()) return;
+    if (!antesDepois.fotoAntes && !antesDepois.fotoDepois) { alert('Adicione pelo menos uma foto.'); return; }
+    const ck = checklists.find(c => c.id === antesDepois.checklistId);
+    const condominioId = (ck as any)?.condominio_id || (ck as any)?.condominioId;
+    if (!condominioId) { alert('Não foi possível identificar o condomínio deste checklist.'); return; }
+    try {
+      await antesDepoisApi.create({
+        condominioId,
+        checklistId: antesDepois.checklistId,
+        itemId: antesDepois.itemId,
+        itemDesc: antesDepoisModal?.itemDesc || '',
+        fotoAntes: antesDepois.fotoAntes,
+        descAntes: antesDepois.descAntes,
+        fotoDepois: antesDepois.fotoDepois,
+        descDepois: antesDepois.descDepois,
+      });
+      alert('Registro salvo com sucesso!');
+      setAntesDepoisModal(null);
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao salvar o registro. Tente novamente.');
+    }
   };
 
   const handleImagemProblema = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -683,7 +718,7 @@ const ChecklistsPage: React.FC = () => {
             </div>
           )}
 
-          <button className={styles.formSubmit} onClick={() => { alert('Registro salvo com sucesso!'); setAntesDepoisModal(null); }}>
+          <button className={styles.formSubmit} onClick={salvarAntesDepois}>
             <Camera size={16} /> Salvar Registro
           </button>
         </div>
@@ -725,9 +760,10 @@ const ChecklistsPage: React.FC = () => {
             <div className={styles.formGroup}>
               <label className={styles.formLabel}>Condomínio</label>
               <select className={styles.formSelect} value={novoCond} onChange={e => setNovoCond(e.target.value)}>
-                <option value="c1">Cond. Aurora</option>
-                <option value="c2">Cond. Solar</option>
-                <option value="c3">Cond. Vista</option>
+                {condominiosList.length === 0 && <option value="">Nenhum condomínio</option>}
+                {condominiosList.map(c => (
+                  <option key={c.id} value={c.id}>{c.nome}</option>
+                ))}
               </select>
             </div>
           </div>

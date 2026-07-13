@@ -138,9 +138,11 @@ const CondominiosPage: React.FC = () => {
 
   const excluir = async (id: string) => {
     if (!tentarAcao()) return;
-    try { await condominiosApi.remove(id); } catch { alert('Erro ao excluir'); }
-    setCondominios(prev => prev.filter(c => c.id !== id));
-    setConfirmDelete(null);
+    try {
+      await condominiosApi.remove(id);
+      setCondominios(prev => prev.filter(c => c.id !== id));
+      setConfirmDelete(null);
+    } catch { alert('Erro ao excluir'); }
   };
 
   const setField = (key: keyof Omit<Condominio, 'id'>, value: string | number) => {

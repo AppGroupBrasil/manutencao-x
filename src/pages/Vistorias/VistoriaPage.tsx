@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { useDemo } from '../../contexts/DemoContext';
-import { vistorias as vistoriasApi, condominios as condominiosApi, moradores as moradoresApi, reportes as reportesApi } from '../../services/api';
+import { vistorias as vistoriasApi, condominios as condominiosApi, moradores as moradoresApi, reportes as reportesApi, antesDepois as antesDepoisApi } from '../../services/api';
 import LoadingSpinner from '../../components/Common/LoadingSpinner';
 import Pagination from '../../components/Common/Pagination';
 import { usePagination } from '../../hooks/usePagination';
@@ -84,7 +84,7 @@ const CORES_CHART = ['#2e7d32', '#f57c00', '#9e9e9e'];
 const VistoriaPage: React.FC = () => {
   const { tentarAcao } = useDemo();
   const [vistorias, setVistorias] = useState<Vistoria[]>([]);
-  const [condominiosNomes, setCondominiosNomes] = useState<string[]>([]);
+  const [condominiosList, setCondominiosList] = useState<{ id: string; nome: string }[]>([]);
   const [contatosWhats, setContatosWhats] = useState<ContatoWhats[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState('todos');
@@ -96,18 +96,22 @@ const VistoriaPage: React.FC = () => {
       condominiosApi.list().catch(() => []),
       moradoresApi.listWhatsContatos().catch(() => []),
     ]).then(([vst, conds, contatos]: any[]) => {
-      setVistorias(vst);
-      setCondominiosNomes(conds.length ? conds.map((c: any) => c.nome) : []);
+      setVistorias((vst as any[]).map((v: any) => ({
+        ...v,
+        condominio: v.condominio ?? v.condominio_nome ?? '',
+        responsavel: v.responsavel ?? v.responsavel_nome ?? '',
+      })));
+      const cl = (conds as any[]).map((c: any) => ({ id: c.id, nome: c.nome }));
+      setCondominiosList(cl);
+      if (cl.length > 0) setNovoForm(p => ({ ...p, condominio: cl[0].id }));
       setContatosWhats(contatos);
     }).finally(() => setLoading(false));
   }, []);
 
-  const CONDOMINIOS = condominiosNomes;
-
   // Modal: Nova Vistoria
   const [showNovaModal, setShowNovaModal] = useState(false);
   const [novoForm, setNovoForm] = useState({
-    titulo: '', condominio: CONDOMINIOS[0], tipo: 'rotina' as Vistoria['tipo'], responsavel: '',
+    titulo: '', condominio: '', tipo: 'rotina' as Vistoria['tipo'], responsavel: '',
   });
   const [novosItens, setNovosItens] = useState<{ local: string; descricao: string }[]>([{ local: '', descricao: '' }]);
 
@@ -192,14 +196,15 @@ const VistoriaPage: React.FC = () => {
   const criarVistoria = async () => {
     if (!tentarAcao()) return;
     if (!novoForm.titulo.trim() || !novoForm.responsavel.trim() || novosItens.every(i => !i.local.trim())) return;
+    if (novoForm.titulo.trim().length < 3) { alert('Título deve ter pelo menos 3 caracteres.'); return; }
+    if (!novoForm.condominio) { alert('Selecione um condomínio.'); return; }
     try {
       const nova = await vistoriasApi.create({
         titulo: novoForm.titulo.trim(),
-        condominio: novoForm.condominio,
+        condominioId: novoForm.condominio,
         tipo: novoForm.tipo,
         data: new Date().toISOString().split('T')[0],
-        responsavel: novoForm.responsavel.trim(),
-        status: 'pendente',
+        responsavelNome: novoForm.responsavel.trim(),
         itens: novosItens.filter(i => i.local.trim()).map((it, idx) => ({
           id: `vi-${Date.now()}-${idx}`,
           local: it.local.trim(),
@@ -209,12 +214,18 @@ const VistoriaPage: React.FC = () => {
           prioridade: 'media',
           observacao: '',
         })),
-      });
-      setVistorias(prev => [nova, ...prev]);
-    } catch { alert('Erro ao criar vistoria'); }
-    setNovoForm({ titulo: '', condominio: CONDOMINIOS[0], tipo: 'rotina', responsavel: '' });
-    setNovosItens([{ local: '', descricao: '' }]);
-    setShowNovaModal(false);
+      }) as any;
+      setVistorias(prev => [{
+        ...nova,
+        condominio: condominiosList.find(c => c.id === novoForm.condominio)?.nome || '',
+        responsavel: novoForm.responsavel.trim(),
+      }, ...prev]);
+      setNovoForm({ titulo: '', condominio: condominiosList[0]?.id || '', tipo: 'rotina', responsavel: '' });
+      setNovosItens([{ local: '', descricao: '' }]);
+      setShowNovaModal(false);
+    } catch {
+      alert('Erro ao criar vistoria. Tente novamente.');
+    }
   };
 
   /* ── Atualizar status de item ── */
@@ -230,15 +241,14 @@ const VistoriaPage: React.FC = () => {
     try {
       await vistoriasApi.update(vistoriaId, { itens: itensAtualizados, status: statusVistoria });
       setVistorias(prev => prev.map(v => v.id === vistoriaId ? { ...v, itens: itensAtualizados, status: statusVistoria } : v));
+      if (detalheVistoria?.id === vistoriaId) {
+        setDetalheVistoria(prev => {
+          if (!prev) return prev;
+          const itens = prev.itens.map(i => i.id === itemId ? { ...i, status: novoStatus } : i);
+          return { ...prev, itens };
+        });
+      }
     } catch { alert('Erro ao atualizar item'); }
-    // Atualizar detalhe se aberto
-    if (detalheVistoria?.id === vistoriaId) {
-      setDetalheVistoria(prev => {
-        if (!prev) return prev;
-        const itens = prev.itens.map(i => i.id === itemId ? { ...i, status: novoStatus } : i);
-        return { ...prev, itens };
-      });
-    }
   };
 
   /* ── Fotos da Galeria ── */
@@ -301,18 +311,26 @@ const VistoriaPage: React.FC = () => {
 
   const enviarReporte = async () => {
     if (!tentarAcao()) return;
-    const reporte = {
-      protocolo, itemDesc: problemaModal?.itemDesc || '', vistoriaId: problema.vistoriaId,
-      descricao: problema.descricao, status: problema.status, prioridade: problema.prioridade,
-      imagens: problema.imagens, data: new Date().toISOString(), origem: 'vistoria',
-    };
+    if (problema.descricao.trim().length < 3) { alert('Descreva o problema (mínimo 3 caracteres).'); return; }
+    const v = vistorias.find(x => x.id === problema.vistoriaId);
+    const condominioId = (v as any)?.condominio_id || (v as any)?.condominioId;
+    if (!condominioId) { alert('Não foi possível identificar o condomínio desta vistoria.'); return; }
     try {
-      await reportesApi.create(reporte);
-    } catch { /* ignore */ }
-    // Marcar item como não conforme
-    atualizarStatusItem(problema.vistoriaId, problema.itemId, 'nao_conforme');
-    alert('Problema reportado com sucesso! Protocolo: ' + protocolo);
-    setProblemaModal(null);
+      const criado = await reportesApi.create({
+        condominioId,
+        vistoriaId: problema.vistoriaId,
+        itemDesc: problemaModal?.itemDesc || '',
+        descricao: problema.descricao.trim(),
+        prioridade: problema.prioridade,
+        imagens: problema.imagens,
+        origem: 'vistoria',
+      }) as any;
+      atualizarStatusItem(problema.vistoriaId, problema.itemId, 'nao_conforme');
+      alert('Problema reportado com sucesso! Protocolo: ' + (criado?.protocolo || protocolo));
+      setProblemaModal(null);
+    } catch {
+      alert('Erro ao enviar o reporte. Tente novamente.');
+    }
   };
 
   const handleFoto = (tipo: 'antes' | 'depois', e: React.ChangeEvent<HTMLInputElement>) => {
@@ -329,6 +347,30 @@ const VistoriaPage: React.FC = () => {
     };
     reader.readAsDataURL(file);
     e.target.value = '';
+  };
+
+  const salvarAntesDepois = async () => {
+    if (!tentarAcao()) return;
+    if (!antesDepois.fotoAntes && !antesDepois.fotoDepois) { alert('Adicione pelo menos uma foto.'); return; }
+    const v = vistorias.find(x => x.id === antesDepois.vistoriaId);
+    const condominioId = (v as any)?.condominio_id || (v as any)?.condominioId;
+    if (!condominioId) { alert('Não foi possível identificar o condomínio desta vistoria.'); return; }
+    try {
+      await antesDepoisApi.create({
+        condominioId,
+        vistoriaId: antesDepois.vistoriaId,
+        itemId: antesDepois.itemId,
+        itemDesc: antesDepoisModal?.itemDesc || '',
+        fotoAntes: antesDepois.fotoAntes,
+        descAntes: antesDepois.descAntes,
+        fotoDepois: antesDepois.fotoDepois,
+        descDepois: antesDepois.descDepois,
+      });
+      alert('Registro Antes/Depois salvo com sucesso!');
+      setAntesDepoisModal(null);
+    } catch {
+      alert('Erro ao salvar o registro. Tente novamente.');
+    }
   };
 
   /* ── Helpers visuais ── */
@@ -475,7 +517,8 @@ const VistoriaPage: React.FC = () => {
           <div className={styles.formGroup}>
             <label className={styles.formLabel}>Condomínio</label>
             <select className={styles.formSelect} value={novoForm.condominio} onChange={e => setNovoForm(p => ({ ...p, condominio: e.target.value }))}>
-              {CONDOMINIOS.map(c => <option key={c} value={c}>{c}</option>)}
+              {condominiosList.length === 0 && <option value="">Nenhum condomínio</option>}
+              {condominiosList.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
             </select>
           </div>
           <div className={styles.formGroup}>
@@ -767,7 +810,7 @@ const VistoriaPage: React.FC = () => {
               </div>
             </div>
           )}
-          <button className={styles.formSubmit} onClick={() => { alert('Registro Antes/Depois salvo com sucesso!'); setAntesDepoisModal(null); }}>
+          <button className={styles.formSubmit} onClick={salvarAntesDepois}>
             <Camera size={16} /> Salvar Registro
           </button>
         </div>

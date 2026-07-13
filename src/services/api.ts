@@ -380,6 +380,7 @@ export const materiais = {
 };
 export const inspecoes = crud('/inspecoes');
 export const vistorias = crud('/vistorias');
+export const antesDepois = crud('/antes-depois');
 export const reportes = {
   ...crud('/reportes'),
   updateStatus: (id: string, status: string) => patch(`/reportes/${id}/status`, { status }),

@@ -1258,7 +1258,10 @@ const QRCodePage: React.FC = () => {
   const toggleSupervisorPerm = async () => {
     const novo = !supervisorAutorizado;
     setSupervisorAutorizado(novo);
-    try { await qrcodesApi.setSupervisorPerm(novo); } catch {}
+    try { await qrcodesApi.setSupervisorPerm(novo); } catch {
+      setSupervisorAutorizado(!novo);
+      alert('Erro ao salvar permissão. Tente novamente.');
+    }
   };
 
   /* ── Filtro ── */
