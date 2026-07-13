@@ -69,6 +69,9 @@ const CondominiosPage: React.FC = () => {
         sindico: r.sindico || '',
         telefone: r.telefone || '',
         email: r.email || '',
+        logoUrl: r.logo_url || undefined,
+        loginTitulo: r.login_titulo || undefined,
+        loginSubtitulo: r.login_subtitulo || undefined,
         ativo: r.ativo,
         plano: r.plano,
         status_plano: r.status_plano,
@@ -126,7 +129,10 @@ const CondominiosPage: React.FC = () => {
         const novo = await condominiosApi.create(form as any);
         setCondominios(prev => [...prev, { ...form, id: (novo as any).id }]);
       }
-    } catch { alert('Erro ao salvar'); }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Erro ao salvar');
+      return;
+    }
     fecharModal();
   };
 

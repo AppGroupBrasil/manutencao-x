@@ -89,6 +89,9 @@ export const condominioSchema = z.object({
   email: z.string().email().max(255).optional().nullable().or(z.literal('')),
   blocos: z.number().int().min(0).optional(),
   unidades: z.number().int().min(0).optional(),
+  logoUrl: z.string().max(3_000_000).optional().nullable(),
+  loginTitulo: z.string().max(255).optional().nullable(),
+  loginSubtitulo: z.string().max(255).optional().nullable(),
 });
 
 export const comunicadoSchema = z.object({
