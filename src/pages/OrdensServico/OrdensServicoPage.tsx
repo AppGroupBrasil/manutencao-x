@@ -73,6 +73,7 @@ const OrdensServicoPage: React.FC = () => {
           avaliacaoComentario: r.avaliacaoComentario,
         })));
         setCondominiosList(conds);
+        if (conds.length > 0) setNovaCond(conds[0].id);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -83,7 +84,7 @@ const OrdensServicoPage: React.FC = () => {
   const [novaDesc, setNovaDesc] = useState('');
   const [novaTipo, setNovaTipo] = useState<'limpeza' | 'manutencao' | 'emergencia' | 'preventiva'>('limpeza');
   const [novaPrioridade, setNovaPrioridade] = useState<'baixa' | 'media' | 'alta' | 'urgente'>('media');
-  const [novaCond, setNovaCond] = useState('c1');
+  const [novaCond, setNovaCond] = useState('');
   const [novaLocal, setNovaLocal] = useState('');
 
   const filtered = useMemo(() => {
@@ -123,6 +124,7 @@ const OrdensServicoPage: React.FC = () => {
   const criarOS = async () => {
     if (!tentarAcao()) return;
     if (!novaTitulo.trim()) return;
+    if (!novaCond) { alert('Selecione um condomínio.'); return; }
 
     try {
       const created: any = await osApi.create({
