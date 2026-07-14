@@ -1,3 +1,4 @@
+import { camelizeBody } from './middleware/camelizeBody.js';
 import 'dotenv/config';
 import 'express-async-errors';
 import express from 'express';
@@ -196,6 +197,7 @@ const portalLimiter = buildAuthLimiter();
 app.use('/api', apiLimiter);
 
 // ── Rotas públicas ──
+app.use('/api/auth', camelizeBody);
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/portal', portalLimiter, portalMoradorRoutes);
 app.use('/api/provisioning', provisioningRoutes);
@@ -205,6 +207,7 @@ app.use('/api/sso', ssoRoutes);
 const protectedRouter = express.Router();
 protectedRouter.use(authMiddleware);
 protectedRouter.use(scopeMiddleware);
+protectedRouter.use(camelizeBody);
 
 // Metrics tracking (non-blocking, POST/PUT/PATCH/DELETE only)
 protectedRouter.use((req, _res, next) => {

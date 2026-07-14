@@ -73,16 +73,16 @@ router.put('/:id', requireMinRole('administrador'), validate(condominioSchema), 
 
 // PATCH /api/condominios/:id/status — Master gerencia plano e status
 router.patch('/:id/status', requireRole('master'), validate(condominioStatusSchema), async (req: AuthRequest, res: Response) => {
-  const { plano, status_plano, ativo, data_fim_teste, valor_mensalidade } = req.body;
+  const { plano, statusPlano, ativo, dataFimTeste, valorMensalidade } = req.body;
   const fields: string[] = [];
   const values: any[] = [];
   let idx = 1;
 
   if (plano !== undefined) { fields.push(`plano = $${idx++}`); values.push(plano); }
-  if (status_plano !== undefined) { fields.push(`status_plano = $${idx++}`); values.push(status_plano); }
+  if (statusPlano !== undefined) { fields.push(`status_plano = $${idx++}`); values.push(statusPlano); }
   if (ativo !== undefined) { fields.push(`ativo = $${idx++}`); values.push(ativo); }
-  if (data_fim_teste !== undefined) { fields.push(`data_fim_teste = $${idx++}`); values.push(data_fim_teste); }
-  if (valor_mensalidade !== undefined) { fields.push(`valor_mensalidade = $${idx++}`); values.push(valor_mensalidade); }
+  if (dataFimTeste !== undefined) { fields.push(`data_fim_teste = $${idx++}`); values.push(dataFimTeste); }
+  if (valorMensalidade !== undefined) { fields.push(`valor_mensalidade = $${idx++}`); values.push(valorMensalidade); }
 
   if (fields.length === 0) { res.status(400).json({ error: 'Nenhum campo para atualizar' }); return; }
 
@@ -92,7 +92,7 @@ router.patch('/:id/status', requireRole('master'), validate(condominioStatusSche
     values
   );
   if (!row) { res.status(404).json({ error: 'Condomínio não encontrado' }); return; }
-  await auditLog(req.user!, 'condominio_status_alterado', 'condominios', req.params.id, { plano, status_plano, ativo });
+  await auditLog(req.user!, 'condominio_status_alterado', 'condominios', req.params.id, { plano, statusPlano, ativo });
   res.json(row);
 });
 

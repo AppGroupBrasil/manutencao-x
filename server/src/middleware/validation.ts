@@ -103,18 +103,18 @@ export const comunicadoSchema = z.object({
 }).passthrough();
 
 export const whatsappConfigSchema = z.object({
-  api_url: z.string().url('URL inválida').max(500).optional().or(z.literal('')),
-  api_token: z.string().max(500).optional(),
-  numero_remetente: z.string().max(30).optional(),
+  apiUrl: z.string().url('URL inválida').max(500).optional().or(z.literal('')),
+  apiToken: z.string().max(500).optional(),
+  numeroRemetente: z.string().max(30).optional(),
   ativo: z.boolean().optional(),
-  notificar_os_criada: z.boolean().optional(),
-  notificar_os_concluida: z.boolean().optional(),
-  notificar_vencimentos: z.boolean().optional(),
-  notificar_comunicados: z.boolean().optional(),
+  notificarOsCriada: z.boolean().optional(),
+  notificarOsConcluida: z.boolean().optional(),
+  notificarVencimentos: z.boolean().optional(),
+  notificarComunicados: z.boolean().optional(),
 }).passthrough();
 
 export const whatsappEnviarSchema = z.object({
-  condominio_id: z.string().uuid('ID do condomínio inválido'),
+  condominioId: z.string().uuid('ID do condomínio inválido'),
   destinatario: z.string().min(8, 'Número de telefone inválido').max(30),
   mensagem: z.string().min(1, 'Mensagem obrigatória').max(5000),
   tipo: z.string().max(100).optional(),
@@ -333,10 +333,10 @@ export const ordemServicoUpdateSchema = z.object({
 // ── Condomínios PATCH status ──
 export const condominioStatusSchema = z.object({
   plano: z.enum(['gratis', 'basico', 'premium', 'enterprise']).optional(),
-  status_plano: z.enum(['ativo', 'teste', 'inadimplente', 'bloqueado']).optional(),
+  statusPlano: z.enum(['ativo', 'teste', 'inadimplente', 'bloqueado']).optional(),
   ativo: z.boolean().optional(),
-  data_fim_teste: z.string().max(30).optional().nullable(),
-  valor_mensalidade: z.number().min(0).optional().nullable(),
+  dataFimTeste: z.string().max(30).optional().nullable(),
+  valorMensalidade: z.number().min(0).optional().nullable(),
 });
 
 // ── Bloquear usuário ──

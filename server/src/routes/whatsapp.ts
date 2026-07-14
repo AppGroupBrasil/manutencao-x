@@ -25,7 +25,7 @@ router.put('/config/:condominioId', requireMinRole('administrador'), async (req:
   const { condominioId } = req.params;
   if (!ids.includes(condominioId)) { res.status(403).json({ error: 'Sem acesso a este condomínio' }); return; }
 
-  const { api_url, api_token, numero_remetente, ativo, notificar_os_criada, notificar_os_concluida, notificar_vencimentos, notificar_comunicados } = req.body;
+  const { apiUrl, apiToken, numeroRemetente, ativo, notificarOsCriada, notificarOsConcluida, notificarVencimentos, notificarComunicados } = req.body;
 
   const row = await queryOne(
     `INSERT INTO whatsapp_config (condominio_id, api_url, api_token, numero_remetente, ativo,
@@ -36,9 +36,9 @@ router.put('/config/:condominioId', requireMinRole('administrador'), async (req:
        notificar_os_criada = $6, notificar_os_concluida = $7, notificar_vencimentos = $8,
        notificar_comunicados = $9, atualizado_em = NOW()
      RETURNING *`,
-    [condominioId, api_url || null, api_token || null, numero_remetente || null,
-      ativo === true, notificar_os_criada !== false, notificar_os_concluida !== false,
-      notificar_vencimentos !== false, notificar_comunicados !== false]
+    [condominioId, apiUrl || null, apiToken || null, numeroRemetente || null,
+      ativo === true, notificarOsCriada !== false, notificarOsConcluida !== false,
+      notificarVencimentos !== false, notificarComunicados !== false]
   );
   res.json(row);
 });
@@ -46,9 +46,9 @@ router.put('/config/:condominioId', requireMinRole('administrador'), async (req:
 // ── POST /api/whatsapp/enviar — enviar mensagem via WhatsApp
 router.post('/enviar', requireMinRole('administrador'), validate(whatsappEnviarSchema), async (req: AuthRequest, res: Response) => {
   const ids: string[] = req.condominioIds!;
-  const { condominio_id, destinatario, mensagem, tipo } = req.body;
+  const { condominioId, destinatario, mensagem, tipo } = req.body;
 
-  if (!condominio_id || !ids.includes(condominio_id)) {
+  if (!condominioId || !ids.includes(condominioId)) {
     res.status(403).json({ error: 'Sem acesso a este condomínio' });
     return;
   }
@@ -60,7 +60,7 @@ router.post('/enviar', requireMinRole('administrador'), validate(whatsappEnviarS
   // Verificar configuração ativa
   const config = await queryOne<any>(
     `SELECT * FROM whatsapp_config WHERE condominio_id = $1 AND ativo = true`,
-    [condominio_id]
+    [condominioId]
   );
 
   if (!config) {
@@ -73,7 +73,7 @@ router.post('/enviar', requireMinRole('administrador'), validate(whatsappEnviarS
     `INSERT INTO whatsapp_mensagens (condominio_id, destinatario, mensagem, tipo, status)
      VALUES ($1, $2, $3, $4, 'pendente')
      RETURNING *`,
-    [condominio_id, destinatario, mensagem, tipo || 'texto']
+    [condominioId, destinatario, mensagem, tipo || 'texto']
   );
 
   // Tentar enviar via API configurada
