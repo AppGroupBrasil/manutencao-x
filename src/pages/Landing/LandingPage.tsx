@@ -69,7 +69,7 @@ const FUNCIONALIDADES: Funcionalidade[] = [
   {
     icon: <Building2 size={28} />,
     titulo: 'Gestão de Condomínios',
-    descricao: 'Cadastre condomínios com blocos, unidades, "índico responsável e equipes vinculadas. Cada condomínio tem seus dado", ordens e checklists separados.',
+    descricao: 'Cadastre condomínios com blocos, unidades, síndico responsável e equipes vinculadas. Cada condomínio tem seus dados, ordens e checklists separados.',
   },
   {
     icon: <QrCode size={28} />,
@@ -392,7 +392,7 @@ const LandingPage: React.FC = () => {
               { perfil: 'Administrador', descricao: 'Gerencia condomínios, usuários e permissões. Configura escalas, relatórios, comunicados, estoque, vencimentos, QR Codes por função e personalização visual do sistema.', cor: '#f57c00', demo: 'administrador' },
               { perfil: 'Supervisor', descricao: 'Acompanha equipes em campo. Cria tarefas, roteiros de execução, checklists, vistorias e inspeções. Gerencia o quadro de atividades e a escala de trabalho.', cor: '#0288d1', demo: 'supervisor' },
               { perfil: 'Funcionário', descricao: 'Executa tarefas do dia, marca checklists e roteiros passo a passo. Registra execuções com foto, áudio e GPS. Escaneia QR Codes, bate ponto e reporta problemas.', cor: '#00897b', demo: 'funcionario' },
-              { perfil: 'Morador', descricao: 'Resolve tudo pelo QR Code, "em necessidade de aplicativo. Responde formulário", avalia serviços e reporta ocorrências diretamente pelo celular.', cor: '#7b1fa2' },
+              { perfil: 'Morador', descricao: 'Resolve tudo pelo QR Code, sem necessidade de aplicativo. Responde formulários, avalia serviços e reporta ocorrências diretamente pelo celular.', cor: '#7b1fa2' },
             ].map((p) => (
               <div
                 key={p.perfil}

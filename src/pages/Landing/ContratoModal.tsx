@@ -181,7 +181,7 @@ const ContratoModal: React.FC<ContratoModalProps> = ({ plano, onClose }) => {
             <h3>CLÁUSULA 1ª — DO OBJETO</h3>
             <p className={styles.clausula}>
               O presente contrato tem por objeto a prestação de serviços de software na modalidade SaaS (Software as a Service),
-              denominado <strong>Manutenção X</strong>, "istema de manutenção predial e gestão de serviços para condomínio",
+              denominado <strong>Manutenção X</strong>, sistema de manutenção predial e gestão de serviços para condomínios,
               disponibilizado pela CONTRATADA à CONTRATANTE por meio da internet (www.manutencaox.com.br).
             </p>
 
