@@ -68,6 +68,8 @@ const PwaManager: React.FC = () => {
     dismissIosInstallHint,
   } = usePwa();
   const isDev = import.meta.env.DEV;
+  const [installDismissed, setInstallDismissed] = React.useState(false);
+  const showInstall = canInstall && !installDismissed;
 
   React.useEffect(() => {
     if (!offlineReady) return undefined;
@@ -81,7 +83,7 @@ const PwaManager: React.FC = () => {
 
   if (isDev) return null;
 
-  if (!canInstall && !needRefresh && !offlineReady && !showIosInstallHint) return null;
+  if (!showInstall && !needRefresh && !offlineReady && !showIosInstallHint) return null;
 
   return (
     <div
@@ -94,8 +96,34 @@ const PwaManager: React.FC = () => {
         zIndex: 10001,
       }}
     >
-      {canInstall ? (
-        <section style={cardStyle} aria-live="polite">
+      {showInstall ? (
+        <section style={{ ...cardStyle, position: 'relative' }} aria-live="polite">
+          <button
+            type="button"
+            aria-label="Fechar e permanecer no site"
+            title="Fechar"
+            onClick={() => setInstallDismissed(true)}
+            style={{
+              position: 'absolute',
+              top: 8,
+              right: 8,
+              width: 28,
+              height: 28,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: '1px solid var(--cor-borda)',
+              borderRadius: '50%',
+              background: 'var(--cor-fundo, transparent)',
+              color: 'var(--cor-texto)',
+              fontSize: 16,
+              fontWeight: 700,
+              lineHeight: 1,
+              cursor: 'pointer',
+            }}
+          >
+            ×
+          </button>
           <div style={titleStyle}>
             <Download size={18} color="var(--cor-primaria)" />
             Instalar aplicativo
