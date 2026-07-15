@@ -1,4 +1,5 @@
 ﻿import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import PageHeader from '../../components/Common/PageHeader';
 import Card from '../../components/Common/Card';
 import { notificacoes as notificacoesApi } from '../../services/api';
@@ -29,6 +30,7 @@ const TIPO_COR: Record<string, string> = {
 const NotificacoesPage: React.FC = () => {
   const [lista, setLista] = useState<Notificacao[]>([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   const carregar = useCallback(() => {
     notificacoesApi.list().then((data: any) => setLista(data)).catch(() => {}).finally(() => setLoading(false));
@@ -65,6 +67,12 @@ const NotificacoesPage: React.FC = () => {
     return date.toLocaleDateString('pt-BR');
   };
 
+  const abrir = async (n: Notificacao) => {
+    if (!n.link) return;
+    if (!n.lida) await marcarLida(n.id).catch(() => {});
+    navigate(n.link);
+  };
+
   const naoLidas = lista.filter(n => !n.lida).length;
 
   return (
@@ -99,7 +107,11 @@ const NotificacoesPage: React.FC = () => {
               <div className={styles.itemIcon} style={{ color: TIPO_COR[n.tipo] || TIPO_COR.info, background: `${TIPO_COR[n.tipo] || TIPO_COR.info}15` }}>
                 {TIPO_ICON[n.tipo] || TIPO_ICON.info}
               </div>
-              <div className={styles.itemContent}>
+              <div
+                className={styles.itemContent}
+                onClick={() => abrir(n)}
+                style={n.link ? { cursor: 'pointer' } : undefined}
+              >
                 <div className={styles.itemHeader}>
                   <strong className={styles.itemTitulo}>{n.titulo}</strong>
                   <span className={styles.itemTime}>{formatDate(n.criado_em)}</span>

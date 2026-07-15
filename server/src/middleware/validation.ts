@@ -247,6 +247,12 @@ export const qrcodeSchema = z.object({
 }).passthrough();
 
 // ── Quadro de Atividades ──
+export const atribuirSchema = z.object({
+  tipo: z.enum(['os', 'checklist', 'atividade']),
+  id: z.string().uuid('ID inválido'),
+  userId: z.string().uuid('ID do usuário inválido'),
+});
+
 export const quadroAtividadeSchema = z.object({
   titulo: z.string().min(3, 'Título deve ter no mínimo 3 caracteres').max(255),
   condominioId: z.string().uuid('ID do condomínio inválido'),

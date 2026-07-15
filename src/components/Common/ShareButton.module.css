@@ -138,7 +138,7 @@
   margin-bottom: 12px;
 }
 
-.func {
+.funcRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -146,15 +146,53 @@
   padding: 7px 10px;
   border: 1px solid var(--cor-borda);
   border-radius: 8px;
-  background: transparent;
   color: var(--cor-texto);
   font-size: 12px;
-  cursor: pointer;
-  text-align: left;
 }
 
-.func:hover {
+.funcInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.funcAcoes {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.appBtn,
+.zapBtn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 9px;
+  border: 1px solid var(--cor-borda);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--cor-texto-secundario);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.appBtn:hover:not(:disabled) {
+  border-color: var(--cor-primaria);
+  color: var(--cor-primaria);
+}
+
+.zapBtn:hover:not(:disabled) {
   border-color: #25d366;
+  color: #25d366;
+}
+
+.appBtn:disabled,
+.zapBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .funcNome {

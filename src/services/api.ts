@@ -494,6 +494,11 @@ export const dashboard = {
 export const relatorios = {
   resumo: () => request<any>('/relatorios/resumo'),
 };
+export const atribuicoes = {
+  enviarNoApp: (tipo: string, id: string, userId: string) =>
+    post<{ ok: boolean; nome: string }>('/atribuicoes', { tipo, id, userId }),
+};
+
 export const notificacoes = {
   list: () => request<any[]>('/notificacoes'),
   unreadCount: () => request<{ count: number }>('/notificacoes/unread-count'),

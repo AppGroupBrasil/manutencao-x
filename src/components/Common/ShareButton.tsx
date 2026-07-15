@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { Share2, Copy, Check, MessageCircle, X, AlertTriangle } from 'lucide-react';
-import { usuarios as usuariosApi } from '../../services/api';
+import { Share2, Copy, Check, MessageCircle, X, AlertTriangle, Smartphone } from 'lucide-react';
+import { usuarios as usuariosApi, atribuicoes as atribuicoesApi } from '../../services/api';
 import styles from './ShareButton.module.css';
 
 type TipoCompartilhavel = 'os' | 'checklist' | 'atividade';
@@ -29,6 +29,8 @@ export default function ShareButton({ tipo, id, titulo }: ShareButtonProps) {
   const [open, setOpen] = useState(false);
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
   const [copiado, setCopiado] = useState(false);
+  const [enviando, setEnviando] = useState<string | null>(null);
+  const [enviado, setEnviado] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
 
   const link = `${window.location.origin}/x/${tipo}/${id}`;
@@ -67,6 +69,19 @@ export default function ShareButton({ tipo, id, titulo }: ShareButtonProps) {
     window.open(`https://wa.me/55${num}?text=${encodeURIComponent(mensagem)}`, '_blank');
   };
 
+  const enviarNoApp = async (f: Funcionario) => {
+    setEnviando(f.id);
+    try {
+      await atribuicoesApi.enviarNoApp(tipo, id, f.id);
+      setEnviado(f.id);
+      setTimeout(() => setEnviado(null), 2500);
+    } catch (err: any) {
+      alert(err?.error || err?.message || 'Erro ao enviar no aplicativo.');
+    } finally {
+      setEnviando(null);
+    }
+  };
+
   const enviarWhatsApp = () => {
     window.open(`https://wa.me/?text=${encodeURIComponent(mensagem)}`, '_blank');
   };
@@ -103,18 +118,34 @@ export default function ShareButton({ tipo, id, titulo }: ShareButtonProps) {
             {funcionarios.length > 0 ? (
               <div className={styles.lista}>
                 {funcionarios.map(f => (
-                  <button
-                    key={f.id}
-                    className={styles.func}
-                    onClick={() => enviarPara(f)}
-                    disabled={!f.telefone}
-                    title={f.telefone ? `Enviar para ${f.nome}` : 'Funcionário sem telefone cadastrado'}
-                  >
-                    <span className={styles.funcNome}>{f.nome}</span>
-                    {f.telefone
-                      ? <span className={styles.funcTel}>{f.telefone}</span>
-                      : <span className={styles.semTel}>sem telefone</span>}
-                  </button>
+                  <div key={f.id} className={styles.funcRow}>
+                    <div className={styles.funcInfo}>
+                      <span className={styles.funcNome}>{f.nome}</span>
+                      {f.telefone
+                        ? <span className={styles.funcTel}>{f.telefone}</span>
+                        : <span className={styles.semTel}>sem telefone</span>}
+                    </div>
+                    <div className={styles.funcAcoes}>
+                      <button
+                        className={styles.appBtn}
+                        onClick={() => enviarNoApp(f)}
+                        disabled={enviando === f.id}
+                        title={`Atribuir a ${f.nome} e notificar no aplicativo`}
+                      >
+                        {enviado === f.id
+                          ? <><Check size={13} /> Enviado</>
+                          : <><Smartphone size={13} /> {enviando === f.id ? 'Enviando...' : 'App'}</>}
+                      </button>
+                      <button
+                        className={styles.zapBtn}
+                        onClick={() => enviarPara(f)}
+                        disabled={!f.telefone}
+                        title={f.telefone ? `Enviar link no WhatsApp para ${f.nome}` : 'Funcionário sem telefone cadastrado'}
+                      >
+                        <MessageCircle size={13} /> WhatsApp
+                      </button>
+                    </div>
+                  </div>
                 ))}
               </div>
             ) : (
