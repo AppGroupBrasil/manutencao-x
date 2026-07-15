@@ -89,11 +89,10 @@ router.post('/register', authMiddleware, validate(registerSchema), async (req: A
       return;
     }
 
-    const exists = await queryOne('SELECT id FROM usuarios WHERE email = $1', [email]);
-    if (exists) {
-      res.status(409).json({ error: 'Email já cadastrado' });
-      return;
-    }
+    const exists = await queryOne<any>(
+      'SELECT id, role, ativo, criado_por, administrador_id, supervisor_id FROM usuarios WHERE email = $1',
+      [email]
+    );
 
     const senhaHash = await bcrypt.hash(senha, 12);
 
@@ -107,6 +106,39 @@ router.post('/register', authMiddleware, validate(registerSchema), async (req: A
     }
 
     const supId = role === 'funcionario' ? (supervisorId || caller.id) : null;
+
+    if (exists) {
+      const noEscopo =
+        caller.role === 'master' ||
+        exists.criado_por === caller.id ||
+        exists.administrador_id === caller.id ||
+        exists.supervisor_id === caller.id ||
+        (caller.role === 'administrador' && exists.administrador_id === null && exists.role === 'funcionario');
+      const abaixo = (roleLevel[exists.role] ?? 0) < (roleLevel[caller.role] ?? 0);
+
+      if (exists.ativo || !noEscopo || !abaixo) {
+        res.status(409).json({ error: 'Email já cadastrado' });
+        return;
+      }
+
+      const reativado = await queryOne<any>(
+        `UPDATE usuarios
+         SET senha_hash = $1, nome = $2, role = $3, cargo = $4, criado_por = $5,
+             administrador_id = $6, supervisor_id = $7, condominio_id = $8,
+             ativo = true, bloqueado = false, motivo_bloqueio = NULL
+         WHERE id = $9 RETURNING *`,
+        [senhaHash, nome, role, cargo || null, caller.id, adminId, supId, condominioId || null, exists.id]
+      );
+      await revokeAllForUser(exists.id).catch(() => {});
+      await auditLog(caller, 'usuario_reativado', 'usuarios', exists.id, { email, role }).catch(() => {});
+      res.status(201).json({
+        id: reativado!.id,
+        email: reativado!.email,
+        nome: reativado!.nome,
+        role: reativado!.role,
+      });
+      return;
+    }
 
     const user = await queryOne<any>(
       `INSERT INTO usuarios (email, senha_hash, nome, role, cargo, criado_por, administrador_id, supervisor_id, condominio_id)

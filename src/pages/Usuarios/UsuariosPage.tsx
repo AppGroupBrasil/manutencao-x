@@ -83,7 +83,7 @@ const UsuariosPage: React.FC = () => {
     if (!tentarAcao()) return;
     try {
       const created = await auth.register(novoUser);
-      setUsers(prev => [{ ...created, criadoEm: Date.now(), atualizadoEm: Date.now(), ativo: true, bloqueado: false }, ...prev]);
+      setUsers(prev => [{ ...created, criadoEm: Date.now(), atualizadoEm: Date.now(), ativo: true, bloqueado: false }, ...prev.filter(u => u.id !== created.id)]);
       setModalAberto(false);
       setNovoUser({ nome: '', email: '', senha: '', role: 'funcionario', cargo: '' });
     } catch (err: any) {
