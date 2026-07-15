@@ -43,6 +43,7 @@ const DemoEntryPage = lazyPage(() => import('./pages/Demo/DemoEntryPage'));
 const CadastroPage = lazyPage(() => import('./pages/Auth/CadastroPage'));
 const EsqueciSenhaPage = lazyPage(() => import('./pages/Auth/EsqueciSenhaPage'));
 const SsoPage = lazyPage(() => import('./pages/Auth/SsoPage'));
+const ExecucaoPublicaPage = lazyPage(() => import('./pages/Publico/ExecucaoPublicaPage'));
 const PerfilPage = lazyPage(() => import('./pages/Perfil/PerfilPage'));
 const NotificacoesPage = lazyPage(() => import('./pages/Notificacoes/NotificacoesPage'));
 const AuditoriaPage = lazyPage(() => import('./pages/Auditoria/AuditoriaPage'));
@@ -147,6 +148,9 @@ const App: React.FC = () => {
 
       {/* Formulário público via QR Code (sem login) */}
       <Route path="/qrcode/responder/:id" element={<ResponderQRCodePage />} />
+
+      {/* Link compartilhado de execução (sem login) */}
+      <Route path="/x/:tipo/:id" element={<ExecucaoPublicaPage />} />
 
       {/* Portal do Morador */}
       <Route path="/portal/login" element={

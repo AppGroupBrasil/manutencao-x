@@ -992,3 +992,11 @@
     grid-template-columns: 1fr;
   }
 }
+
+.ckShare {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--cor-borda);
+}

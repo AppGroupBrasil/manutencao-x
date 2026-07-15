@@ -17,6 +17,7 @@ import { ordensServico as osApi, condominios as condominiosApi } from '../../ser
 import LoadingSpinner from '../../components/Common/LoadingSpinner';
 import EmptyState from '../../components/Common/EmptyState';
 import WhatsAppShare from '../../components/Common/WhatsAppShare';
+import ShareButton from '../../components/Common/ShareButton';
 import styles from './OrdensServico.module.css';
 
 interface OSComProtocolo extends OrdemServico {
@@ -291,6 +292,7 @@ const OrdensServicoPage: React.FC = () => {
                     </div>
                   )}
                   <WhatsAppShare mensagem={`*Ordem de Serviço*\n*Protocolo:* ${os.protocolo}\n*Título:* ${os.titulo}\n*Tipo:* ${os.tipo}\n*Prioridade:* ${os.prioridade}\n*Status:* ${os.status}\n*Local:* ${os.local || 'N/A'}\n*Abertura:* ${formatarDataHora(os.dataAbertura)}`} />
+                  <ShareButton tipo="os" id={os.id} titulo={os.titulo} />
                 </div>
               </div>
             </Card>

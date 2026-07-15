@@ -1008,3 +1008,11 @@
     grid-template-columns: 1fr;
   }
 }
+
+.cardShare {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--cor-borda);
+}

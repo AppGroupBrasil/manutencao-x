@@ -51,6 +51,7 @@ import documentosRoutes from './routes/documentos.js';
 import portalMoradorRoutes from './routes/portalMorador.js';
 import provisioningRoutes from './routes/provisioning.js';
 import ssoRoutes from './routes/sso.js';
+import publicoRoutes from './routes/publico.js';
 import solicitacoesRoutes from './routes/solicitacoes.js';
 import slaRoutes from './routes/sla.js';
 import pdfRoutes from './routes/pdf.js';
@@ -195,6 +196,14 @@ const buildAuthLimiter = () => rateLimit({
 });
 const authLimiter = buildAuthLimiter();
 const portalLimiter = buildAuthLimiter();
+const publicoLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: rateLimitEnabled ? 60 : 100000,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: () => !rateLimitEnabled,
+  message: { error: 'Muitas requisições. Tente novamente em 15 minutos.' },
+});
 app.use('/api', apiLimiter);
 
 // ── Rotas públicas ──
@@ -204,6 +213,7 @@ app.use('/api/portal', portalLimiter, portalMoradorRoutes);
 app.use('/api/provisioning', provisioningRoutes);
 app.use('/api/sso', ssoRoutes);
 app.use('/api/qrcodes-public', camelizeBody, qrcodesPublicRoutes);
+app.use('/api/publico', publicoLimiter, camelizeBody, publicoRoutes);
 
 // ── Rotas protegidas ──
 const protectedRouter = express.Router();

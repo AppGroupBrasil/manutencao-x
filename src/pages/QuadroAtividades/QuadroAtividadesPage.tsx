@@ -15,6 +15,7 @@ import {
 import { useDemo } from '../../contexts/DemoContext';
 import { quadroAtividades as qaApi, configuracoes as configApi, condominios as condominiosApi } from '../../services/api';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
+import ShareButton from '../../components/Common/ShareButton';
 import styles from './QuadroAtividades.module.css';
 
 /* ============================================================
@@ -528,6 +529,10 @@ const QuadroAtividadesPage: React.FC = () => {
                             <CalendarDays size={11} />
                             {formatarData(a.criadoEm)}
                           </div>
+                        </div>
+
+                        <div className={styles.cardShare}>
+                          <ShareButton tipo="atividade" id={a.id} titulo={a.titulo} />
                         </div>
 
                         {/* Dropdown */}

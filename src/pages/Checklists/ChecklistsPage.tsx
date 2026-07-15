@@ -15,6 +15,7 @@ import LoadingSpinner from '../../components/Common/LoadingSpinner';
 import EmptyState from '../../components/Common/EmptyState';
 import Pagination from '../../components/Common/Pagination';
 import { usePagination } from '../../hooks/usePagination';
+import ShareButton from '../../components/Common/ShareButton';
 import styles from './Checklists.module.css';
 
 interface ProblemaReport {
@@ -430,6 +431,10 @@ const ChecklistsPage: React.FC = () => {
                       </button>
                     </div>
                   ))}
+                </div>
+
+                <div className={styles.ckShare}>
+                  <ShareButton tipo="checklist" id={ck.id} titulo={ck.local} />
                 </div>
               </div>
             </Card>

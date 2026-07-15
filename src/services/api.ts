@@ -442,6 +442,22 @@ export const quadroAtividades = {
   ...crud('/quadro-atividades'),
   updateStatus: (id: string, status: string) => patch(`/quadro-atividades/${id}/status`, { status }),
 };
+async function publicoRequest<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(`${API_BASE}/publico${path}`, {
+    ...init,
+    headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) },
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error((body as any)?.error || 'Erro ao carregar');
+  return body as T;
+}
+
+export const publico = {
+  get: (tipo: string, id: string) => publicoRequest<any>(`/${tipo}/${id}`),
+  updateStatus: (tipo: string, id: string, data: Record<string, unknown>) =>
+    publicoRequest<any>(`/${tipo}/${id}/status`, { method: 'POST', body: JSON.stringify(data) }),
+};
+
 export const usuarios = {
   ...crud('/usuarios'),
   list: async () => {
