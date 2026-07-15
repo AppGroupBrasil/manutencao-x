@@ -11,7 +11,7 @@ import type { User, UserRole } from '../../types';
 import { ROLE_HIERARCHY } from '../../types';
 import {
   UserPlus, Search, Shield, ShieldOff, Edit2, Trash2, MapPin,
-  Mail, Phone, MoreVertical, Filter
+  Mail, Phone, MoreVertical, Filter, Info
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -251,6 +251,15 @@ const UsuariosPage: React.FC = () => {
       {/* Modal Cadastro */}
       <Modal aberto={modalAberto} onFechar={() => setModalAberto(false)} titulo="Novo Usuário" largura="md">
         <form onSubmit={handleCadastrar} className={styles.form}>
+          <div className={styles.formAviso}>
+            <Info size={18} />
+            <p>
+              Você define o <strong>e-mail</strong> e a <strong>senha</strong> de acesso do seu funcionário
+              e entrega os dois para ele. Com eles, ele entra no aplicativo e executa as ordens de serviço,
+              checklists e atividades atribuídas. Anote a senha antes de salvar: por segurança ela não pode
+              ser consultada depois, apenas redefinida. O funcionário pode trocá-la em <strong>Meu Perfil</strong>.
+            </p>
+          </div>
           <div className={styles.formGroup}>
             <label>Nome completo</label>
             <input value={novoUser.nome} onChange={e => setNovoUser({ ...novoUser, nome: e.target.value })} required />

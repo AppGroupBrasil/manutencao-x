@@ -192,6 +192,30 @@
   gap: 16px;
 }
 
+.formAviso {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--cor-borda);
+  border-left: 3px solid var(--cor-primaria);
+  border-radius: 8px;
+  background: var(--cor-fundo);
+}
+
+.formAviso svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--cor-primaria);
+}
+
+.formAviso p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--cor-texto-secundario);
+}
+
 .formGroup {
   display: flex;
   flex-direction: column;
