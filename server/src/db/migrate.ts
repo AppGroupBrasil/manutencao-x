@@ -23,7 +23,6 @@ async function aplicarSchemaBaseline(client: any): Promise<void> {
   console.log('[MIGRATE] Aplicando schema.sql como baseline (tolerante a objetos existentes)...');
   const sqlIdempotente = sql
     .replace(/CREATE TABLE\s+(?!IF NOT EXISTS)/gi, 'CREATE TABLE IF NOT EXISTS ')
-    .replace(/CREATE TYPE\s+/gi, 'CREATE TYPE IF NOT EXISTS ')
     .replace(/CREATE INDEX\s+(?!IF NOT EXISTS)/gi, 'CREATE INDEX IF NOT EXISTS ')
     .replace(/CREATE UNIQUE INDEX\s+(?!IF NOT EXISTS)/gi, 'CREATE UNIQUE INDEX IF NOT EXISTS ');
 

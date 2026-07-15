@@ -31,6 +31,7 @@ const VistoriaPage = lazyPage(() => import('./pages/Vistorias/VistoriaPage'));
 const QRCodePage = lazyPage(() => import('./pages/QRCode/QRCodePage'));
 const LeitorQRCodePage = lazyPage(() => import('./pages/QRCode/LeitorQRCodePage'));
 const RespostasQRCodePage = lazyPage(() => import('./pages/QRCode/RespostasQRCodePage'));
+const ResponderQRCodePage = lazyPage(() => import('./pages/QRCode/ResponderQRCodePage'));
 const MapaCalorPage = lazyPage(() => import('./pages/MapaCalor/MapaCalorPage'));
 const TarefasPage = lazyPage(() => import('./pages/Tarefas/TarefasPage'));
 const RoteiroExecucaoPage = lazyPage(() => import('./pages/Roteiros/RoteiroExecucaoPage'));
@@ -143,6 +144,9 @@ const App: React.FC = () => {
       <Route path="/esqueci-senha" element={<EsqueciSenhaPage />} />
       <Route path="/sso" element={<SsoPage />} />
       <Route path="/demo/:perfil" element={<DemoEntryPage />} />
+
+      {/* Formulário público via QR Code (sem login) */}
+      <Route path="/qrcode/responder/:id" element={<ResponderQRCodePage />} />
 
       {/* Portal do Morador */}
       <Route path="/portal/login" element={

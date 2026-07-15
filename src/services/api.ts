@@ -412,6 +412,10 @@ export const qrcodes = {
     : request<any[]>('/qrcodes/respostas/all'),
   addResposta: (data: any) => post('/qrcodes/respostas', data),
 };
+export const qrcodesPublic = {
+  get: (id: string) => request<any>(`/qrcodes-public/${id}`),
+  addResposta: (id: string, data: any) => post(`/qrcodes-public/${id}/respostas`, data),
+};
 export const geolocalizacao = {
   list: (data?: string) => request<any[]>(withDateQuery('/geolocalizacao', 'data', data)),
   create: (data: any) => post('/geolocalizacao', data),

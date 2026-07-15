@@ -49,7 +49,7 @@ const OrdensServicoPage: React.FC = () => {
   const [modalNova, setModalNova] = useState(false);
 
   useEffect(() => {
-    Promise.all([osApi.list(), condominiosApi.list()])
+    Promise.all([osApi.list().catch(() => []), condominiosApi.list().catch(() => [])])
       .then(([rows, conds]) => {
         setOrdens(rows.map((r: any) => ({
           id: r.id,
@@ -86,6 +86,15 @@ const OrdensServicoPage: React.FC = () => {
   const [novaPrioridade, setNovaPrioridade] = useState<'baixa' | 'media' | 'alta' | 'urgente'>('media');
   const [novaCond, setNovaCond] = useState('');
   const [novaLocal, setNovaLocal] = useState('');
+
+  useEffect(() => {
+    if (modalNova && condominiosList.length === 0) {
+      condominiosApi.list().then((conds: any[]) => {
+        setCondominiosList(conds);
+        if (conds.length > 0) setNovaCond(conds[0].id);
+      }).catch(() => {});
+    }
+  }, [modalNova]);
 
   const filtered = useMemo(() => {
     return ordens.filter(os => {

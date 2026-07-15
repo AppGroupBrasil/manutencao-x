@@ -16,6 +16,25 @@ router.get('/', async (req: AuthRequest, res: Response) => {
   res.json(rows);
 });
 
+// ── Supervisor Permission ──
+
+// GET /api/qrcodes/supervisor-perm
+router.get('/supervisor-perm', async (req: AuthRequest, res: Response) => {
+  const row = await queryOne(`SELECT valor FROM configuracoes_gerais WHERE chave = 'qrcode_supervisor_autorizado'`);
+  res.json({ autorizado: row?.valor === 'true' });
+});
+
+// PUT /api/qrcodes/supervisor-perm
+router.put('/supervisor-perm', requireMinRole('administrador'), async (req: AuthRequest, res: Response) => {
+  const { autorizado } = req.body;
+  await execute(
+    `INSERT INTO configuracoes_gerais (chave, valor) VALUES ('qrcode_supervisor_autorizado', $1)
+     ON CONFLICT (chave) DO UPDATE SET valor = $1`,
+    [autorizado ? 'true' : 'false']
+  );
+  res.json({ autorizado });
+});
+
 // GET /api/qrcodes/:id
 router.get('/:id', async (req: AuthRequest, res: Response) => {
   const ids: string[] = req.condominioIds!;
@@ -197,25 +216,6 @@ router.patch('/sla/:id', async (req: AuthRequest, res: Response) => {
   }
   const row = await queryOne(sql, [status, req.params.id]);
   res.json(row);
-});
-
-// ── Supervisor Permission ──
-
-// GET /api/qrcodes/supervisor-perm
-router.get('/supervisor-perm', async (req: AuthRequest, res: Response) => {
-  const row = await queryOne(`SELECT valor FROM configuracoes_gerais WHERE chave = 'qrcode_supervisor_autorizado'`);
-  res.json({ autorizado: row?.valor === 'true' });
-});
-
-// PUT /api/qrcodes/supervisor-perm
-router.put('/supervisor-perm', requireMinRole('administrador'), async (req: AuthRequest, res: Response) => {
-  const { autorizado } = req.body;
-  await execute(
-    `INSERT INTO configuracoes_gerais (chave, valor) VALUES ('qrcode_supervisor_autorizado', $1)
-     ON CONFLICT (chave) DO UPDATE SET valor = $1`,
-    [autorizado ? 'true' : 'false']
-  );
-  res.json({ autorizado });
 });
 
 export default router;

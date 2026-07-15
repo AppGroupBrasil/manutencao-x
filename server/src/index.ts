@@ -27,6 +27,7 @@ import antesDepoisRoutes from './routes/antesdepois.js';
 import tarefasRoutes from './routes/tarefas.js';
 import roteirosRoutes from './routes/roteiros.js';
 import qrcodesRoutes from './routes/qrcodes.js';
+import qrcodesPublicRoutes from './routes/qrcodesPublic.js';
 import geoRoutes from './routes/geolocalizacao.js';
 import comunicadosRoutes from './routes/comunicados.js';
 import moradoresRoutes from './routes/moradores.js';
@@ -202,6 +203,7 @@ app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/portal', portalLimiter, portalMoradorRoutes);
 app.use('/api/provisioning', provisioningRoutes);
 app.use('/api/sso', ssoRoutes);
+app.use('/api/qrcodes-public', camelizeBody, qrcodesPublicRoutes);
 
 // ── Rotas protegidas ──
 const protectedRouter = express.Router();

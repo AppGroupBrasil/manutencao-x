@@ -56,19 +56,25 @@ const normalizeMaterial = (material: any): Material => ({
   nome: String(material?.nome ?? ''),
   categoria: String(material?.categoria ?? 'Outros'),
   unidade: String(material?.unidade ?? 'un'),
-  qtd: toSafeNumber(material?.qtd),
-  min: toSafeNumber(material?.min),
-  custo: toSafeNumber(material?.custo),
+  qtd: toSafeNumber(material?.quantidade ?? material?.qtd),
+  min: toSafeNumber(material?.quantidadeMinima ?? material?.min),
+  custo: toSafeNumber(material?.custoUnitario ?? material?.custo),
   emailNotificacao: String(material?.emailNotificacao ?? ''),
-  condominio: String(material?.condominio ?? ''),
+  condominio: String(material?.condominioNome ?? material?.condominio ?? ''),
 });
 
-/* ── Helpers ── */
-const gerarProtocolo = () => {
-  const now = new Date();
-  const p = `MAT-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(Math.floor(Math.random() * 9000) + 1000)}`;
-  return p;
-};
+const normalizeMovimentacao = (mov: any): Movimentacao => ({
+  id: String(mov?.id ?? ''),
+  materialId: String(mov?.materialId ?? ''),
+  tipo: mov?.tipo === 'saida' ? 'saida' : 'entrada',
+  quantidade: toSafeNumber(mov?.quantidade),
+  observacao: String(mov?.observacao ?? ''),
+  audioUrl: mov?.audioUrl ?? null,
+  fotos: Array.isArray(mov?.fotos) ? mov.fotos : [],
+  notaFiscalUrl: mov?.notaFiscalUrl ?? null,
+  data: String(mov?.data ?? ''),
+  funcionario: String(mov?.funcionarioNome ?? mov?.funcionario ?? ''),
+});
 
 const CORES = ['#1a73e8', '#f57c00', '#d32f2f', '#00897b', '#7b1fa2'];
 
@@ -80,13 +86,13 @@ const MateriaisPage: React.FC = () => {
   const { usuario } = useAuth();
   const { tentarAcao } = useDemo();
   const ehGestor = roleNivel >= 2; // supervisor+
-  const [condominiosList, setCondominiosList] = useState<string[]>([]);
-  const CONDOMINIOS = useMemo(() => ['Todos', ...condominiosList], [condominiosList]);
+  const [condominiosList, setCondominiosList] = useState<{ id: string; nome: string }[]>([]);
+  const CONDOMINIOS = useMemo(() => ['Todos', ...condominiosList.map(c => c.nome)], [condominiosList]);
   const [materiais, setMateriais] = useState<Material[]>([]);
   const [movimentacoes, setMovimentacoes] = useState<Movimentacao[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({ nome: '', categoria: 'Limpeza', unidade: 'un', qtd: '', min: '', custo: '', email: '', condominio: 'Residencial Aurora' });
+  const [form, setForm] = useState({ nome: '', categoria: 'Limpeza', unidade: 'un', qtd: '', min: '', custo: '', email: '', condominio: '' });
   const [notificacao, setNotificacao] = useState<{ visivel: boolean; material: string; email: string } | null>(null);
 
   // Filtros
@@ -116,7 +122,9 @@ const MateriaisPage: React.FC = () => {
       condominiosApi.list().catch(() => []),
     ]).then(([mats, conds]) => {
       setMateriais(Array.isArray(mats) ? mats.map(normalizeMaterial) : []);
-      setCondominiosList((conds as any[]).map(c => c.nome));
+      const cl = (conds as any[]).map(c => ({ id: String(c.id), nome: String(c.nome) }));
+      setCondominiosList(cl);
+      if (cl.length > 0) setForm(p => ({ ...p, condominio: cl[0].id }));
     }).catch(console.error).finally(() => setLoading(false));
   }, []);
 
@@ -150,20 +158,21 @@ const MateriaisPage: React.FC = () => {
   /* ── Criar Material ── */
   const criarMaterial = async () => {
     if (!tentarAcao()) return;
-    if (!form.nome.trim() || !form.qtd || !form.min || !form.custo) return;
+    if (!form.nome.trim()) { alert('Informe o nome do material.'); return; }
+    if (!form.condominio) { alert('Selecione um condomínio.'); return; }
     try {
       const criado = await materiaisApi.create({
-        protocolo: gerarProtocolo(),
         nome: form.nome.trim(),
         categoria: form.categoria,
         unidade: form.unidade,
-        qtd: parseInt(form.qtd),
-        min: parseInt(form.min),
-        custo: parseFloat(form.custo),
+        quantidade: parseInt(form.qtd) || 0,
+        quantidadeMinima: parseInt(form.min) || 0,
+        custoUnitario: parseFloat(form.custo) || 0,
         emailNotificacao: form.email.trim(),
-        condominio: form.condominio,
+        condominioId: form.condominio,
       }) as Material;
       const materialCriado = normalizeMaterial(criado);
+      materialCriado.condominio = condominiosList.find(c => c.id === form.condominio)?.nome || materialCriado.condominio;
       setMateriais(prev => [...prev, materialCriado]);
 
       if (!ehGestor) {
@@ -172,9 +181,12 @@ const MateriaisPage: React.FC = () => {
         setTimeout(() => setNotificacao(null), 6000);
       }
 
-      setForm({ nome: '', categoria: 'Limpeza', unidade: 'un', qtd: '', min: '', custo: '', email: '', condominio: condominiosList[0] || 'Residencial Aurora' });
+      setForm({ nome: '', categoria: 'Limpeza', unidade: 'un', qtd: '', min: '', custo: '', email: '', condominio: condominiosList[0]?.id || '' });
       setShowModal(false);
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao cadastrar material. Tente novamente.');
+    }
   };
 
   /* ── Abrir Modal Movimentação ── */
@@ -196,15 +208,16 @@ const MateriaisPage: React.FC = () => {
     }
 
     try {
-      const mov = await materiaisApi.addMovimentacao(movMaterial.id, {
+      const movResp = await materiaisApi.addMovimentacao(movMaterial.id, {
         tipo: movForm.tipo,
         quantidade: qtdNum,
         observacao: movForm.observacao,
         audioUrl: movForm.audioUrl,
         fotos: movForm.fotos,
         notaFiscalUrl: movForm.notaFiscalUrl,
-        funcionario: usuario?.nome || 'Funcionário Atual',
-      }) as Movimentacao;
+        funcionarioNome: usuario?.nome || 'Funcionário Atual',
+      });
+      const mov = normalizeMovimentacao(movResp);
       setMovimentacoes(prev => [...prev, mov]);
       setMateriais(prev => prev.map(m => {
         if (m.id !== movMaterial.id) return m;
@@ -278,7 +291,7 @@ const MateriaisPage: React.FC = () => {
   const abrirHistorico = async (mat: Material) => {
     setHistMaterial(mat);
     try {
-      const movs = await materiaisApi.listMovimentacoes(mat.id) as Movimentacao[];
+      const movs = ((await materiaisApi.listMovimentacoes(mat.id)) as any[]).map(normalizeMovimentacao);
       setMovimentacoes(prev => {
         const outros = prev.filter(m => m.materialId !== mat.id);
         return [...outros, ...movs];
@@ -474,8 +487,8 @@ const MateriaisPage: React.FC = () => {
           <div className={styles.formGroup}>
             <label className={styles.formLabel}>Condomínio</label>
             <select className={styles.formSelect} value={form.condominio} onChange={e => setForm(p => ({ ...p, condominio: e.target.value }))}>
-              {CONDOMINIOS.filter(c => c !== 'Todos').map(c => (
-                <option key={c} value={c}>{c}</option>
+              {condominiosList.map(c => (
+                <option key={c.id} value={c.id}>{c.nome}</option>
               ))}
             </select>
           </div>

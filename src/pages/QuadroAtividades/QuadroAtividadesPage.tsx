@@ -127,6 +127,7 @@ const QuadroAtividadesPage: React.FC = () => {
   const [filtroRotina, setFiltroRotina] = useState<Rotina | ''>('');
   const [loading, setLoading] = useState(true);
   const [condominios, setCondominios] = useState<string[]>([]);
+  const [condominiosData, setCondominiosData] = useState<any[]>([]);
 
   // Modals
   const [modalForm, setModalForm] = useState(false);
@@ -183,13 +184,14 @@ const QuadroAtividadesPage: React.FC = () => {
         prioridade: a.prioridade || 'media',
         rotina: a.rotina || 'diaria',
         dataEspecifica: a.dataEspecifica,
-        responsavel: a.responsavel || '',
-        condominio: a.condominio || '',
+        responsavel: a.responsavelNome || a.responsavel || '',
+        condominio: a.condominioNome || a.condominio || '',
         criadoPor: a.criadoPor || 'Sistema',
         criadoEm: a.criadoEm || new Date().toISOString(),
         historico: a.historico || [],
       })));
       setPermissoes(perm.cadastrar ? perm : PERM_PADRAO);
+      setCondominiosData(conds);
       setCondominios(conds.map((c: any) => c.nome).filter(Boolean));
     }).finally(() => setLoading(false));
   }, []);
@@ -268,21 +270,24 @@ const QuadroAtividadesPage: React.FC = () => {
       const hist = mudouStatus
         ? [...a.historico, { id: gerarId(), data: agora, usuario: usuario?.nome || 'Usuário', statusAnterior: a.status, statusNovo: fStatus }]
         : a.historico;
-      const updated = { titulo: fTitulo.trim(), descricao: fDescricao.trim(), prioridade: fPrioridade, rotina: fRotina, dataEspecifica: fRotina === 'data_especifica' ? fDataEspecifica : undefined, responsavel: fResponsavel.trim(), condominio: fCondominio, status: fStatus, historico: hist };
+      const updated = { titulo: fTitulo.trim(), descricao: fDescricao.trim(), prioridade: fPrioridade, rotina: fRotina, dataEspecifica: fRotina === 'data_especifica' ? fDataEspecifica : undefined, responsavel: fResponsavel.trim(), responsavelNome: fResponsavel.trim(), condominio: fCondominio, status: fStatus, historico: hist };
       try {
         await qaApi.update(editandoId, updated);
         setAtividades(prev => prev.map(x => x.id === editandoId ? { ...x, ...updated } : x));
       } catch {}
     } else {
+      const condId = condominiosData.find((c: any) => c.nome === fCondominio)?.id;
+      if (!condId) return;
       const nova = {
         titulo: fTitulo.trim(), descricao: fDescricao.trim(),
         status: fStatus, prioridade: fPrioridade, rotina: fRotina,
         dataEspecifica: fRotina === 'data_especifica' ? fDataEspecifica : undefined,
-        responsavel: fResponsavel.trim(), condominio: fCondominio,
+        responsavel: fResponsavel.trim(), responsavelNome: fResponsavel.trim(),
+        condominio: fCondominio, condominioId: condId,
       };
       try {
         const created = await qaApi.create(nova);
-        setAtividades(prev => [{ ...created, historico: created.historico || [], criadoPor: created.criadoPor || usuario?.nome || 'Sistema', criadoEm: created.criadoEm || agora }, ...prev]);
+        setAtividades(prev => [{ ...created, ...nova, historico: created.historico || [], criadoPor: usuario?.nome || 'Sistema', criadoEm: created.criadoEm || agora }, ...prev]);
       } catch {}
     }
     setModalForm(false);

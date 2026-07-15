@@ -8,7 +8,7 @@ import { diaSemanaLabel } from '../../utils/dateUtils';
 import { Plus, CalendarCheck, BookOpen, Columns3, Calendar } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useDemo } from '../../contexts/DemoContext';
-import { escalas as escalasApi, tarefas as tarefasApi, roteiros as roteirosApi, quadroAtividades as quadroApi } from '../../services/api';
+import { escalas as escalasApi, tarefas as tarefasApi, roteiros as roteirosApi, quadroAtividades as quadroApi, condominios as condominiosApi } from '../../services/api';
 import LoadingSpinner from '../../components/Common/LoadingSpinner';
 import EmptyState from '../../components/Common/EmptyState';
 import Pagination from '../../components/Common/Pagination';
@@ -80,7 +80,8 @@ const EscalasPage: React.FC = () => {
   const [dadosLogs, setDadosLogs] = useState<any[]>([]);
   const [dadosQuadro, setDadosQuadro] = useState<any[]>([]);
   const [showModal, setShowModal] = useState(false);
-  const [novaEscala, setNovaEscala] = useState({ func: '', dia: '1', inicio: '08:00', fim: '17:00', local: '', funcao: 'Limpeza', observacoes: '' });
+  const [condominiosList, setCondominiosList] = useState<any[]>([]);
+  const [novaEscala, setNovaEscala] = useState({ cond: '', func: '', dia: '1', inicio: '08:00', fim: '17:00', local: '', funcao: 'Limpeza', observacoes: '' });
 
   useEffect(() => {
     Promise.all([
@@ -88,7 +89,10 @@ const EscalasPage: React.FC = () => {
       tarefasApi.list().catch(() => []),
       roteirosApi.list().catch(() => []),
       quadroApi.list().catch(() => []),
-    ]).then(([esc, tar, rot, qdr]) => {
+      condominiosApi.list().catch(() => []),
+    ]).then(([esc, tar, rot, qdr, conds]) => {
+      setCondominiosList(conds as any[]);
+      if ((conds as any[]).length > 0) setNovaEscala(p => ({ ...p, cond: (conds as any[])[0].id }));
       setEscalas((esc as any[]).map((e: any) => ({ id: e.id, func: e.funcionarioNome || '', dia: e.diaSemana, inicio: e.horaInicio, fim: e.horaFim, local: e.local || '', funcao: e.funcao || '', observacoes: e.observacoes || '' })));
       setDadosTarefas(tar as any[]);
       setDadosRoteiros(rot as any[]);
@@ -120,9 +124,10 @@ const EscalasPage: React.FC = () => {
 
   const adicionarEscala = async () => {
     if (!tentarAcao()) return;
-    if (!novaEscala.func.trim() || !novaEscala.local.trim()) return;
+    if (!novaEscala.func.trim() || !novaEscala.local.trim() || !novaEscala.cond) return;
     try {
       const created = await escalasApi.create({
+        condominioId: novaEscala.cond,
         funcionarioNome: novaEscala.func.trim(),
         diaSemana: parseInt(novaEscala.dia),
         horaInicio: novaEscala.inicio,
@@ -133,7 +138,7 @@ const EscalasPage: React.FC = () => {
       });
       const nova: Escala = { id: (created as any).id, func: novaEscala.func.trim(), dia: parseInt(novaEscala.dia), inicio: novaEscala.inicio, fim: novaEscala.fim, local: novaEscala.local.trim(), funcao: novaEscala.funcao, observacoes: novaEscala.observacoes.trim() };
       setEscalas(prev => [...prev, nova]);
-      setNovaEscala({ func: '', dia: '1', inicio: '08:00', fim: '17:00', local: '', funcao: 'Limpeza', observacoes: '' });
+      setNovaEscala({ cond: condominiosList[0]?.id || '', func: '', dia: '1', inicio: '08:00', fim: '17:00', local: '', funcao: 'Limpeza', observacoes: '' });
       setShowModal(false);
     } catch (err) { console.error(err); }
   };
@@ -279,6 +284,12 @@ const EscalasPage: React.FC = () => {
 
       <Modal aberto={showModal} onFechar={() => setShowModal(false)} titulo="Nova Escala" largura="md">
         <div className={styles.formGrid}>
+          <div className={styles.formGroup}>
+            <label className={styles.formLabel}>Condomínio</label>
+            <select className={styles.formSelect} value={novaEscala.cond} onChange={e => setNovaEscala(p => ({ ...p, cond: e.target.value }))}>
+              {condominiosList.map((c: any) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+            </select>
+          </div>
           <div className={styles.formGroup}>
             <label className={styles.formLabel}>Funcionário</label>
             <input className={styles.formInput} placeholder="Nome do funcionário" value={novaEscala.func} onChange={e => setNovaEscala(p => ({ ...p, func: e.target.value }))} />

@@ -103,6 +103,7 @@ const TarefasPage: React.FC = () => {
   const [execucoes, setExecucoes] = useState<ExecucaoTarefa[]>([]);
   const [funcionarios, setFuncionarios] = useState<{id:string;nome:string}[]>(FUNCIONARIOS_FALLBACK);
   const [condominiosNomes, setCondominiosNomes] = useState<string[]>([]);
+  const [condominiosData, setCondominiosData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -116,6 +117,7 @@ const TarefasPage: React.FC = () => {
       setExecucoes(execs as ExecucaoTarefa[]);
       const mappedUsers = (usrs as any[]).map(u => ({ id: u.id, nome: u.nome }));
       if (mappedUsers.length > 0) setFuncionarios(mappedUsers);
+      setCondominiosData(conds as any[]);
       setCondominiosNomes((conds as any[]).map(c => c.nome));
     }).catch(console.error).finally(() => setLoading(false));
   }, []);
@@ -141,12 +143,15 @@ const TarefasPage: React.FC = () => {
     if (!tentarAcao()) return;
     if (!formTitulo || !formFuncionario || !formCondominio) return;
     const func = funcionarios.find(f => f.id === formFuncionario);
+    const condId = condominiosData.find((c: any) => c.nome === formCondominio)?.id;
+    if (!condId) return;
     const payload = {
       titulo: formTitulo,
       descricao: formDescricao,
       funcionarioId: formFuncionario,
       funcionarioNome: func?.nome || '',
       condominio: formCondominio,
+      condominioId: condId,
       bloco: formBloco,
       local: formLocal,
       recorrencia: formRecorrencia,
