@@ -5,6 +5,7 @@ import { AuthRequest } from '../middleware/auth.js';
 import { requireMinRole } from '../middleware/rbac.js';
 import { validate, usuarioUpdateSchema, usuarioBloquearSchema, usuarioResetSenhaSchema } from '../middleware/validation.js';
 import { auditLog } from '../middleware/helpers.js';
+import { revokeAllForUser } from '../services/refreshToken.js';
 
 const router = Router();
 
@@ -21,13 +22,13 @@ router.get('/', requireMinRole('supervisor'), async (req: AuthRequest, res: Resp
 
   if (user.role === 'master') {
     result = await paginate(
-      `SELECT ${cols} FROM usuarios ORDER BY nome`, [], page, pageSize
+      `SELECT ${cols} FROM usuarios WHERE ativo = true ORDER BY nome`, [], page, pageSize
     );
   } else if (user.role === 'administrador') {
     result = await paginate(
       `SELECT ${cols}
-       FROM usuarios WHERE administrador_id = $1 OR id = $1
-         OR (administrador_id IS NULL AND role = 'funcionario')
+       FROM usuarios WHERE ativo = true AND (administrador_id = $1 OR id = $1
+         OR (administrador_id IS NULL AND role = 'funcionario'))
        ORDER BY nome`,
       [user.id], page, pageSize
     );
@@ -35,7 +36,7 @@ router.get('/', requireMinRole('supervisor'), async (req: AuthRequest, res: Resp
     const colsSup = cols.replace(', motivo_bloqueio', '');
     result = await paginate(
       `SELECT ${colsSup}
-       FROM usuarios WHERE supervisor_id = $1 OR id = $1 ORDER BY nome`,
+       FROM usuarios WHERE ativo = true AND (supervisor_id = $1 OR id = $1) ORDER BY nome`,
       [user.id], page, pageSize
     );
   }
@@ -88,8 +89,9 @@ router.put('/:id', requireMinRole('administrador'), validate(usuarioUpdateSchema
   if (req.user!.role !== 'master' && ROLE_LEVEL[target.role] >= ROLE_LEVEL[req.user!.role]) {
     res.status(403).json({ error: 'Sem permissão para alterar este usuário' }); return;
   }
-  // Admin can only modify users in own hierarchy
-  if (req.user!.role === 'administrador' && target.administrador_id !== req.user!.id) {
+  // Admin can only modify users in own hierarchy (or orphan funcionarios, same rule do GET)
+  if (req.user!.role === 'administrador' && target.administrador_id !== req.user!.id
+      && !(target.administrador_id === null && target.role === 'funcionario')) {
     res.status(403).json({ error: 'Usuário fora do seu escopo' }); return;
   }
   // Novo role precisa ser estritamente inferior ao do caller (master pode tudo abaixo de master)
@@ -98,9 +100,11 @@ router.put('/:id', requireMinRole('administrador'), validate(usuarioUpdateSchema
   }
 
   const row = await queryOne(
-    `UPDATE usuarios SET nome=$1, role=$2, ativo=$3, condominio_id=$4, supervisor_id=$5, telefone=$6, cargo=$7
-     WHERE id=$8 RETURNING id, email, nome, role, ativo, condominio_id, supervisor_id`,
-    [nome, role, ativo, condominioId, supervisorId, telefone, cargo, req.params.id]
+    `UPDATE usuarios SET nome=$1, role=$2, ativo=$3,
+       condominio_id=COALESCE($4, condominio_id), supervisor_id=COALESCE($5, supervisor_id),
+       telefone=COALESCE($6, telefone), cargo=COALESCE($7, cargo)
+     WHERE id=$8 RETURNING id, email, nome, role, ativo, condominio_id, supervisor_id, telefone, cargo`,
+    [nome, role, ativo, condominioId ?? null, supervisorId ?? null, telefone ?? null, cargo ?? null, req.params.id]
   );
   await auditLog(req.user!, 'usuario_atualizado', 'usuarios', req.params.id, { nome, role, ativo }).catch(() => {});
   res.json(row);
@@ -181,12 +185,17 @@ router.patch('/:id/reset-senha', requireMinRole('administrador'), validate(usuar
 
 // DELETE /api/usuarios/:id
 router.delete('/:id', requireMinRole('administrador'), async (req: AuthRequest, res: Response) => {
-  const target = await queryOne<any>('SELECT role FROM usuarios WHERE id = $1', [req.params.id]);
+  const target = await queryOne<any>('SELECT role, administrador_id FROM usuarios WHERE id = $1', [req.params.id]);
   if (!target) { res.status(404).json({ error: 'Usuário não encontrado' }); return; }
   if (ROLE_LEVEL[target.role] >= ROLE_LEVEL[req.user!.role]) {
     res.status(403).json({ error: 'Sem permissão para alterar este usuário' }); return;
   }
+  if (req.user!.role === 'administrador' && target.administrador_id !== req.user!.id
+      && !(target.administrador_id === null && target.role === 'funcionario')) {
+    res.status(403).json({ error: 'Usuário fora do seu escopo' }); return;
+  }
   await execute('UPDATE usuarios SET ativo = false WHERE id = $1', [req.params.id]);
+  await revokeAllForUser(req.params.id).catch(() => {});
   await auditLog(req.user!, 'usuario_desativado', 'usuarios', req.params.id, { role: target.role }).catch(() => {});
   res.json({ ok: true });
 });

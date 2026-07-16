@@ -39,6 +39,33 @@ const tipoIcon: Record<string, React.ReactNode> = {
   preventiva: <Calendar size={16} color="#f57c00" />,
 };
 
+const mapOS = (r: any): OSComProtocolo => {
+  const abertura = r.dataAbertura ?? r.data_abertura;
+  const previsao = r.dataPrevisao ?? r.data_previsao;
+  const conclusao = r.dataConclusao ?? r.data_conclusao;
+  return {
+    id: r.id,
+    protocolo: r.protocolo,
+    condominioId: r.condominioId ?? r.condominio_id,
+    titulo: r.titulo,
+    descricao: r.descricao || '',
+    tipo: r.tipo,
+    prioridade: r.prioridade,
+    status: r.status,
+    local: r.local || '',
+    responsavelId: r.responsavelId ?? r.responsavel_id,
+    supervisorId: r.supervisorId ?? r.supervisor_id,
+    fotos: r.fotos || [],
+    observacoes: r.observacoes || '',
+    dataAbertura: abertura ? new Date(abertura).getTime() : Date.now(),
+    dataPrevisao: previsao ? new Date(previsao).getTime() : undefined,
+    dataConclusao: conclusao ? new Date(conclusao).getTime() : undefined,
+    criadoPor: r.criadoPor ?? r.criado_por,
+    avaliacaoNota: r.avaliacaoNota ?? r.avaliacao_nota,
+    avaliacaoComentario: r.avaliacaoComentario ?? r.avaliacao_comentario,
+  };
+};
+
 const OrdensServicoPage: React.FC = () => {
   const { podeCriar, podeEditar } = usePermissions();
   const { tentarAcao } = useDemo();
@@ -52,27 +79,8 @@ const OrdensServicoPage: React.FC = () => {
   useEffect(() => {
     Promise.all([osApi.list().catch(() => []), condominiosApi.list().catch(() => [])])
       .then(([rows, conds]) => {
-        setOrdens(rows.map((r: any) => ({
-          id: r.id,
-          protocolo: r.protocolo,
-          condominioId: r.condominioId,
-          titulo: r.titulo,
-          descricao: r.descricao || '',
-          tipo: r.tipo,
-          prioridade: r.prioridade,
-          status: r.status,
-          local: r.local || '',
-          responsavelId: r.responsavelId,
-          supervisorId: r.supervisorId,
-          fotos: r.fotos || [],
-          observacoes: r.observacoes || '',
-          dataAbertura: r.dataAbertura ? new Date(r.dataAbertura).getTime() : Date.now(),
-          dataPrevisao: r.dataPrevisao ? new Date(r.dataPrevisao).getTime() : undefined,
-          dataConclusao: r.dataConclusao ? new Date(r.dataConclusao).getTime() : undefined,
-          criadoPor: r.criadoPor,
-          avaliacaoNota: r.avaliacaoNota,
-          avaliacaoComentario: r.avaliacaoComentario,
-        })));
+        const lista = Array.isArray(rows) ? rows : (rows as any)?.data ?? [];
+        setOrdens(lista.map(mapOS));
         setCondominiosList(conds);
         if (conds.length > 0) setNovaCond(conds[0].id);
       })
@@ -145,22 +153,7 @@ const OrdensServicoPage: React.FC = () => {
         prioridade: novaPrioridade,
         local: novaLocal.trim(),
       } as any);
-      const nova: OSComProtocolo = {
-        id: created.id,
-        protocolo: created.protocolo,
-        condominioId: created.condominioId,
-        titulo: created.titulo,
-        descricao: created.descricao || '',
-        tipo: created.tipo,
-        prioridade: created.prioridade,
-        status: created.status,
-        local: created.local || '',
-        fotos: [],
-        observacoes: '',
-        dataAbertura: created.dataAbertura ? new Date(created.dataAbertura).getTime() : Date.now(),
-        criadoPor: created.criadoPor,
-      };
-      setOrdens(prev => [nova, ...prev]);
+      setOrdens(prev => [mapOS(created), ...prev]);
       setNovaTitulo(''); setNovaDesc(''); setNovaTipo('limpeza');
       setNovaPrioridade('media'); setNovaCond(condominiosList[0]?.id || ''); setNovaLocal('');
       setModalNova(false);

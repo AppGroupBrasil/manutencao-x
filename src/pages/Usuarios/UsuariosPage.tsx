@@ -34,7 +34,7 @@ const roleLabel: Record<string, string> = {
 
 const UsuariosPage: React.FC = () => {
   const { usuario } = useAuth();
-  const { podeBloquear, podeEditar, podeExcluir, hierarquiaSuperior } = usePermissions();
+  const { podeBloquear, podeExcluir, hierarquiaSuperior } = usePermissions();
   const { tentarAcao } = useDemo();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,7 +42,12 @@ const UsuariosPage: React.FC = () => {
   const [filtroRole, setFiltroRole] = useState<string>('todos');
   const [modalAberto, setModalAberto] = useState(false);
   const [modalDetalhes, setModalDetalhes] = useState<User | null>(null);
+  const [modalEditar, setModalEditar] = useState<User | null>(null);
+  const [editForm, setEditForm] = useState({ nome: '', telefone: '', cargo: '', role: 'funcionario' as UserRole });
+  const [salvandoEdicao, setSalvandoEdicao] = useState(false);
   const [novoUser, setNovoUser] = useState({ nome: '', email: '', senha: '', role: 'funcionario' as UserRole, cargo: '' });
+
+  const podeGerenciarUsuario = usuario?.role === 'master' || usuario?.role === 'administrador';
 
   useEffect(() => {
     usuariosApi.list().then((data: any[]) => {
@@ -53,14 +58,15 @@ const UsuariosPage: React.FC = () => {
         role: u.role || 'funcionario',
         ativo: u.ativo !== false,
         bloqueado: u.bloqueado || false,
-        motivoBloqueio: u.motivoBloqueio,
-        criadoPor: u.criadoPor,
-        administradorId: u.administradorId,
-        supervisorId: u.supervisorId,
+        motivoBloqueio: u.motivoBloqueio ?? u.motivo_bloqueio,
+        criadoPor: u.criadoPor ?? u.criado_por,
+        administradorId: u.administradorId ?? u.administrador_id,
+        supervisorId: u.supervisorId ?? u.supervisor_id,
+        condominioId: u.condominioId ?? u.condominio_id,
         cargo: u.cargo,
         telefone: u.telefone,
-        criadoEm: u.criadoEm ? new Date(u.criadoEm).getTime() : Date.now(),
-        atualizadoEm: u.atualizadoEm ? new Date(u.atualizadoEm).getTime() : Date.now(),
+        criadoEm: (u.criadoEm ?? u.criado_em) ? new Date(u.criadoEm ?? u.criado_em).getTime() : Date.now(),
+        atualizadoEm: (u.atualizadoEm ?? u.atualizado_em) ? new Date(u.atualizadoEm ?? u.atualizado_em).getTime() : Date.now(),
       })));
     }).catch(() => {}).finally(() => setLoading(false));
   }, []);
@@ -97,7 +103,9 @@ const UsuariosPage: React.FC = () => {
     try {
       await usuariosApi.bloquear(user.id, !user.bloqueado, user.bloqueado ? undefined : 'Inadimplência');
       setUsers(prev => prev.map(u => u.id === user.id ? { ...u, bloqueado: !u.bloqueado } : u));
-    } catch {}
+    } catch (err: any) {
+      alert(err?.error || err?.message || 'Erro ao bloquear/desbloquear usuário.');
+    }
   };
 
   const handleExcluir = async (user: User) => {
@@ -106,7 +114,44 @@ const UsuariosPage: React.FC = () => {
       try {
         await usuariosApi.remove(user.id);
         setUsers(prev => prev.filter(u => u.id !== user.id));
-      } catch {}
+      } catch (err: any) {
+        alert(err?.error || err?.message || 'Erro ao excluir usuário.');
+      }
+    }
+  };
+
+  const abrirEdicao = (user: User) => {
+    setEditForm({ nome: user.nome, telefone: user.telefone || '', cargo: user.cargo || '', role: user.role });
+    setModalEditar(user);
+  };
+
+  const handleEditar = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!modalEditar || !tentarAcao()) return;
+    setSalvandoEdicao(true);
+    try {
+      await usuariosApi.update(modalEditar.id, {
+        nome: editForm.nome.trim(),
+        role: editForm.role,
+        ativo: modalEditar.ativo,
+        condominioId: modalEditar.condominioId,
+        supervisorId: modalEditar.supervisorId,
+        telefone: editForm.telefone.trim(),
+        cargo: editForm.cargo.trim(),
+      } as any);
+      setUsers(prev => prev.map(u => u.id === modalEditar.id ? {
+        ...u,
+        nome: editForm.nome.trim(),
+        role: editForm.role,
+        telefone: editForm.telefone.trim(),
+        cargo: editForm.cargo.trim(),
+        atualizadoEm: Date.now(),
+      } : u));
+      setModalEditar(null);
+    } catch (err: any) {
+      alert(err?.error || err?.message || 'Erro ao salvar alterações.');
+    } finally {
+      setSalvandoEdicao(false);
     }
   };
 
@@ -200,8 +245,8 @@ const UsuariosPage: React.FC = () => {
                 </div>
               )}
               <div className={styles.userActions}>
-                {podeEditar() && hierarquiaSuperior(user.role) && (
-                  <button className={styles.actionBtn} title="Editar" onClick={e => { e.stopPropagation(); }}>
+                {podeGerenciarUsuario && hierarquiaSuperior(user.role) && (
+                  <button className={styles.actionBtn} title="Editar" onClick={e => { e.stopPropagation(); abrirEdicao(user); }}>
                     <Edit2 size={14} />
                   </button>
                 )}
@@ -288,6 +333,43 @@ const UsuariosPage: React.FC = () => {
           </div>
           <button type="submit" className={styles.submitBtn}>Cadastrar Usuário</button>
         </form>
+      </Modal>
+
+      {/* Modal Edição */}
+      <Modal aberto={!!modalEditar} onFechar={() => setModalEditar(null)} titulo="Editar Usuário" largura="md">
+        {modalEditar && (
+          <form onSubmit={handleEditar} className={styles.form}>
+            <div className={styles.formGroup}>
+              <label>Nome completo</label>
+              <input value={editForm.nome} onChange={e => setEditForm({ ...editForm, nome: e.target.value })} required minLength={2} />
+            </div>
+            <div className={styles.formGroup}>
+              <label>E-mail (não editável)</label>
+              <input value={modalEditar.email} disabled />
+            </div>
+            <div className={styles.formRow}>
+              <div className={styles.formGroup}>
+                <label>Perfil</label>
+                <select value={editForm.role} onChange={e => setEditForm({ ...editForm, role: e.target.value as UserRole })}>
+                  <option value="funcionario">Funcionário</option>
+                  <option value="supervisor">Supervisor</option>
+                  {usuario?.role === 'master' && <option value="administrador">Administrador</option>}
+                </select>
+              </div>
+              <div className={styles.formGroup}>
+                <label>Cargo</label>
+                <input value={editForm.cargo} onChange={e => setEditForm({ ...editForm, cargo: e.target.value })} />
+              </div>
+            </div>
+            <div className={styles.formGroup}>
+              <label>Telefone</label>
+              <input value={editForm.telefone} onChange={e => setEditForm({ ...editForm, telefone: e.target.value })} />
+            </div>
+            <button type="submit" className={styles.submitBtn} disabled={salvandoEdicao}>
+              {salvandoEdicao ? 'Salvando...' : 'Salvar Alterações'}
+            </button>
+          </form>
+        )}
       </Modal>
 
       {/* Modal Detalhes */}

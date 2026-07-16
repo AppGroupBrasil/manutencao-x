@@ -92,8 +92,10 @@ const fetchFallbackOs = async (): Promise<CalendarEvent[]> => {
     const osList = extrairLista(await ordensServico.list());
     const eventos: CalendarEvent[] = [];
     for (const os of osList) {
-      if (os.dataAbertura) eventos.push({ id: os.id, titulo: os.titulo, data: os.dataAbertura.slice(0, 10), tipo: 'os', status: os.status, prioridade: os.prioridade });
-      if (os.dataPrevisao) eventos.push({ id: `${os.id}-prev`, titulo: `[Previsão] ${os.titulo}`, data: os.dataPrevisao.slice(0, 10), tipo: 'os', status: os.status });
+      const abertura = os.dataAbertura ?? os.data_abertura;
+      const previsao = os.dataPrevisao ?? os.data_previsao;
+      if (abertura) eventos.push({ id: os.id, titulo: os.titulo, data: String(abertura).slice(0, 10), tipo: 'os', status: os.status, prioridade: os.prioridade });
+      if (previsao) eventos.push({ id: `${os.id}-prev`, titulo: `[Previsão] ${os.titulo}`, data: String(previsao).slice(0, 10), tipo: 'os', status: os.status });
     }
     return eventos;
   } catch {

@@ -355,11 +355,13 @@ export const condominios = {
 };
 export const ordensServico = {
   ...crud('/ordens-servico'),
-  list: (params?: { page?: number; pageSize?: number }) => {
-    const qs = params ? '?' + new URLSearchParams(
-      Object.entries(params).filter(([, v]) => v != null).map(([k, v]) => [k, String(v)])
-    ).toString() : '';
-    return request<any>(`/ordens-servico${qs}`);
+  list: async (params?: { page?: number; pageSize?: number }) => {
+    const p = params ?? { pageSize: 100 };
+    const qs = '?' + new URLSearchParams(
+      Object.entries(p).filter(([, v]) => v != null).map(([k, v]) => [k, String(v)])
+    ).toString();
+    const res = await request<any>(`/ordens-servico${qs}`);
+    return Array.isArray(res) ? res : res.data ?? [];
   },
   updateStatus: (id: string, status: string) => patch(`/ordens-servico/${id}/status`, { status }),
   avaliar: (id: string, nota: number, comentario?: string) => patch(`/ordens-servico/${id}/avaliacao`, { nota, comentario }),
