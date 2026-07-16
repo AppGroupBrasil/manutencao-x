@@ -202,7 +202,7 @@ export const vistoriaSchema = z.object({
 // ── Inspeções ──
 export const inspecaoSchema = z.object({
   condominioId: z.string().uuid('ID do condomínio inválido'),
-  tipo: z.string().min(1, 'Tipo obrigatório').max(100),
+  tipo: z.enum(['areas_comuns', 'elevadores', 'piscina', 'garagem', 'jardim', 'fachada']),
   local: z.string().max(255).optional().nullable(),
 }).passthrough();
 
@@ -360,25 +360,25 @@ export const orcamentoItemSchema = z.object({
   tipo: z.enum(['material', 'servico', 'mao_de_obra']).optional(),
   quantidade: z.number().min(0).optional(),
   unidade: z.string().max(30).optional(),
-  valor_unitario: z.number().min(0).optional(),
+  valorUnitario: z.number().min(0).optional(),
 });
 
 export const orcamentoSchema = z.object({
-  condominio_id: z.string().uuid('ID do condomínio inválido'),
+  condominioId: z.string().uuid('ID do condomínio inválido'),
   titulo: z.string().min(3, 'Título deve ter no mínimo 3 caracteres').max(255),
-  cliente_nome: z.string().max(255).optional().nullable(),
-  cliente_telefone: z.string().max(30).optional().nullable(),
-  cliente_email: z.string().max(255).optional().nullable(),
-  cliente_endereco: z.string().max(500).optional().nullable(),
-  descricao_geral: z.string().max(5000).optional().nullable(),
+  clienteNome: z.string().max(255).optional().nullable(),
+  clienteTelefone: z.string().max(30).optional().nullable(),
+  clienteEmail: z.string().max(255).optional().nullable(),
+  clienteEndereco: z.string().max(500).optional().nullable(),
+  descricaoGeral: z.string().max(5000).optional().nullable(),
   observacoes: z.string().max(5000).optional().nullable(),
-  condicoes_pagamento: z.string().max(500).optional().nullable(),
-  validade_dias: z.number().int().min(1).max(365).optional(),
-  prazo_execucao: z.string().max(255).optional().nullable(),
-  desconto_tipo: z.enum(['nenhum', 'percentual', 'valor']).optional(),
-  desconto_valor: z.number().min(0).optional(),
-  logo_url: z.string().max(500).optional().nullable(),
-  os_referencia: z.string().max(255).optional().nullable(),
+  condicoesPagamento: z.string().max(500).optional().nullable(),
+  validadeDias: z.number().int().min(1).max(365).optional(),
+  prazoExecucao: z.string().max(255).optional().nullable(),
+  descontoTipo: z.enum(['nenhum', 'percentual', 'valor']).optional(),
+  descontoValor: z.number().min(0).optional(),
+  logoUrl: z.string().max(500).optional().nullable(),
+  osReferencia: z.string().max(255).optional().nullable(),
   itens: z.array(orcamentoItemSchema).max(100).optional(),
   fotos: z.array(z.object({
     url: z.string().max(500),

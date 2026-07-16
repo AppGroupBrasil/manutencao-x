@@ -502,7 +502,7 @@ export const atribuicoes = {
 };
 
 export const notificacoes = {
-  list: () => request<any[]>('/notificacoes'),
+  list: () => request<any>('/notificacoes').then((res: any) => (Array.isArray(res) ? res : res.data ?? [])),
   unreadCount: () => request<{ count: number }>('/notificacoes/unread-count'),
   markRead: (id: string) => patch('/notificacoes/' + id + '/read', {}),
   markAllRead: () => post('/notificacoes/read-all', {}),
@@ -757,7 +757,7 @@ export const portal = {
   changeSenha: (senhaAtual: string, novaSenha: string) =>
     portalPut('/senha', { senha_atual: senhaAtual, nova_senha: novaSenha }),
   resumo: () => portalRequest<any>('/resumo'),
-  comunicados: () => portalRequest<any[]>('/comunicados'),
+  comunicados: () => portalRequest<any>('/comunicados').then((res: any) => (Array.isArray(res) ? res : res.data ?? [])),
   solicitacoes: () => portalRequest<any[]>('/solicitacoes'),
   getSolicitacao: (id: number) => portalRequest<any>(`/solicitacoes/${id}`),
   criarSolicitacao: (data: any) => portalPost('/solicitacoes', data),

@@ -75,7 +75,7 @@ router.post('/', validate(orcamentoSchema), async (req: AuthRequest, res: Respon
   const ids: string[] = req.condominioIds!;
   const b = req.body;
 
-  if (!ids.includes(b.condominio_id)) {
+  if (!ids.includes(b.condominioId)) {
     res.status(403).json({ error: 'Sem permissão para este condomínio' }); return;
   }
 
@@ -85,9 +85,9 @@ router.post('/', validate(orcamentoSchema), async (req: AuthRequest, res: Respon
        prazo_execucao, desconto_tipo, desconto_valor, logo_url, os_referencia, criado_por)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
      RETURNING *`,
-    [b.condominio_id, b.titulo, b.cliente_nome, b.cliente_telefone, b.cliente_email,
-     b.cliente_endereco, b.descricao_geral, b.observacoes, b.condicoes_pagamento, b.validade_dias || 30,
-     b.prazo_execucao, b.desconto_tipo || 'nenhum', b.desconto_valor || 0, b.logo_url, b.os_referencia,
+    [b.condominioId, b.titulo, b.clienteNome, b.clienteTelefone, b.clienteEmail,
+     b.clienteEndereco, b.descricaoGeral, b.observacoes, b.condicoesPagamento, b.validadeDias || 30,
+     b.prazoExecucao, b.descontoTipo || 'nenhum', b.descontoValor || 0, b.logoUrl, b.osReferencia,
      req.user!.id]
   );
 
@@ -95,11 +95,11 @@ router.post('/', validate(orcamentoSchema), async (req: AuthRequest, res: Respon
   if (Array.isArray(b.itens)) {
     for (let i = 0; i < b.itens.length; i++) {
       const it = b.itens[i];
-      const vtotal = (it.quantidade || 1) * (it.valor_unitario || 0);
+      const vtotal = (it.quantidade || 1) * (it.valorUnitario || 0);
       await execute(
         `INSERT INTO orcamento_itens (orcamento_id, descricao, tipo, quantidade, unidade, valor_unitario, valor_total, ordem)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-        [orc.id, it.descricao, it.tipo || 'servico', it.quantidade || 1, it.unidade || 'un', it.valor_unitario || 0, vtotal, i]
+        [orc.id, it.descricao, it.tipo || 'servico', it.quantidade || 1, it.unidade || 'un', it.valorUnitario || 0, vtotal, i]
       );
     }
   }
@@ -136,10 +136,10 @@ router.put('/:id', validate(orcamentoSchema), async (req: AuthRequest, res: Resp
        validade_dias=$9, prazo_execucao=$10, desconto_tipo=$11, desconto_valor=$12,
        logo_url=$13, os_referencia=$14, atualizado_em=NOW()
      WHERE id=$15`,
-    [b.titulo, b.cliente_nome, b.cliente_telefone, b.cliente_email,
-     b.cliente_endereco, b.descricao_geral, b.observacoes, b.condicoes_pagamento,
-     b.validade_dias || 30, b.prazo_execucao, b.desconto_tipo || 'nenhum', b.desconto_valor || 0,
-     b.logo_url, b.os_referencia, req.params.id]
+    [b.titulo, b.clienteNome, b.clienteTelefone, b.clienteEmail,
+     b.clienteEndereco, b.descricaoGeral, b.observacoes, b.condicoesPagamento,
+     b.validadeDias || 30, b.prazoExecucao, b.descontoTipo || 'nenhum', b.descontoValor || 0,
+     b.logoUrl, b.osReferencia, req.params.id]
   );
 
   // Substituir itens
@@ -147,11 +147,11 @@ router.put('/:id', validate(orcamentoSchema), async (req: AuthRequest, res: Resp
   if (Array.isArray(b.itens)) {
     for (let i = 0; i < b.itens.length; i++) {
       const it = b.itens[i];
-      const vtotal = (it.quantidade || 1) * (it.valor_unitario || 0);
+      const vtotal = (it.quantidade || 1) * (it.valorUnitario || 0);
       await execute(
         `INSERT INTO orcamento_itens (orcamento_id, descricao, tipo, quantidade, unidade, valor_unitario, valor_total, ordem)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-        [req.params.id, it.descricao, it.tipo || 'servico', it.quantidade || 1, it.unidade || 'un', it.valor_unitario || 0, vtotal, i]
+        [req.params.id, it.descricao, it.tipo || 'servico', it.quantidade || 1, it.unidade || 'un', it.valorUnitario || 0, vtotal, i]
       );
     }
   }
@@ -223,9 +223,13 @@ router.get('/:id/pdf', async (req: AuthRequest, res: Response) => {
   const fotos = await query('SELECT * FROM orcamento_fotos WHERE orcamento_id = $1 ORDER BY ordem', [orc.id]);
 
   const doc = new PDFDocument({ size: 'A4', margin: 50, bufferPages: true });
-  res.setHeader('Content-Type', 'application/pdf');
-  res.setHeader('Content-Disposition', `inline; filename=Orcamento-${orc.numero}.pdf`);
-  doc.pipe(res);
+  const chunks: Buffer[] = [];
+  doc.on('data', (c: Buffer) => chunks.push(c));
+  doc.on('end', () => {
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename=Orcamento-${orc.numero}.pdf`);
+    res.send(Buffer.concat(chunks));
+  });
 
   // ── Cabeçalho ──
   const fmtBRL = (v: number) => (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });

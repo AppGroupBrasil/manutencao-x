@@ -5,6 +5,8 @@ import { AuthRequest } from '../middleware/auth.js';
 
 const router = Router();
 
+const num = (v: unknown) => Number(v) || 0;
+
 // ── GET /api/pdf/ordem-servico/:id — gerar PDF de uma OS
 router.get('/ordem-servico/:id', async (req: AuthRequest, res: Response) => {
   const ids: string[] = req.condominioIds!;
@@ -24,10 +26,13 @@ router.get('/ordem-servico/:id', async (req: AuthRequest, res: Response) => {
   }
 
   const doc = new PDFDocument({ size: 'A4', margin: 50 });
-
-  res.setHeader('Content-Type', 'application/pdf');
-  res.setHeader('Content-Disposition', `inline; filename=OS-${os.protocolo}.pdf`);
-  doc.pipe(res);
+  const chunks: Buffer[] = [];
+  doc.on('data', (c: Buffer) => chunks.push(c));
+  doc.on('end', () => {
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename=OS-${os.protocolo}.pdf`);
+    res.send(Buffer.concat(chunks));
+  });
 
   // Header
   doc.fontSize(20).font('Helvetica-Bold').text('Ordem de Serviço', { align: 'center' });
@@ -61,10 +66,10 @@ router.get('/ordem-servico/:id', async (req: AuthRequest, res: Response) => {
   // Custos
   doc.font('Helvetica-Bold').fontSize(12).text('Custos');
   doc.moveDown(0.3);
-  label('Material:'); value(`R$ ${(os.custo_material || 0).toFixed(2)}`);
-  label('Mão de Obra:'); value(`R$ ${(os.custo_mao_obra || 0).toFixed(2)}`);
-  label('Terceiros:'); value(`R$ ${(os.custo_terceiros || 0).toFixed(2)}`);
-  label('Total:'); value(`R$ ${((os.custo_material || 0) + (os.custo_mao_obra || 0) + (os.custo_terceiros || 0)).toFixed(2)}`);
+  label('Material:'); value(`R$ ${num(os.custo_material).toFixed(2)}`);
+  label('Mão de Obra:'); value(`R$ ${num(os.custo_mao_obra).toFixed(2)}`);
+  label('Terceiros:'); value(`R$ ${num(os.custo_terceiros).toFixed(2)}`);
+  label('Total:'); value(`R$ ${(num(os.custo_material) + num(os.custo_mao_obra) + num(os.custo_terceiros)).toFixed(2)}`);
 
   if (os.tempo_execucao_min) {
     label('Tempo Execução:'); value(`${os.tempo_execucao_min} min`);
@@ -140,10 +145,13 @@ router.get('/relatorio-mensal', async (req: AuthRequest, res: Response) => {
   );
 
   const doc = new PDFDocument({ size: 'A4', margin: 50 });
-
-  res.setHeader('Content-Type', 'application/pdf');
-  res.setHeader('Content-Disposition', `inline; filename=Relatorio-${mes}.pdf`);
-  doc.pipe(res);
+  const chunks: Buffer[] = [];
+  doc.on('data', (c: Buffer) => chunks.push(c));
+  doc.on('end', () => {
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename=Relatorio-${mes}.pdf`);
+    res.send(Buffer.concat(chunks));
+  });
 
   doc.fontSize(20).font('Helvetica-Bold').text('Relatório Mensal de Manutenção', { align: 'center' });
   doc.fontSize(12).font('Helvetica').text(`Período: ${mes}`, { align: 'center' });
