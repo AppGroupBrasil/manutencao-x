@@ -67,7 +67,7 @@ const mapOS = (r: any): OSComProtocolo => {
 };
 
 const OrdensServicoPage: React.FC = () => {
-  const { podeCriar, podeEditar } = usePermissions();
+  const { podeCriar, podeEditar, roleNivel } = usePermissions();
   const { tentarAcao } = useDemo();
   const [ordens, setOrdens] = useState<OSComProtocolo[]>([]);
   const [condominiosList, setCondominiosList] = useState<any[]>([]);
@@ -95,6 +95,25 @@ const OrdensServicoPage: React.FC = () => {
   const [novaPrioridade, setNovaPrioridade] = useState<'baixa' | 'media' | 'alta' | 'urgente'>('media');
   const [novaCond, setNovaCond] = useState('');
   const [novaLocal, setNovaLocal] = useState('');
+  const [salvandoAuto, setSalvandoAuto] = useState(false);
+
+  const condSelecionada = condominiosList.find((c: any) => c.id === novaCond);
+  const autoNotificar = !!(condSelecionada?.osAutoNotificar ?? condSelecionada?.os_auto_notificar);
+
+  const alternarAutoNotificar = async () => {
+    if (!condSelecionada || salvandoAuto) return;
+    if (!tentarAcao()) return;
+    setSalvandoAuto(true);
+    try {
+      await condominiosApi.setOsAutoNotificar(condSelecionada.id, !autoNotificar);
+      setCondominiosList(prev => prev.map((c: any) =>
+        c.id === condSelecionada.id
+          ? { ...c, osAutoNotificar: !autoNotificar, os_auto_notificar: !autoNotificar }
+          : c
+      ));
+    } catch { alert('Erro ao salvar configuração.'); }
+    finally { setSalvandoAuto(false); }
+  };
 
   useEffect(() => {
     if (modalNova && condominiosList.length === 0) {
@@ -361,6 +380,22 @@ const OrdensServicoPage: React.FC = () => {
               <input placeholder="Ex: Bloco A - 3º andar" value={novaLocal} onChange={e => setNovaLocal(e.target.value)} />
             </div>
           </div>
+          {roleNivel >= 3 && (
+            <label className={styles.autoNotifRow}>
+              <input
+                type="checkbox"
+                checked={autoNotificar}
+                disabled={salvandoAuto || !condSelecionada}
+                onChange={alternarAutoNotificar}
+              />
+              <span>
+                <strong>Envio automático para funcionários</strong>
+                {autoNotificar
+                  ? ' — ao criar a O.S., todos os funcionários deste condomínio recebem notificação no aplicativo.'
+                  : ' — desligado: compartilhe a O.S. via link, WhatsApp ou app pelo botão Compartilhar.'}
+              </span>
+            </label>
+          )}
           <button type="button" className={styles.submitBtn} onClick={criarOS}>
             <Plus size={18} /> Criar Ordem de Serviço
           </button>

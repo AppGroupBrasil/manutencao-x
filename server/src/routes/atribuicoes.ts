@@ -4,6 +4,7 @@ import { AuthRequest } from '../middleware/auth.js';
 import { requireMinRole } from '../middleware/rbac.js';
 import { validate, atribuirSchema } from '../middleware/validation.js';
 import { createNotification, auditLog } from '../middleware/helpers.js';
+import { sendPush } from '../services/push.js';
 
 const router = Router();
 
@@ -66,6 +67,11 @@ router.post('/', requireMinRole('supervisor'), validate(atribuirSchema), async (
     'info',
     `/x/${tipo}/${id}`
   ).catch(() => {});
+  await sendPush(userId, {
+    title: cfg.notifTitulo,
+    body: item.titulo || cfg.rotulo,
+    url: `/x/${tipo}/${id}`,
+  }).catch(() => {});
   await auditLog(caller, 'atribuicao_enviada', cfg.tabela, id, { userId }).catch(() => {});
 
   res.json({ ok: true, nome: destino.nome });

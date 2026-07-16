@@ -2,6 +2,8 @@ import { Router, Response } from 'express';
 import { query, queryOne, execute, paginate } from '../db/database.js';
 import { AuthRequest } from '../middleware/auth.js';
 import { validate, ordemServicoSchema, ordemServicoStatusSchema, ordemServicoAvaliacaoSchema, ordemServicoUpdateSchema } from '../middleware/validation.js';
+import { createNotification } from '../middleware/helpers.js';
+import { sendPush } from '../services/push.js';
 
 const router = Router();
 
@@ -12,6 +14,19 @@ function gerarProtocolo(): string {
   const d = String(now.getDate()).padStart(2, '0');
   const r = String(Math.floor(Math.random() * 9999)).padStart(4, '0');
   return `OS-${y}${m}${d}-${r}`;
+}
+
+async function notificarFuncionariosAuto(osId: string, titulo: string, condominioId: string) {
+  const cond = await queryOne<any>('SELECT os_auto_notificar FROM condominios WHERE id = $1', [condominioId]);
+  if (!cond?.os_auto_notificar) return;
+  const funcionarios = await query<{ id: string }>(
+    `SELECT id FROM usuarios WHERE condominio_id = $1 AND role = 'funcionario' AND ativo = true AND bloqueado = false`,
+    [condominioId]
+  );
+  for (const f of funcionarios) {
+    await createNotification(f.id, 'Nova Ordem de Serviço', titulo, 'info', `/x/os/${osId}`).catch(() => {});
+    await sendPush(f.id, { title: 'Nova Ordem de Serviço', body: titulo, url: `/x/os/${osId}` }).catch(() => {});
+  }
 }
 
 // GET /api/ordens-servico
@@ -71,6 +86,7 @@ router.post('/', validate(ordemServicoSchema), async (req: AuthRequest, res: Res
     }
   }
   if (!row) { res.status(500).json({ error: 'Não foi possível gerar protocolo único' }); return; }
+  notificarFuncionariosAuto(String(row.id), titulo, condominioId).catch(() => {});
   res.status(201).json(row);
 });
 

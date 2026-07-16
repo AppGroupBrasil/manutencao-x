@@ -345,6 +345,10 @@ export const condominioStatusSchema = z.object({
   valorMensalidade: z.number().min(0).optional().nullable(),
 });
 
+export const condominioOsAutoSchema = z.object({
+  ativo: z.boolean(),
+});
+
 // ── Bloquear usuário ──
 export const usuarioBloquearSchema = z.object({
   bloqueado: z.boolean(),

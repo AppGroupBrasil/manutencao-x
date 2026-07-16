@@ -59,7 +59,7 @@ export async function sendPush(userId: string, payload: { title: string; body: s
     [userId]
   );
 
-  const data = JSON.stringify(payload);
+  const data = JSON.stringify({ titulo: payload.title, corpo: payload.body, url: payload.url, icon: payload.icon });
 
   for (const row of subs) {
     try {

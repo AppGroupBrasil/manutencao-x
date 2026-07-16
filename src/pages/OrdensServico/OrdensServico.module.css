@@ -309,6 +309,23 @@
   border-color: var(--cor-primaria);
 }
 
+.autoNotifRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--cor-fundo, #f5f6fa);
+  font-size: 13px;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.autoNotifRow input {
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
 .submitBtn {
   padding: 12px;
   border: none;

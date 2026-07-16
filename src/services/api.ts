@@ -352,6 +352,7 @@ function crud<T = any>(basePath: string) {
 export const condominios = {
   ...crud('/condominios'),
   patchStatus: (id: string, data: any) => patch(`/condominios/${id}/status`, data),
+  setOsAutoNotificar: (id: string, ativo: boolean) => patch(`/condominios/${id}/os-auto-notificar`, { ativo }),
 };
 export const ordensServico = {
   ...crud('/ordens-servico'),

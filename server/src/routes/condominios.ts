@@ -3,7 +3,7 @@ import { query, queryOne, execute } from '../db/database.js';
 import { AuthRequest } from '../middleware/auth.js';
 import { requireMinRole, requireRole } from '../middleware/rbac.js';
 import { auditLog } from '../middleware/helpers.js';
-import { validate, condominioSchema, condominioStatusSchema } from '../middleware/validation.js';
+import { validate, condominioSchema, condominioStatusSchema, condominioOsAutoSchema } from '../middleware/validation.js';
 
 const router = Router();
 
@@ -68,6 +68,21 @@ router.put('/:id', requireMinRole('administrador'), validate(condominioSchema), 
      WHERE id=$15 RETURNING *`,
     [nome, endereco, cidade, estado, cep, cnpj || null, sindico, telefone, email, blocos, unidades, logoUrl || null, loginTitulo || null, loginSubtitulo || null, req.params.id]
   );
+  res.json(row);
+});
+
+// PATCH /api/condominios/:id/os-auto-notificar — chave de envio automático de OS aos funcionários
+router.patch('/:id/os-auto-notificar', requireMinRole('administrador'), validate(condominioOsAutoSchema), async (req: AuthRequest, res: Response) => {
+  const ids: string[] = req.condominioIds!;
+  if (!ids.includes(req.params.id)) {
+    res.status(403).json({ error: 'Sem acesso a este condomínio' });
+    return;
+  }
+  const row = await queryOne(
+    'UPDATE condominios SET os_auto_notificar = $1 WHERE id = $2 RETURNING id, os_auto_notificar',
+    [req.body.ativo === true, req.params.id]
+  );
+  await auditLog(req.user!, 'os_auto_notificar', 'condominios', req.params.id, { ativo: req.body.ativo === true }).catch(() => {});
   res.json(row);
 });
 
