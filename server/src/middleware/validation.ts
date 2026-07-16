@@ -317,7 +317,7 @@ export const portalSolicitacaoSchema = z.object({
 
 // ── Ordens de Serviço extras ──
 export const ordemServicoStatusSchema = z.object({
-  status: z.enum(['aberta', 'em_andamento', 'pausada', 'concluida', 'cancelada']),
+  status: z.enum(['aberta', 'em_andamento', 'aguardando', 'concluida', 'cancelada']),
 });
 export const ordemServicoAvaliacaoSchema = z.object({
   nota: z.number().int().min(1).max(5),
@@ -334,6 +334,12 @@ export const ordemServicoUpdateSchema = z.object({
   observacoes: z.string().max(5000).optional().nullable(),
   fotos: z.array(z.string().url().max(500)).max(20).optional(),
   dataPrevisao: z.string().max(30).optional().nullable(),
+  equipamentoId: z.string().uuid().optional().nullable(),
+  fornecedorId: z.string().uuid().optional().nullable(),
+  planoId: z.string().uuid().optional().nullable(),
+  custoMaterial: z.number().min(0).optional().nullable(),
+  custoMaoObra: z.number().min(0).optional().nullable(),
+  custoExterno: z.number().min(0).optional().nullable(),
 }).strict();
 
 // ── Condomínios PATCH status ──
