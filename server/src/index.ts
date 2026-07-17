@@ -342,6 +342,11 @@ app.use((err: any, req: express.Request, res: express.Response, _next: express.N
     res.status(403).json({ error: 'Origem não autorizada' });
     return;
   }
+  // PostgreSQL invalid input (enum/data/uuid) → friendly 400
+  if (err.code === '22P02' || err.code === '22007' || err.code === '22008') {
+    res.status(400).json({ error: 'Valor inválido em um dos campos enviados' });
+    return;
+  }
   // PostgreSQL FK violation → friendly 409
   if (err.code === '23503') {
     res.status(409).json({ error: 'Não é possível realizar esta operação pois existem registros vinculados' });

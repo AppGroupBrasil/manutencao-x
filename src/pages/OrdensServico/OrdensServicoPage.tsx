@@ -182,10 +182,10 @@ const OrdensServicoPage: React.FC = () => {
   return (
     <div id="os-content">
       <HowItWorks
-        titulo="Orden de Serviço"
-        descricao="Gerencie toda as ordens de serviço de manutenção predial dos condomínios. Acompanhe status, prioridade, responsáveis e avaliações."
+        titulo="Ordens de Serviço"
+        descricao="Gerencie todas as ordens de serviço de manutenção predial dos condomínios. Acompanhe status, prioridade, responsáveis e avaliações."
         passos={[
-          'Crie uma nova O.S. clicando no botão sNova O.S.s',
+          'Crie uma nova O.S. clicando no botão "Nova O.S."',
           'Preencha tipo (limpeza, manutenção, emergência ou preventiva)',
           'Defina a prioridade e o local no condomínio',
           'Atribua um responsável e supervisor',
@@ -196,7 +196,7 @@ const OrdensServicoPage: React.FC = () => {
 
       {loading ? <LoadingSpinner /> : <>
       <PageHeader
-        titulo="Orden de Serviço"
+        titulo="Ordens de Serviço"
         subtitulo={`${ordens.length} ordens registradas`}
         onCompartilhar={() => compartilharConteudo('Ordens de Serviço', `Total: ${ordens.length} ordens`)}
         onImprimir={() => imprimirElemento('os-content')}

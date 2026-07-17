@@ -30,6 +30,35 @@ async function notificarFuncionariosAuto(osId: string, titulo: string, condomini
   }
 }
 
+async function validarReferencias(req: AuthRequest, condominioId: string): Promise<string | null> {
+  const { responsavelId, supervisorId, equipamentoId, fornecedorId, planoId } = req.body;
+  for (const userId of [responsavelId, supervisorId]) {
+    if (!userId || userId === req.user!.id) continue;
+    const alvo = await queryOne<any>(
+      'SELECT condominio_id, administrador_id, supervisor_id FROM usuarios WHERE id = $1 AND ativo = true',
+      [userId]
+    );
+    const ok = alvo && (
+      req.user!.role === 'master' ||
+      (alvo.condominio_id && req.condominioIds!.includes(alvo.condominio_id)) ||
+      alvo.administrador_id === req.user!.id ||
+      alvo.supervisor_id === req.user!.id
+    );
+    if (!ok) return 'Responsável ou supervisor fora do seu escopo';
+  }
+  const refs: Array<[string | null | undefined, string, string]> = [
+    [equipamentoId, 'equipamentos', 'Equipamento'],
+    [fornecedorId, 'fornecedores', 'Fornecedor'],
+    [planoId, 'planos_manutencao', 'Plano'],
+  ];
+  for (const [refId, tabela, rotulo] of refs) {
+    if (!refId) continue;
+    const row = await queryOne(`SELECT 1 FROM ${tabela} WHERE id = $1 AND condominio_id = $2`, [refId, condominioId]);
+    if (!row) return `${rotulo} não pertence a este condomínio`;
+  }
+  return null;
+}
+
 // GET /api/ordens-servico
 router.get('/', async (req: AuthRequest, res: Response) => {
   const ids: string[] = req.condominioIds!;
@@ -73,6 +102,8 @@ router.post('/', requireMinRole('supervisor'), validate(ordemServicoSchema), asy
     res.status(403).json({ error: 'Sem acesso a este condomínio' });
     return;
   }
+  const erroRef = await validarReferencias(req, condominioId);
+  if (erroRef) { res.status(403).json({ error: erroRef }); return; }
   let row: Record<string, unknown> | null = null;
   for (let attempt = 0; attempt < 5; attempt++) {
     const protocolo = gerarProtocolo();
@@ -98,7 +129,11 @@ router.post('/', requireMinRole('supervisor'), validate(ordemServicoSchema), asy
 router.patch('/:id/status', validate(ordemServicoStatusSchema), async (req: AuthRequest, res: Response) => {
   const ids: string[] = req.condominioIds!;
   const { status } = req.body;
-  const extra = status === 'concluida' ? ', data_conclusao = NOW()' : '';
+  if (status === 'cancelada' && req.user!.role === 'funcionario') {
+    res.status(403).json({ error: 'Sem permissão para cancelar OS' });
+    return;
+  }
+  const extra = status === 'concluida' ? ', data_conclusao = NOW()' : ', data_conclusao = NULL';
   const row = await queryOne(
     `UPDATE ordens_servico SET status = $1 ${extra} WHERE id = $2 AND condominio_id = ANY($3) RETURNING *`,
     [status, req.params.id, ids]
@@ -130,6 +165,13 @@ const COLUNAS_OS: Record<string, string> = {
 
 router.put('/:id', requireMinRole('supervisor'), validate(ordemServicoUpdateSchema), async (req: AuthRequest, res: Response) => {
   const ids: string[] = req.condominioIds!;
+  const os = await queryOne<{ condominio_id: string }>(
+    'SELECT condominio_id FROM ordens_servico WHERE id = $1 AND condominio_id = ANY($2)',
+    [req.params.id, ids]
+  );
+  if (!os) { res.status(404).json({ error: 'OS não encontrada' }); return; }
+  const erroRef = await validarReferencias(req, os.condominio_id);
+  if (erroRef) { res.status(403).json({ error: erroRef }); return; }
   const fields: string[] = [];
   const values: any[] = [];
   let idx = 1;
@@ -143,6 +185,7 @@ router.put('/:id', requireMinRole('supervisor'), validate(ordemServicoUpdateSche
     values
   );
   if (!row) { res.status(404).json({ error: 'OS não encontrada' }); return; }
+  await auditLog(req.user!, 'os_atualizada', 'ordens_servico', req.params.id, { campos: Object.keys(req.body) }).catch(() => {});
   res.json(row);
 });
 

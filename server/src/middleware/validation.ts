@@ -63,7 +63,7 @@ export const ordemServicoSchema = z.object({
   condominioId: z.string().uuid('ID do condomínio inválido'),
   titulo: z.string().min(3, 'Título deve ter no mínimo 3 caracteres').max(255),
   descricao: z.string().max(5000).optional().nullable(),
-  tipo: z.string().max(100).optional(),
+  tipo: z.enum(['limpeza', 'manutencao', 'emergencia', 'preventiva']).optional(),
   prioridade: z.enum(['baixa', 'media', 'alta', 'urgente']).optional(),
   local: z.string().max(255).optional().nullable(),
   responsavelId: z.string().uuid().optional().nullable(),
@@ -74,7 +74,7 @@ export const ordemServicoSchema = z.object({
   custoMaterial: z.number().min(0).optional().nullable(),
   custoMaoObra: z.number().min(0).optional().nullable(),
   custoExterno: z.number().min(0).optional().nullable(),
-  dataPrevisao: z.string().max(30).optional().nullable(),
+  dataPrevisao: z.string().max(30).refine(v => !isNaN(Date.parse(v)), 'Data de previsão inválida').optional().nullable(),
 });
 
 export const condominioSchema = z.object({
@@ -326,14 +326,14 @@ export const ordemServicoAvaliacaoSchema = z.object({
 export const ordemServicoUpdateSchema = z.object({
   titulo: z.string().min(3).max(255).optional(),
   descricao: z.string().max(5000).optional().nullable(),
-  tipo: z.string().max(100).optional(),
+  tipo: z.enum(['limpeza', 'manutencao', 'emergencia', 'preventiva']).optional(),
   prioridade: z.enum(['baixa', 'media', 'alta', 'urgente']).optional(),
   local: z.string().max(255).optional().nullable(),
   responsavelId: z.string().uuid().optional().nullable(),
   supervisorId: z.string().uuid().optional().nullable(),
   observacoes: z.string().max(5000).optional().nullable(),
   fotos: z.array(z.string().url().max(500)).max(20).optional(),
-  dataPrevisao: z.string().max(30).optional().nullable(),
+  dataPrevisao: z.string().max(30).refine(v => !isNaN(Date.parse(v)), 'Data de previsão inválida').optional().nullable(),
   equipamentoId: z.string().uuid().optional().nullable(),
   fornecedorId: z.string().uuid().optional().nullable(),
   planoId: z.string().uuid().optional().nullable(),
