@@ -7,6 +7,7 @@ import { checkRateLimit, recordLoginAttempt, auditLog, createNotification } from
 import { issueRefreshToken, consumeRefreshToken, revokeAllForUser } from '../services/refreshToken.js';
 import { sendEmail, emailResetSenha } from '../services/email.js';
 import { validate, loginSchema, registerSchema, selfRegisterSchema, forgotPasswordSchema, resetPasswordSchema, changePasswordSchema } from '../middleware/validation.js';
+import { getCondominiosScope } from '../middleware/rbac.js';
 
 const router = Router();
 
@@ -87,6 +88,14 @@ router.post('/register', authMiddleware, validate(registerSchema), async (req: A
     if ((roleLevel[role] ?? 0) >= (roleLevel[caller.role] ?? 0)) {
       res.status(403).json({ error: 'Não pode criar usuário com role igual ou superior' });
       return;
+    }
+
+    if (condominioId) {
+      const escopo = await getCondominiosScope(caller);
+      if (!escopo.includes(condominioId)) {
+        res.status(403).json({ error: 'Condomínio fora do seu escopo' });
+        return;
+      }
     }
 
     const exists = await queryOne<any>(

@@ -98,6 +98,9 @@ router.put('/:id', requireMinRole('administrador'), validate(usuarioUpdateSchema
   if ((ROLE_LEVEL[role] ?? 0) >= (ROLE_LEVEL[req.user!.role] ?? 0)) {
     res.status(403).json({ error: 'Não pode atribuir role igual ou superior ao seu' }); return;
   }
+  if (condominioId && !req.condominioIds!.includes(condominioId)) {
+    res.status(403).json({ error: 'Condomínio fora do seu escopo' }); return;
+  }
 
   const row = await queryOne(
     `UPDATE usuarios SET nome=$1, role=$2, ativo=$3,

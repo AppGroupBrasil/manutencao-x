@@ -18,7 +18,7 @@ import {
   PieChart, Pie, Cell
 } from 'recharts';
 import { useDemo } from '../../contexts/DemoContext';
-import { auth, usuarios as usuariosApi } from '../../services/api';
+import { auth, usuarios as usuariosApi, condominios as condominiosApi } from '../../services/api';
 import styles from './Usuarios.module.css';
 
 
@@ -43,9 +43,10 @@ const UsuariosPage: React.FC = () => {
   const [modalAberto, setModalAberto] = useState(false);
   const [modalDetalhes, setModalDetalhes] = useState<User | null>(null);
   const [modalEditar, setModalEditar] = useState<User | null>(null);
-  const [editForm, setEditForm] = useState({ nome: '', telefone: '', cargo: '', role: 'funcionario' as UserRole });
+  const [editForm, setEditForm] = useState({ nome: '', telefone: '', cargo: '', role: 'funcionario' as UserRole, condominioId: '' });
   const [salvandoEdicao, setSalvandoEdicao] = useState(false);
-  const [novoUser, setNovoUser] = useState({ nome: '', email: '', senha: '', role: 'funcionario' as UserRole, cargo: '' });
+  const [novoUser, setNovoUser] = useState({ nome: '', email: '', senha: '', role: 'funcionario' as UserRole, cargo: '', condominioId: '' });
+  const [conds, setConds] = useState<{ id: string; nome: string }[]>([]);
 
   const podeGerenciarUsuario = usuario?.role === 'master' || usuario?.role === 'administrador';
 
@@ -69,6 +70,11 @@ const UsuariosPage: React.FC = () => {
         atualizadoEm: (u.atualizadoEm ?? u.atualizado_em) ? new Date(u.atualizadoEm ?? u.atualizado_em).getTime() : Date.now(),
       })));
     }).catch(() => {}).finally(() => setLoading(false));
+    condominiosApi.list().then((data: any[]) => {
+      const lista = (Array.isArray(data) ? data : []).map((c: any) => ({ id: c.id, nome: c.nome }));
+      setConds(lista);
+      if (lista.length === 1) setNovoUser(prev => ({ ...prev, condominioId: lista[0].id }));
+    }).catch(() => {});
   }, []);
 
   const chartRoles = [
@@ -88,10 +94,10 @@ const UsuariosPage: React.FC = () => {
     e.preventDefault();
     if (!tentarAcao()) return;
     try {
-      const created = await auth.register(novoUser);
-      setUsers(prev => [{ ...created, criadoEm: Date.now(), atualizadoEm: Date.now(), ativo: true, bloqueado: false }, ...prev.filter(u => u.id !== created.id)]);
+      const created = await auth.register({ ...novoUser, condominioId: novoUser.condominioId || undefined });
+      setUsers(prev => [{ ...created, condominioId: novoUser.condominioId || undefined, criadoEm: Date.now(), atualizadoEm: Date.now(), ativo: true, bloqueado: false }, ...prev.filter(u => u.id !== created.id)]);
       setModalAberto(false);
-      setNovoUser({ nome: '', email: '', senha: '', role: 'funcionario', cargo: '' });
+      setNovoUser({ nome: '', email: '', senha: '', role: 'funcionario', cargo: '', condominioId: conds.length === 1 ? conds[0].id : '' });
     } catch (err: any) {
       const msg = err?.error || err?.message || 'Erro ao cadastrar usuário.';
       alert(msg);
@@ -121,7 +127,7 @@ const UsuariosPage: React.FC = () => {
   };
 
   const abrirEdicao = (user: User) => {
-    setEditForm({ nome: user.nome, telefone: user.telefone || '', cargo: user.cargo || '', role: user.role });
+    setEditForm({ nome: user.nome, telefone: user.telefone || '', cargo: user.cargo || '', role: user.role, condominioId: user.condominioId || '' });
     setModalEditar(user);
   };
 
@@ -134,7 +140,7 @@ const UsuariosPage: React.FC = () => {
         nome: editForm.nome.trim(),
         role: editForm.role,
         ativo: modalEditar.ativo,
-        condominioId: modalEditar.condominioId,
+        condominioId: editForm.condominioId || modalEditar.condominioId || null,
         supervisorId: modalEditar.supervisorId,
         telefone: editForm.telefone.trim(),
         cargo: editForm.cargo.trim(),
@@ -145,6 +151,7 @@ const UsuariosPage: React.FC = () => {
         role: editForm.role,
         telefone: editForm.telefone.trim(),
         cargo: editForm.cargo.trim(),
+        condominioId: editForm.condominioId || u.condominioId,
         atualizadoEm: Date.now(),
       } : u));
       setModalEditar(null);
@@ -331,6 +338,15 @@ const UsuariosPage: React.FC = () => {
               <input value={novoUser.cargo} onChange={e => setNovoUser({ ...novoUser, cargo: e.target.value })} />
             </div>
           </div>
+          {novoUser.role !== 'administrador' && (
+            <div className={styles.formGroup}>
+              <label>Condomínio</label>
+              <select value={novoUser.condominioId} onChange={e => setNovoUser({ ...novoUser, condominioId: e.target.value })} required>
+                <option value="">Selecione o condomínio</option>
+                {conds.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+              </select>
+            </div>
+          )}
           <button type="submit" className={styles.submitBtn}>Cadastrar Usuário</button>
         </form>
       </Modal>
@@ -365,6 +381,15 @@ const UsuariosPage: React.FC = () => {
               <label>Telefone</label>
               <input value={editForm.telefone} onChange={e => setEditForm({ ...editForm, telefone: e.target.value })} />
             </div>
+            {editForm.role !== 'administrador' && (
+              <div className={styles.formGroup}>
+                <label>Condomínio</label>
+                <select value={editForm.condominioId} onChange={e => setEditForm({ ...editForm, condominioId: e.target.value })} required>
+                  <option value="">Selecione o condomínio</option>
+                  {conds.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                </select>
+              </div>
+            )}
             <button type="submit" className={styles.submitBtn} disabled={salvandoEdicao}>
               {salvandoEdicao ? 'Salvando...' : 'Salvar Alterações'}
             </button>
