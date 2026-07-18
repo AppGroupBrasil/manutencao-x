@@ -47,7 +47,7 @@ npm run build                # produção
 - JWT_SECRET obrigatório (>=32 chars), boot falha sem ele.
 - SSL Postgres com `rejectUnauthorized` opcional via `DB_SSL_STRICT`.
 - Auto-migrator no startup (tabela `schema_migrations`).
-- Senha mínima 8 chars.
+- Senha: mínimo 6 caracteres, apenas números (padrão dos apps do usuário).
 - Rate-limit configurável (`RATE_LIMIT_ENABLED`).
 - xlsx → exceljs.
 - Sentry opcional via `SENTRY_DSN`.
