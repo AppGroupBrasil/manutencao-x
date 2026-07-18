@@ -42,7 +42,7 @@ router.put('/senha', async (req: AuthRequest, res: Response) => {
   try {
     const { senhaAtual, novaSenha } = req.body;
     if (!senhaAtual || !novaSenha) { res.status(400).json({ error: 'Senha atual e nova são obrigatórias' }); return; }
-    if (novaSenha.length < 6) { res.status(400).json({ error: 'A nova senha deve ter no mínimo 6 caracteres' }); return; }
+    if (typeof novaSenha !== 'string' || !/^\d{6}$/.test(novaSenha)) { res.status(400).json({ error: 'A senha deve ter exatamente 6 números' }); return; }
 
     const user = await queryOne<any>('SELECT senha_hash FROM usuarios WHERE id = $1', [req.user!.id]);
     if (!user) { res.status(404).json({ error: 'Usuário não encontrado' }); return; }

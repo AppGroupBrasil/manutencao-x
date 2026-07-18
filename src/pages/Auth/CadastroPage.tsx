@@ -25,8 +25,8 @@ const CadastroPage: React.FC = () => {
       setErro('Preencha todos os campos obrigatórios.');
       return;
     }
-    if (senha.length < 6) {
-      setErro('A senha deve ter no mínimo 6 caracteres.');
+    if (!/^\d{6}$/.test(senha)) {
+      setErro('A senha deve ter exatamente 6 números.');
       return;
     }
     if (senha !== confirmarSenha) {
@@ -152,7 +152,7 @@ const CadastroPage: React.FC = () => {
                 <Lock size={18} className={styles.inputIcon} />
                 <input
                   type={mostrarSenha ? 'text' : 'password'}
-                  placeholder="Mínimo 6 caracteres"
+                  placeholder="6 números"
                   value={senha}
                   onChange={e => setSenha(e.target.value)}
                   autoComplete="new-password"

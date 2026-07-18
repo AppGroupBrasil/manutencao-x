@@ -54,8 +54,8 @@ const PortalPerfilPage: React.FC<Props> = ({ morador: moradorProp, onUpdate }) =
       setSenhaErro('Senhas não conferem');
       return;
     }
-    if (senhaForm.novaSenha.length < 6) {
-      setSenhaErro('Nova senha deve ter pelo menos 6 caracteres');
+    if (!/^\d{6}$/.test(senhaForm.novaSenha)) {
+      setSenhaErro('A senha deve ter exatamente 6 números');
       return;
     }
     try {

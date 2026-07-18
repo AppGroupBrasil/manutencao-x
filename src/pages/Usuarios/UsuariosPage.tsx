@@ -322,7 +322,7 @@ const UsuariosPage: React.FC = () => {
           </div>
           <div className={styles.formGroup}>
             <label>Senha</label>
-            <input type="password" value={novoUser.senha} onChange={e => setNovoUser({ ...novoUser, senha: e.target.value })} required minLength={6} />
+            <input type="password" value={novoUser.senha} onChange={e => setNovoUser({ ...novoUser, senha: e.target.value })} required pattern="\d{6}" maxLength={6} title="A senha deve ter exatamente 6 números" />
           </div>
           <div className={styles.formRow}>
             <div className={styles.formGroup}>

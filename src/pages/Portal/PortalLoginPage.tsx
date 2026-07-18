@@ -35,8 +35,8 @@ const PortalLoginPage: React.FC<PortalLoginPageProps> = ({ onLogin }) => {
   const handlePrimeiroAcesso = async (e: React.FormEvent) => {
     e.preventDefault();
     setErro('');
-    if (senha.length < 6) {
-      setErro('Senha deve ter pelo menos 6 caracteres');
+    if (!/^\d{6}$/.test(senha)) {
+      setErro('A senha deve ter exatamente 6 números');
       return;
     }
     setCarregando(true);
@@ -120,9 +120,9 @@ const PortalLoginPage: React.FC<PortalLoginPageProps> = ({ onLogin }) => {
                 type="password"
                 value={senha}
                 onChange={e => setSenha(e.target.value)}
-                placeholder="Mínimo 6 caracteres"
+                placeholder="6 números"
                 required
-                minLength={6}
+                maxLength={6}
               />
             </div>
             <button className={styles.loginBtn} type="submit" disabled={carregando}>

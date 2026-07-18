@@ -35,7 +35,7 @@ const PerfilPage: React.FC = () => {
 
   const salvarSenha = async () => {
     if (senhaForm.novaSenha !== senhaForm.confirmar) { setMsg({ tipo: 'erro', texto: 'As senhas não coincidem' }); return; }
-    if (senhaForm.novaSenha.length < 6) { setMsg({ tipo: 'erro', texto: 'A nova senha deve ter no mínimo 6 caracteres' }); return; }
+    if (!/^\d{6}$/.test(senhaForm.novaSenha)) { setMsg({ tipo: 'erro', texto: 'A senha deve ter exatamente 6 números' }); return; }
     setSalvando(true); setMsg(null);
     try {
       await perfilApi.changeSenha(senhaForm.senhaAtual, senhaForm.novaSenha);
@@ -128,7 +128,7 @@ const PerfilPage: React.FC = () => {
           </div>
           <div className={styles.formGroup}>
             <label>Nova Senha</label>
-            <input type="password" value={senhaForm.novaSenha} onChange={e => setSenhaForm(p => ({ ...p, novaSenha: e.target.value }))} placeholder="Mínimo 6 caracteres" />
+            <input type="password" value={senhaForm.novaSenha} onChange={e => setSenhaForm(p => ({ ...p, novaSenha: e.target.value }))} placeholder="6 números" maxLength={6} />
           </div>
           <div className={styles.formGroup}>
             <label>Confirmar Nova Senha</label>

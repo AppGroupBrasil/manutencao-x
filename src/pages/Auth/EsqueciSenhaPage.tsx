@@ -42,8 +42,8 @@ const EsqueciSenhaPage: React.FC = () => {
   const handleRedefinir = async (e: React.FormEvent) => {
     e.preventDefault();
     setErro('');
-    if (novaSenha.length < 6) {
-      setErro('A senha deve ter no mínimo 6 caracteres.');
+    if (!/^\d{6}$/.test(novaSenha)) {
+      setErro('A senha deve ter exatamente 6 números.');
       return;
     }
     if (novaSenha !== confirmarSenha) {
@@ -94,7 +94,7 @@ const EsqueciSenhaPage: React.FC = () => {
                 <Lock size={18} className={styles.inputIcon} />
                 <input
                   type={mostrarSenha ? 'text' : 'password'}
-                  placeholder="Mínimo 6 caracteres"
+                  placeholder="6 números"
                   value={novaSenha}
                   onChange={e => setNovaSenha(e.target.value)}
                   autoComplete="new-password"
