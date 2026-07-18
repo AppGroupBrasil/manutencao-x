@@ -127,6 +127,20 @@ router.patch('/:id/bloquear', requireMinRole('administrador'), validate(usuarioB
   const { bloqueado, motivo } = req.body;
   const targetId = req.params.id;
 
+  const alvo = await queryOne<any>('SELECT role, administrador_id FROM usuarios WHERE id = $1', [targetId]);
+  if (!alvo) { res.status(404).json({ error: 'Usuário não encontrado' }); return; }
+  const rootIdBloq = req.user!.administrador_id ?? req.user!.id;
+  const bloqueiaCoGestor = req.user!.role === 'administrador' && alvo.role === 'administrador'
+    && alvo.administrador_id === req.user!.id;
+  if (req.user!.role !== 'master' && ROLE_LEVEL[alvo.role] >= ROLE_LEVEL[req.user!.role] && !bloqueiaCoGestor) {
+    res.status(403).json({ error: 'Sem permissão para alterar este usuário' }); return;
+  }
+  if (req.user!.role === 'administrador' && alvo.administrador_id !== req.user!.id
+      && alvo.administrador_id !== rootIdBloq
+      && !(alvo.administrador_id === null && alvo.role === 'funcionario')) {
+    res.status(403).json({ error: 'Usuário fora do seu escopo' }); return;
+  }
+
   const result = await transaction(async (client) => {
     const { rows } = await client.query(
       'UPDATE usuarios SET bloqueado = $1, motivo_bloqueio = $2 WHERE id = $3 RETURNING id, bloqueado, role',

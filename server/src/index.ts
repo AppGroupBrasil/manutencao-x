@@ -236,6 +236,7 @@ protectedRouter.use((req, _res, next) => {
 // Audit trail automático (mutações apenas, non-blocking)
 const AUDIT_SKIP = new Set(['geolocalizacao', 'notificacoes', 'audit', 'upload']);
 const isIdSegment = (s: string) => /^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(s) || /^\d+$/.test(s);
+const isUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
 protectedRouter.use((req, res, next) => {
   const r = req as AuthRequest;
   if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) { next(); return; }
@@ -247,7 +248,7 @@ protectedRouter.use((req, res, next) => {
     const segs = originalUrl.split('?')[0].split('/').filter(Boolean);
     const entidade = segs[1] || 'api';
     if (AUDIT_SKIP.has(entidade)) return;
-    const entidadeId = segs[2] && isIdSegment(segs[2]) ? segs[2] : undefined;
+    const entidadeId = segs[2] && isUuid(segs[2]) ? segs[2] : undefined;
     const sub = segs.slice(2).filter(s => !isIdSegment(s)).join('_');
     const verbo = method === 'POST' ? 'criar' : method === 'DELETE' ? 'excluir' : 'atualizar';
     const acao = (sub ? `${verbo}_${entidade}_${sub}` : `${verbo}_${entidade}`).slice(0, 100);
@@ -255,6 +256,9 @@ protectedRouter.use((req, res, next) => {
     if (req.body && typeof req.body === 'object' && !Array.isArray(req.body)) {
       const corpo: Record<string, any> = { ...req.body };
       for (const k of ['senha', 'novaSenha', 'senhaAtual', 'senhaHash', 'password', 'token', 'refreshToken']) delete corpo[k];
+      for (const [k, v] of Object.entries(corpo)) {
+        if (typeof v === 'string' && v.length > 500) corpo[k] = `[${v.length} caracteres omitidos]`;
+      }
       try {
         detalhes = JSON.stringify(corpo).length > 4000 ? { info: 'payload grande omitido' } : corpo;
       } catch { detalhes = undefined; }

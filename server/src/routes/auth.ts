@@ -124,7 +124,8 @@ router.post('/register', authMiddleware, validate(registerSchema), async (req: A
         exists.administrador_id === caller.id ||
         exists.supervisor_id === caller.id ||
         (caller.role === 'administrador' && exists.administrador_id === null && exists.role === 'funcionario');
-      const abaixo = (roleLevel[exists.role] ?? 0) < (roleLevel[caller.role] ?? 0);
+      const abaixo = (roleLevel[exists.role] ?? 0) < (roleLevel[caller.role] ?? 0)
+        || (criaCoGestor && exists.role === 'administrador');
 
       if (exists.ativo || !noEscopo || !abaixo) {
         res.status(409).json({ error: 'Email já cadastrado' });

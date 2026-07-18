@@ -369,7 +369,7 @@ const UsuariosPage: React.FC = () => {
                 <select value={editForm.role} onChange={e => setEditForm({ ...editForm, role: e.target.value as UserRole })}>
                   <option value="funcionario">Funcionário</option>
                   <option value="supervisor">Supervisor</option>
-                  {usuario?.role === 'master' && <option value="administrador">Administrador</option>}
+                  {(usuario?.role === 'master' || editForm.role === 'administrador') && <option value="administrador">Administrador (Gestor)</option>}
                 </select>
               </div>
               <div className={styles.formGroup}>

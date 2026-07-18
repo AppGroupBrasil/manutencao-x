@@ -8,7 +8,7 @@ const router = Router();
 // GET /api/audit — master: tudo; administrador: logs da própria equipe
 router.get('/', requireRole('master', 'administrador'), async (req: AuthRequest, res: Response) => {
   const page = Math.max(1, parseInt(req.query.page as string) || 1);
-  const limit = Math.min(100, parseInt(req.query.limit as string) || 50);
+  const limit = Math.min(500, parseInt(req.query.limit as string) || 50);
   const offset = (page - 1) * limit;
 
   const isMaster = req.user!.role === 'master';
