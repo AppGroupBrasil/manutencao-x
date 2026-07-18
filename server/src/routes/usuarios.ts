@@ -104,7 +104,10 @@ router.put('/:id', requireMinRole('administrador'), validate(usuarioUpdateSchema
     res.status(403).json({ error: 'Usuário fora do seu escopo' }); return;
   }
   // Novo role precisa ser estritamente inferior ao do caller (master pode tudo abaixo de master; titular mantém co-gestor)
-  if (!(gerenciaCoGestor && role === 'administrador') && (ROLE_LEVEL[role] ?? 0) >= (ROLE_LEVEL[req.user!.role] ?? 0)) {
+  const promoveGestor = req.user!.role === 'administrador' && role === 'administrador'
+    && ROLE_LEVEL[target.role] < ROLE_LEVEL['administrador']
+    && (target.administrador_id === req.user!.id || target.administrador_id === rootId);
+  if (!((gerenciaCoGestor || promoveGestor) && role === 'administrador') && (ROLE_LEVEL[role] ?? 0) >= (ROLE_LEVEL[req.user!.role] ?? 0)) {
     res.status(403).json({ error: 'Não pode atribuir role igual ou superior ao seu' }); return;
   }
   if (condominioId && !req.condominioIds!.includes(condominioId)) {
@@ -114,9 +117,11 @@ router.put('/:id', requireMinRole('administrador'), validate(usuarioUpdateSchema
   const row = await queryOne(
     `UPDATE usuarios SET nome=$1, role=$2, ativo=$3,
        condominio_id=COALESCE($4, condominio_id), supervisor_id=COALESCE($5, supervisor_id),
-       telefone=COALESCE($6, telefone), cargo=COALESCE($7, cargo)
+       telefone=COALESCE($6, telefone), cargo=COALESCE($7, cargo),
+       administrador_id=COALESCE($9, administrador_id)
      WHERE id=$8 RETURNING id, email, nome, role, ativo, condominio_id, supervisor_id, telefone, cargo`,
-    [nome, role, ativo, condominioId ?? null, supervisorId ?? null, telefone ?? null, cargo ?? null, req.params.id]
+    [nome, role, ativo, condominioId ?? null, supervisorId ?? null, telefone ?? null, cargo ?? null, req.params.id,
+     promoveGestor ? rootId : null]
   );
   await auditLog(req.user!, 'usuario_atualizado', 'usuarios', req.params.id, { nome, role, ativo }).catch(() => {});
   res.json(row);
