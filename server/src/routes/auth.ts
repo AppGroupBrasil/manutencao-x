@@ -85,7 +85,8 @@ router.post('/register', authMiddleware, validate(registerSchema), async (req: A
 
     // Validar hierarquia
     const roleLevel: Record<string, number> = { master: 4, administrador: 3, supervisor: 2, funcionario: 1 };
-    if ((roleLevel[role] ?? 0) >= (roleLevel[caller.role] ?? 0)) {
+    const criaCoGestor = caller.role === 'administrador' && role === 'administrador';
+    if (!criaCoGestor && (roleLevel[role] ?? 0) >= (roleLevel[caller.role] ?? 0)) {
       res.status(403).json({ error: 'Não pode criar usuário com role igual ou superior' });
       return;
     }
@@ -109,7 +110,7 @@ router.post('/register', authMiddleware, validate(registerSchema), async (req: A
     if (caller.role === 'master') {
       adminId = null;
     } else if (caller.role === 'administrador') {
-      adminId = caller.id;
+      adminId = caller.administrador_id ?? caller.id;
     } else {
       adminId = caller.administrador_id;
     }

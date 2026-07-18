@@ -63,8 +63,8 @@ export async function getCondominiosScope(user: AuthRequest['user']): Promise<st
 
   if (user.role === 'administrador') {
     const rows = await query<{ id: string }>(
-      'SELECT id FROM condominios WHERE criado_por = $1 AND ativo = true',
-      [user.id]
+      'SELECT id FROM condominios WHERE criado_por = ANY($1) AND ativo = true',
+      [[user.id, ...(user.administrador_id ? [user.administrador_id] : [])]]
     );
     return rows.map(r => r.id);
   }

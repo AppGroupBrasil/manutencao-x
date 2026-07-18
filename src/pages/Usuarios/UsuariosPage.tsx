@@ -330,7 +330,7 @@ const UsuariosPage: React.FC = () => {
               <select value={novoUser.role} onChange={e => setNovoUser({ ...novoUser, role: e.target.value as UserRole })}>
                 <option value="funcionario">Funcionário</option>
                 <option value="supervisor">Supervisor</option>
-                {(usuario?.role === 'master' || usuario?.role === 'administrador') && <option value="administrador">Administrador (Solicite ao Suporte)</option>}
+                {(usuario?.role === 'master' || usuario?.role === 'administrador') && <option value="administrador">Administrador (Gestor)</option>}
               </select>
             </div>
             <div className={styles.formGroup}>

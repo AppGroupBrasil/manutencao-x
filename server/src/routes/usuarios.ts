@@ -25,12 +25,13 @@ router.get('/', requireMinRole('supervisor'), async (req: AuthRequest, res: Resp
       `SELECT ${cols} FROM usuarios WHERE ativo = true ORDER BY nome`, [], page, pageSize
     );
   } else if (user.role === 'administrador') {
+    const rootId = user.administrador_id ?? user.id;
     result = await paginate(
       `SELECT ${cols}
-       FROM usuarios WHERE ativo = true AND (administrador_id = $1 OR id = $1
+       FROM usuarios WHERE ativo = true AND (administrador_id = $1 OR id = $1 OR id = $2
          OR (administrador_id IS NULL AND role = 'funcionario'))
        ORDER BY nome`,
-      [user.id], page, pageSize
+      [rootId, user.id], page, pageSize
     );
   } else {
     const colsSup = cols.replace(', motivo_bloqueio', '');
@@ -56,15 +57,19 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
   const user = req.user!;
   // Hierarchy check: can only view users at lower or equal level within own scope
   if (user.role !== 'master') {
-    if (ROLE_LEVEL[row.role] >= ROLE_LEVEL[user.role] && row.id !== user.id) {
+    const rootId = user.administrador_id ?? user.id;
+    const coGestorRelacionado = user.role === 'administrador' && row.role === 'administrador'
+      && (row.administrador_id === user.id || row.id === rootId || row.administrador_id === rootId);
+    if (ROLE_LEVEL[row.role] >= ROLE_LEVEL[user.role] && row.id !== user.id && !coGestorRelacionado) {
       res.status(403).json({ error: 'Sem permissão para visualizar este usuário' }); return;
     }
     // Scope check: admin can only see own hierarchy
-    if (user.role === 'administrador' && row.id !== user.id && row.administrador_id !== user.id) {
+    if (user.role === 'administrador' && row.id !== user.id && row.id !== rootId
+        && row.administrador_id !== user.id && row.administrador_id !== rootId) {
       // Check if it's a funcionario under a supervisor of this admin
       if (row.supervisor_id) {
         const sup = await queryOne<any>('SELECT administrador_id FROM usuarios WHERE id = $1', [row.supervisor_id]);
-        if (!sup || sup.administrador_id !== user.id) {
+        if (!sup || (sup.administrador_id !== user.id && sup.administrador_id !== rootId)) {
           res.status(403).json({ error: 'Sem permissão para visualizar este usuário' }); return;
         }
       } else {
@@ -86,16 +91,20 @@ router.put('/:id', requireMinRole('administrador'), validate(usuarioUpdateSchema
   // Verify target exists and check hierarchy
   const target = await queryOne<any>('SELECT id, role, administrador_id FROM usuarios WHERE id = $1', [req.params.id]);
   if (!target) { res.status(404).json({ error: 'Usuário não encontrado' }); return; }
-  if (req.user!.role !== 'master' && ROLE_LEVEL[target.role] >= ROLE_LEVEL[req.user!.role]) {
+  const rootId = req.user!.administrador_id ?? req.user!.id;
+  const gerenciaCoGestor = req.user!.role === 'administrador' && target.role === 'administrador'
+    && target.administrador_id === req.user!.id;
+  if (req.user!.role !== 'master' && ROLE_LEVEL[target.role] >= ROLE_LEVEL[req.user!.role] && !gerenciaCoGestor) {
     res.status(403).json({ error: 'Sem permissão para alterar este usuário' }); return;
   }
   // Admin can only modify users in own hierarchy (or orphan funcionarios, same rule do GET)
   if (req.user!.role === 'administrador' && target.administrador_id !== req.user!.id
+      && target.administrador_id !== rootId
       && !(target.administrador_id === null && target.role === 'funcionario')) {
     res.status(403).json({ error: 'Usuário fora do seu escopo' }); return;
   }
-  // Novo role precisa ser estritamente inferior ao do caller (master pode tudo abaixo de master)
-  if ((ROLE_LEVEL[role] ?? 0) >= (ROLE_LEVEL[req.user!.role] ?? 0)) {
+  // Novo role precisa ser estritamente inferior ao do caller (master pode tudo abaixo de master; titular mantém co-gestor)
+  if (!(gerenciaCoGestor && role === 'administrador') && (ROLE_LEVEL[role] ?? 0) >= (ROLE_LEVEL[req.user!.role] ?? 0)) {
     res.status(403).json({ error: 'Não pode atribuir role igual ou superior ao seu' }); return;
   }
   if (condominioId && !req.condominioIds!.includes(condominioId)) {
@@ -174,9 +183,11 @@ router.patch('/:id/bloquear', requireMinRole('administrador'), validate(usuarioB
   res.json(result);
 });
 router.patch('/:id/reset-senha', requireMinRole('administrador'), validate(usuarioResetSenhaSchema), async (req: AuthRequest, res: Response) => {
-  const target = await queryOne<any>('SELECT role FROM usuarios WHERE id = $1', [req.params.id]);
+  const target = await queryOne<any>('SELECT role, administrador_id FROM usuarios WHERE id = $1', [req.params.id]);
   if (!target) { res.status(404).json({ error: 'Usuário não encontrado' }); return; }
-  if (ROLE_LEVEL[target.role] >= ROLE_LEVEL[req.user!.role]) {
+  const gerenciaCoGestor = req.user!.role === 'administrador' && target.role === 'administrador'
+    && target.administrador_id === req.user!.id;
+  if (ROLE_LEVEL[target.role] >= ROLE_LEVEL[req.user!.role] && !gerenciaCoGestor) {
     res.status(403).json({ error: 'Sem permissão para alterar este usuário' }); return;
   }
   const { novaSenha } = req.body;
@@ -190,10 +201,14 @@ router.patch('/:id/reset-senha', requireMinRole('administrador'), validate(usuar
 router.delete('/:id', requireMinRole('administrador'), async (req: AuthRequest, res: Response) => {
   const target = await queryOne<any>('SELECT role, administrador_id FROM usuarios WHERE id = $1', [req.params.id]);
   if (!target) { res.status(404).json({ error: 'Usuário não encontrado' }); return; }
-  if (ROLE_LEVEL[target.role] >= ROLE_LEVEL[req.user!.role]) {
+  const rootId = req.user!.administrador_id ?? req.user!.id;
+  const gerenciaCoGestor = req.user!.role === 'administrador' && target.role === 'administrador'
+    && target.administrador_id === req.user!.id;
+  if (ROLE_LEVEL[target.role] >= ROLE_LEVEL[req.user!.role] && !gerenciaCoGestor) {
     res.status(403).json({ error: 'Sem permissão para alterar este usuário' }); return;
   }
   if (req.user!.role === 'administrador' && target.administrador_id !== req.user!.id
+      && target.administrador_id !== rootId
       && !(target.administrador_id === null && target.role === 'funcionario')) {
     res.status(403).json({ error: 'Usuário fora do seu escopo' }); return;
   }
