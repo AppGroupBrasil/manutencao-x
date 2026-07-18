@@ -156,6 +156,8 @@ router.post('/register', authMiddleware, validate(registerSchema), async (req: A
       [email, senhaHash, nome, role, cargo || null, caller.id, adminId, supId, condominioId || null]
     );
 
+    await auditLog(caller, 'usuario_criado', 'usuarios', user!.id, { email, nome, role }).catch(() => {});
+
     res.status(201).json({
       id: user!.id,
       email: user!.email,

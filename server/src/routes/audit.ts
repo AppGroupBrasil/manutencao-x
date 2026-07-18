@@ -13,7 +13,7 @@ router.get('/', requireRole('master', 'administrador'), async (req: AuthRequest,
 
   const isMaster = req.user!.role === 'master';
   const scope = isMaster ? '' : 'WHERE user_id IN (SELECT id FROM usuarios WHERE administrador_id = $1 OR id = $1)';
-  const scopeParams: any[] = isMaster ? [] : [req.user!.id];
+  const scopeParams: any[] = isMaster ? [] : [req.user!.administrador_id ?? req.user!.id];
 
   const countRow = await queryOne<{ total: string }>(`SELECT COUNT(*) as total FROM audit_logs ${scope}`, scopeParams);
   const rows = await query(
@@ -56,7 +56,7 @@ router.get('/metrics', requireRole('master', 'administrador'), async (req: AuthR
      FROM login_attempts WHERE sucesso = true AND criado_em >= CURRENT_DATE - 30
      ${isMaster ? '' : 'AND email IN (SELECT email FROM usuarios WHERE administrador_id = $1 OR id = $1)'}
      GROUP BY DATE(criado_em) ORDER BY dia`,
-    isMaster ? [] : [req.user!.id]
+    isMaster ? [] : [req.user!.administrador_id ?? req.user!.id]
   );
 
   res.json({ metricas, logins });

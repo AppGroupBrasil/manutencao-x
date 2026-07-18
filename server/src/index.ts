@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url';
 import pool from './db/database.js';
 import { authMiddleware, AuthRequest } from './middleware/auth.js';
 import { scopeMiddleware } from './middleware/rbac.js';
-import { trackMetric } from './middleware/helpers.js';
+import { trackMetric, auditLog } from './middleware/helpers.js';
 import authRoutes from './routes/auth.js';
 import condominiosRoutes from './routes/condominios.js';
 import ordensServicoRoutes from './routes/ordensServico.js';
@@ -230,6 +230,37 @@ protectedRouter.use((req, _res, next) => {
     const acao = `${req.method} ${req.baseUrl}${req.path}`.slice(0, 100);
     trackMetric(condId, r.user.id, acao);
   }
+  next();
+});
+
+// Audit trail automático (mutações apenas, non-blocking)
+const AUDIT_SKIP = new Set(['geolocalizacao', 'notificacoes', 'audit', 'upload']);
+const isIdSegment = (s: string) => /^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(s) || /^\d+$/.test(s);
+protectedRouter.use((req, res, next) => {
+  const r = req as AuthRequest;
+  if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) { next(); return; }
+  const originalUrl = req.originalUrl;
+  const method = req.method;
+  const ip = req.ip;
+  res.on('finish', () => {
+    if (!r.user || res.statusCode >= 400 || (r.user as any).__audited) return;
+    const segs = originalUrl.split('?')[0].split('/').filter(Boolean);
+    const entidade = segs[1] || 'api';
+    if (AUDIT_SKIP.has(entidade)) return;
+    const entidadeId = segs[2] && isIdSegment(segs[2]) ? segs[2] : undefined;
+    const sub = segs.slice(2).filter(s => !isIdSegment(s)).join('_');
+    const verbo = method === 'POST' ? 'criar' : method === 'DELETE' ? 'excluir' : 'atualizar';
+    const acao = (sub ? `${verbo}_${entidade}_${sub}` : `${verbo}_${entidade}`).slice(0, 100);
+    let detalhes: Record<string, any> | undefined;
+    if (req.body && typeof req.body === 'object' && !Array.isArray(req.body)) {
+      const corpo: Record<string, any> = { ...req.body };
+      for (const k of ['senha', 'novaSenha', 'senhaAtual', 'senhaHash', 'password', 'token', 'refreshToken']) delete corpo[k];
+      try {
+        detalhes = JSON.stringify(corpo).length > 4000 ? { info: 'payload grande omitido' } : corpo;
+      } catch { detalhes = undefined; }
+    }
+    auditLog(r.user, acao, entidade, entidadeId, detalhes, ip).catch(() => {});
+  });
   next();
 });
 

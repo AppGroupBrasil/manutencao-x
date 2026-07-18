@@ -24,8 +24,7 @@
     "icon": "Shield",
     "rota": "/auditoria",
     "minRole": 3,
-    "group": "gestao",
-    "hiddenByDefault": true
+    "group": "gestao"
   },
   {
     "id": "condominios",

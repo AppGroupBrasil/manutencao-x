@@ -44,6 +44,7 @@ export async function auditLog(
   detalhes?: Record<string, any>,
   ip?: string
 ) {
+  if (user) (user as any).__audited = true;
   await query(
     `INSERT INTO audit_logs (user_id, user_nome, user_role, acao, entidade, entidade_id, detalhes, ip)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,

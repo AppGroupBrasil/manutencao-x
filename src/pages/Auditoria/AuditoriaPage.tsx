@@ -15,8 +15,8 @@ import styles from './Auditoria.module.css';
 
 interface AuditLog {
   id: number;
-  usuario_nome: string;
-  usuario_email: string;
+  user_nome: string;
+  user_role: string;
   acao: string;
   entidade: string;
   entidade_id: string;
@@ -44,8 +44,8 @@ const AuditoriaPage: React.FC = () => {
         auditApi.list(1, 500),
         auditApi.metrics(),
       ]);
-      setLogs(logsData.logs || logsData || []);
-      setMetricas(metricasData || { porCondominio: [], loginsDiarios: [] });
+      setLogs(Array.isArray(logsData?.data) ? logsData.data : []);
+      setMetricas({ porCondominio: metricasData?.metricas || [], loginsDiarios: metricasData?.logins || [] });
     } catch { }
     setLoading(false);
   }, []);
@@ -58,8 +58,8 @@ const AuditoriaPage: React.FC = () => {
     if (filtroAcao !== 'todos' && l.acao !== filtroAcao) return false;
     if (busca.trim()) {
       const q = busca.toLowerCase();
-      return (l.usuario_nome || '').toLowerCase().includes(q)
-        || (l.usuario_email || '').toLowerCase().includes(q)
+      return (l.user_nome || '').toLowerCase().includes(q)
+        || (l.user_role || '').toLowerCase().includes(q)
         || (l.acao || '').toLowerCase().includes(q)
         || (l.entidade || '').toLowerCase().includes(q);
     }
@@ -109,7 +109,7 @@ const AuditoriaPage: React.FC = () => {
               <Activity size={22} />
             </div>
             <div className={styles.statInfo}>
-              <span className={styles.statValor}>{logs.filter(l => l.acao === 'login').length}</span>
+              <span className={styles.statValor}>{metricas.loginsDiarios.reduce((s, d) => s + Number(d.total || 0), 0)}</span>
               <span className={styles.statLabel}>Logins</span>
             </div>
           </div>
@@ -131,7 +131,7 @@ const AuditoriaPage: React.FC = () => {
               <Users size={22} />
             </div>
             <div className={styles.statInfo}>
-              <span className={styles.statValor}>{new Set(logs.map(l => l.usuario_email)).size}</span>
+              <span className={styles.statValor}>{new Set(logs.map(l => l.user_nome)).size}</span>
               <span className={styles.statLabel}>Usuários Únicos</span>
             </div>
           </div>
@@ -146,7 +146,7 @@ const AuditoriaPage: React.FC = () => {
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={metricas.porCondominio.slice(0, 10)}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--cor-borda)" />
-                <XAxis dataKey="condominio_nome" stroke="var(--cor-texto-secundario)" fontSize={11} angle={-15} textAnchor="end" height={60} />
+                <XAxis dataKey="nome" stroke="var(--cor-texto-secundario)" fontSize={11} angle={-15} textAnchor="end" height={60} />
                 <YAxis stroke="var(--cor-texto-secundario)" fontSize={12} />
                 <Tooltip contentStyle={{ background: 'var(--cor-superficie)', border: '1px solid var(--cor-borda)', borderRadius: 8 }} />
                 <Bar dataKey="total_acoes" fill="var(--cor-primaria)" radius={[4, 4, 0, 0]} name="Ações" />
@@ -218,14 +218,14 @@ const AuditoriaPage: React.FC = () => {
                 </thead>
                 <tbody>
                   {pag.items.map(log => {
-                    const info = acaoLabel[log.acao] || { texto: log.acao, cor: '#9e9e9e' };
+                    const info = acaoLabel[log.acao] || { texto: (log.acao || '').replace(/[_-]+/g, ' '), cor: '#9e9e9e' };
                     return (
                       <tr key={log.id}>
                         <td className={styles.cellDate}>{formatDate(log.criado_em)}</td>
                         <td>
                           <div className={styles.cellUser}>
-                            <strong>{log.usuario_nome}</strong>
-                            <span>{log.usuario_email}</span>
+                            <strong>{log.user_nome || '—'}</strong>
+                            <span>{log.user_role || ''}</span>
                           </div>
                         </td>
                         <td>
