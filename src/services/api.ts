@@ -473,8 +473,15 @@ export const publico = {
 export const usuarios = {
   ...crud('/usuarios'),
   list: async () => {
-    const res = await request<any>('/usuarios');
-    return Array.isArray(res) ? res : res.data ?? [];
+    const all: any[] = [];
+    for (let page = 1; page <= 50; page++) {
+      const res = await request<any>(`/usuarios?page=${page}&pageSize=100`);
+      if (Array.isArray(res)) return res;
+      const chunk = res.data ?? [];
+      all.push(...chunk);
+      if (chunk.length === 0 || page >= (res.totalPages ?? 1)) break;
+    }
+    return all;
   },
   bloquear: (id: string, bloqueado: boolean, motivo?: string) => patch(`/usuarios/${id}/bloquear`, { bloqueado, motivo }),
   resetSenha: (id: string, novaSenha: string) => patch(`/usuarios/${id}/reset-senha`, { novaSenha }),
