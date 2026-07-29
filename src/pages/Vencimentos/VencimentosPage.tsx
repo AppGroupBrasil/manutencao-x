@@ -109,9 +109,16 @@ function obterLabelTipo(tipo: string, opcoes: TipoVencimentoOption[]) {
   return opcoes.find((item) => item.value === tipo)?.label || (tipo.startsWith('manutencao:') ? tipo.split(':').slice(1).join(':') : tipo);
 }
 
+function parseDataLocal(v?: string): Date | null {
+  if (!v) return null;
+  const [y, m, d] = String(v).slice(0, 10).split('-').map(Number);
+  if (!y || !m || !d) return null;
+  return new Date(y, m - 1, d);
+}
+
 function diasRestantes(dataVenc: string): number {
   const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
-  const venc = new Date(dataVenc); venc.setHours(0, 0, 0, 0);
+  const venc = parseDataLocal(dataVenc) ?? hoje;
   return Math.ceil((venc.getTime() - hoje.getTime()) / 86400000);
 }
 
@@ -128,9 +135,9 @@ const STATUS_LABELS: Record<StatusVencimento, { texto: string; cor: string; bg: 
   vencido: { texto: 'Vencido', cor: '#c62828', bg: '#ffebee' },
 };
 
-function formatarData(iso: string) {
-  if (!iso) return '—';
-  return new Date(iso + 'T00:00:00').toLocaleDateString('pt-BR');
+function formatarData(iso?: string) {
+  const dt = parseDataLocal(iso);
+  return dt ? dt.toLocaleDateString('pt-BR') : '—';
 }
 
 /* ═══════ default form ═══════ */
@@ -151,9 +158,9 @@ function normalizarVencimento(vencimento: VencimentoApi, condominios: { id: stri
     descricao: vencimento.descricao || '',
     condominioId,
     condominio,
-    dataVencimento: vencimento.dataVencimento || '',
-    dataUltimaManutencao: vencimento.dataUltimaManutencao || '',
-    dataProximaManutencao: vencimento.dataProximaManutencao || '',
+    dataVencimento: (vencimento.dataVencimento || '').slice(0, 10),
+    dataUltimaManutencao: (vencimento.dataUltimaManutencao || '').slice(0, 10),
+    dataProximaManutencao: (vencimento.dataProximaManutencao || '').slice(0, 10),
     emails: vencimento.emails || [],
     avisos: vencimento.avisos || [],
     qtdNotificacoes: vencimento.qtdNotificacoes || 0,
@@ -556,7 +563,7 @@ const VencimentosPage: React.FC = () => {
                 <div className={styles.vencActions}>
                   <button className={styles.btnEditar} onClick={() => abrirEditar(v)}><Edit2 size={15} /> Editar</button>
                   <button className={styles.btnExcluir} onClick={() => excluir(v.id)}><Trash2 size={15} /> Excluir</button>
-                  <WhatsAppShare mensagem={`*Vencimento*\n*Título:* ${v.titulo}\n*Tipo:* ${obterLabelTipo(v.tipo, opcoesTipo)}\n*Condomínio:* ${v.condominio || 'N/A'}\n*Data Vencimento:* ${v.dataVencimento ? new Date(v.dataVencimento).toLocaleDateString('pt-BR') : 'N/A'}\n*Descrição:* ${v.descricao || 'N/A'}`} />
+                  <WhatsAppShare mensagem={`*Vencimento*\n*Título:* ${v.titulo}\n*Tipo:* ${obterLabelTipo(v.tipo, opcoesTipo)}\n*Condomínio:* ${v.condominio || 'N/A'}\n*Data Vencimento:* ${v.dataVencimento ? formatarData(v.dataVencimento) : 'N/A'}\n*Descrição:* ${v.descricao || 'N/A'}`} />
                 </div>
               </div>
             </Card>

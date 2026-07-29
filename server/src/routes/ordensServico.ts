@@ -17,12 +17,14 @@ function gerarProtocolo(): string {
   return `OS-${y}${m}${d}-${r}`;
 }
 
-async function notificarFuncionariosAuto(osId: string, titulo: string, condominioId: string) {
+async function notificarFuncionariosAuto(osId: string, titulo: string, condominioId: string, autorId?: string) {
   const cond = await queryOne<any>('SELECT os_auto_notificar FROM condominios WHERE id = $1', [condominioId]);
   if (!cond?.os_auto_notificar) return;
   const funcionarios = await query<{ id: string }>(
-    `SELECT id FROM usuarios WHERE condominio_id = $1 AND role = 'funcionario' AND ativo = true AND bloqueado = false`,
-    [condominioId]
+    `SELECT id FROM usuarios
+       WHERE condominio_id = $1 AND ativo = true AND bloqueado = false
+         AND role <> 'master' AND ($2::uuid IS NULL OR id <> $2::uuid)`,
+    [condominioId, autorId ?? null]
   );
   for (const f of funcionarios) {
     await createNotification(f.id, 'Nova Ordem de Serviço', titulo, 'info', `/x/os/${osId}`).catch(() => {});
@@ -121,7 +123,7 @@ router.post('/', requireMinRole('supervisor'), validate(ordemServicoSchema), asy
     }
   }
   if (!row) { res.status(500).json({ error: 'Não foi possível gerar protocolo único' }); return; }
-  notificarFuncionariosAuto(String(row.id), titulo, condominioId).catch(() => {});
+  notificarFuncionariosAuto(String(row.id), titulo, condominioId, req.user!.id).catch(() => {});
   res.status(201).json(row);
 });
 
