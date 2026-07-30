@@ -95,6 +95,7 @@ const OrdensServicoPage: React.FC = () => {
   const [novaPrioridade, setNovaPrioridade] = useState<'baixa' | 'media' | 'alta' | 'urgente'>('media');
   const [novaCond, setNovaCond] = useState('');
   const [novaLocal, setNovaLocal] = useState('');
+  const [novaDestinos, setNovaDestinos] = useState({ funcionarios: true, sindicos: true, associados: false });
   const [salvandoAuto, setSalvandoAuto] = useState(false);
 
   const condSelecionada = condominiosList.find((c: any) => c.id === novaCond);
@@ -164,6 +165,7 @@ const OrdensServicoPage: React.FC = () => {
     if (!novaCond) { alert('Selecione um condomínio.'); return; }
 
     try {
+      const emailDestinos = (['funcionarios', 'sindicos', 'associados'] as const).filter(k => novaDestinos[k]);
       const created: any = await osApi.create({
         condominioId: novaCond,
         titulo: novaTitulo.trim(),
@@ -171,10 +173,12 @@ const OrdensServicoPage: React.FC = () => {
         tipo: novaTipo,
         prioridade: novaPrioridade,
         local: novaLocal.trim(),
+        emailDestinos,
       } as any);
       setOrdens(prev => [mapOS(created), ...prev]);
       setNovaTitulo(''); setNovaDesc(''); setNovaTipo('limpeza');
       setNovaPrioridade('media'); setNovaCond(condominiosList[0]?.id || ''); setNovaLocal('');
+      setNovaDestinos({ funcionarios: true, sindicos: true, associados: false });
       setModalNova(false);
     } catch { alert('Erro ao criar O.S.'); }
   };
@@ -395,6 +399,25 @@ const OrdensServicoPage: React.FC = () => {
                   : ' — desligado: compartilhe a O.S. via link, WhatsApp ou app pelo botão Compartilhar.'}
               </span>
             </label>
+          )}
+          {roleNivel >= 3 && (
+            <div className={styles.formGroup}>
+              <label>Enviar e-mail ao criar (para quem tem e-mail cadastrado)</label>
+              <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', marginTop: 4 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 400 }}>
+                  <input type="checkbox" checked={novaDestinos.funcionarios} onChange={e => setNovaDestinos(p => ({ ...p, funcionarios: e.target.checked }))} />
+                  Funcionários
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 400 }}>
+                  <input type="checkbox" checked={novaDestinos.sindicos} onChange={e => setNovaDestinos(p => ({ ...p, sindicos: e.target.checked }))} />
+                  Síndicos/Administradores
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 400 }}>
+                  <input type="checkbox" checked={novaDestinos.associados} onChange={e => setNovaDestinos(p => ({ ...p, associados: e.target.checked }))} />
+                  Associados (moradores)
+                </label>
+              </div>
+            </div>
           )}
           <button type="button" className={styles.submitBtn} onClick={criarOS}>
             <Plus size={18} /> Criar Ordem de Serviço

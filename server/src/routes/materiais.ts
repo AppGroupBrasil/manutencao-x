@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import { query, queryOne, execute, transaction } from '../db/database.js';
 import { AuthRequest } from '../middleware/auth.js';
 import { validate, materialSchema } from '../middleware/validation.js';
+import { sendEmail, emailEstoqueBaixo } from '../services/email.js';
 
 const router = Router();
 
@@ -86,7 +87,12 @@ router.post('/:id/movimentacoes', async (req: AuthRequest, res: Response) => {
   const materialId = req.params.id;
 
   // Verify material belongs to user scope
-  const mat = await queryOne('SELECT id, quantidade FROM materiais WHERE id = $1 AND condominio_id = ANY($2)', [materialId, ids]);
+  const mat = await queryOne<any>(
+    `SELECT m.id, m.nome, m.quantidade, m.quantidade_minima, m.unidade, m.email_notificacao, c.nome AS condominio_nome
+     FROM materiais m LEFT JOIN condominios c ON c.id = m.condominio_id
+     WHERE m.id = $1 AND m.condominio_id = ANY($2)`,
+    [materialId, ids]
+  );
   if (!mat) { res.status(404).json({ error: 'Material não encontrado' }); return; }
 
   if (tipo === 'saida' && mat.quantidade < quantidade) {
@@ -109,6 +115,17 @@ router.post('/:id/movimentacoes', async (req: AuthRequest, res: Response) => {
     );
     return rows[0];
   });
+
+  if (tipo === 'saida' && mat.email_notificacao) {
+    const anterior = Number(mat.quantidade);
+    const minimo = Number(mat.quantidade_minima);
+    const novaQtd = anterior - Number(quantidade);
+    if (anterior > minimo && novaQtd <= minimo) {
+      const emailOpts = { ...emailEstoqueBaixo(mat.nome, novaQtd, minimo, mat.unidade, mat.condominio_nome || ''), to: mat.email_notificacao };
+      sendEmail(emailOpts).catch((err) => console.error('[Materiais] Erro email estoque baixo:', err?.message));
+    }
+  }
+
   res.status(201).json(row);
 });
 

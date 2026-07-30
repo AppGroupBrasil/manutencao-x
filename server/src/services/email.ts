@@ -31,18 +31,23 @@ export interface EmailOptions {
   subject: string;
   html: string;
   text?: string;
+  bcc?: string | string[];
 }
 
 export async function sendEmail(options: EmailOptions): Promise<boolean> {
-  const to = Array.isArray(options.to) ? options.to.join(', ') : options.to;
+  const bcc = options.bcc
+    ? (Array.isArray(options.bcc) ? options.bcc.join(', ') : options.bcc)
+    : undefined;
+  let to = Array.isArray(options.to) ? options.to.join(', ') : options.to;
+  if (!to && bcc) to = SMTP_FROM;
 
   if (!transporter) {
     if (IS_PRODUCTION) {
-      console.warn(`[Email] Envio ignorado porque SMTP não está configurado. Destinatário: ${to}`);
+      console.warn(`[Email] Envio ignorado porque SMTP não está configurado. Destinatário: ${to || bcc}`);
       return false;
     }
 
-    console.log(`[Email][DEV] Para: ${to}`);
+    console.log(`[Email][DEV] Para: ${to}${bcc ? ` | Bcc: ${bcc}` : ''}`);
     console.log(`[Email][DEV] Assunto: ${options.subject}`);
     console.log(`[Email][DEV] Corpo: ${options.text || options.html.slice(0, 200)}...`);
     return true;
@@ -52,14 +57,15 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
     await transporter.sendMail({
       from: SMTP_FROM,
       to,
+      bcc,
       subject: options.subject,
       html: options.html,
       text: options.text,
     });
-    console.log(`[Email] Enviado para ${to}: ${options.subject}`);
+    console.log(`[Email] Enviado para ${to || bcc}: ${options.subject}`);
     return true;
   } catch (err: any) {
-    console.error(`[Email] Erro ao enviar para ${to}:`, err.message);
+    console.error(`[Email] Erro ao enviar para ${to || bcc}:`, err.message);
     return false;
   }
 }
@@ -105,6 +111,32 @@ export function emailVencimentoAlerta(
       </div>
     `,
     text: `Alerta: ${docTitulo} (${condominioNome}) vence em ${diasRestantes} dias (${dataVencimento}).`,
+  };
+}
+
+export function emailEstoqueBaixo(
+  nomeMaterial: string,
+  quantidadeAtual: number,
+  quantidadeMinima: number,
+  unidade: string,
+  condominioNome: string
+): EmailOptions {
+  return {
+    to: '',
+    subject: `⚠️ Estoque baixo: ${nomeMaterial}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: #d97706;">Alerta de Estoque Baixo</h2>
+        <p>O material <strong>${nomeMaterial}</strong> do condomínio <strong>${condominioNome}</strong>
+           atingiu o nível mínimo de estoque.</p>
+        <table style="width:100%;border-collapse:collapse;">
+          <tr><td style="padding:6px 0;color:#6b7280;">Quantidade atual</td><td style="padding:6px 0;font-weight:600;">${quantidadeAtual} ${unidade}</td></tr>
+          <tr><td style="padding:6px 0;color:#6b7280;">Quantidade mínima</td><td style="padding:6px 0;">${quantidadeMinima} ${unidade}</td></tr>
+        </table>
+        <p>Providencie a reposição o mais breve possível.</p>
+      </div>
+    `,
+    text: `Estoque baixo: ${nomeMaterial} (${condominioNome}) — atual ${quantidadeAtual} ${unidade}, mínimo ${quantidadeMinima} ${unidade}.`,
   };
 }
 
