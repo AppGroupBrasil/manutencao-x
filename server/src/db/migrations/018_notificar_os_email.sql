@@ -1,0 +1,1 @@
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS notificar_os_email BOOLEAN NOT NULL DEFAULT true;

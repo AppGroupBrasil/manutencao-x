@@ -13,7 +13,7 @@ import type { OrdemServico, StatusOS } from '../../types';
 import { Plus, Search, MapPin, Calendar, Wrench, AlertTriangle, X, Hash } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useDemo } from '../../contexts/DemoContext';
-import { ordensServico as osApi, condominios as condominiosApi } from '../../services/api';
+import { ordensServico as osApi, condominios as condominiosApi, usuarios as usuariosApi } from '../../services/api';
 import LoadingSpinner from '../../components/Common/LoadingSpinner';
 import EmptyState from '../../components/Common/EmptyState';
 import WhatsAppShare from '../../components/Common/WhatsAppShare';
@@ -95,8 +95,27 @@ const OrdensServicoPage: React.FC = () => {
   const [novaPrioridade, setNovaPrioridade] = useState<'baixa' | 'media' | 'alta' | 'urgente'>('media');
   const [novaCond, setNovaCond] = useState('');
   const [novaLocal, setNovaLocal] = useState('');
-  const [novaDestinos, setNovaDestinos] = useState({ funcionarios: true, sindicos: true, associados: false });
+  const [funcionarios, setFuncionarios] = useState<any[]>([]);
   const [salvandoAuto, setSalvandoAuto] = useState(false);
+
+  useEffect(() => {
+    if (modalNova && roleNivel >= 3 && funcionarios.length === 0) {
+      usuariosApi.list()
+        .then((us: any[]) => setFuncionarios(us.filter(u => u.role === 'funcionario')))
+        .catch(() => {});
+    }
+  }, [modalNova]);
+
+  const alternarNotificarFunc = async (id: string, atual: boolean) => {
+    if (!tentarAcao()) return;
+    setFuncionarios(prev => prev.map(f => f.id === id ? { ...f, notificar_os_email: !atual } : f));
+    try {
+      await usuariosApi.setNotificarEmail(id, !atual);
+    } catch {
+      setFuncionarios(prev => prev.map(f => f.id === id ? { ...f, notificar_os_email: atual } : f));
+      alert('Erro ao salvar preferência.');
+    }
+  };
 
   const condSelecionada = condominiosList.find((c: any) => c.id === novaCond);
   const autoNotificar = !!(condSelecionada?.osAutoNotificar ?? condSelecionada?.os_auto_notificar);
@@ -165,7 +184,6 @@ const OrdensServicoPage: React.FC = () => {
     if (!novaCond) { alert('Selecione um condomínio.'); return; }
 
     try {
-      const emailDestinos = (['funcionarios', 'sindicos', 'associados'] as const).filter(k => novaDestinos[k]);
       const created: any = await osApi.create({
         condominioId: novaCond,
         titulo: novaTitulo.trim(),
@@ -173,12 +191,10 @@ const OrdensServicoPage: React.FC = () => {
         tipo: novaTipo,
         prioridade: novaPrioridade,
         local: novaLocal.trim(),
-        emailDestinos,
       } as any);
       setOrdens(prev => [mapOS(created), ...prev]);
       setNovaTitulo(''); setNovaDesc(''); setNovaTipo('limpeza');
       setNovaPrioridade('media'); setNovaCond(condominiosList[0]?.id || ''); setNovaLocal('');
-      setNovaDestinos({ funcionarios: true, sindicos: true, associados: false });
       setModalNova(false);
     } catch { alert('Erro ao criar O.S.'); }
   };
@@ -402,21 +418,26 @@ const OrdensServicoPage: React.FC = () => {
           )}
           {roleNivel >= 3 && (
             <div className={styles.formGroup}>
-              <label>Enviar e-mail ao criar (para quem tem e-mail cadastrado)</label>
-              <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', marginTop: 4 }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 400 }}>
-                  <input type="checkbox" checked={novaDestinos.funcionarios} onChange={e => setNovaDestinos(p => ({ ...p, funcionarios: e.target.checked }))} />
-                  Funcionários
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 400 }}>
-                  <input type="checkbox" checked={novaDestinos.sindicos} onChange={e => setNovaDestinos(p => ({ ...p, sindicos: e.target.checked }))} />
-                  Síndicos/Administradores
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 400 }}>
-                  <input type="checkbox" checked={novaDestinos.associados} onChange={e => setNovaDestinos(p => ({ ...p, associados: e.target.checked }))} />
-                  Associados (moradores)
-                </label>
-              </div>
+              <label>Notificação por e-mail ao criar a O.S.</label>
+              <p style={{ fontSize: 13, color: '#666', margin: '4px 0 8px' }}>
+                Síndicos e associados com e-mail cadastrado são avisados automaticamente. Marque quais funcionários também recebem — fica salvo até você desmarcar:
+              </p>
+              {funcionarios.length === 0 ? (
+                <p style={{ fontSize: 13, color: '#999' }}>Nenhum funcionário cadastrado.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 180, overflowY: 'auto' }}>
+                  {funcionarios.map(f => (
+                    <label key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 400 }}>
+                      <input
+                        type="checkbox"
+                        checked={f.notificar_os_email !== false}
+                        onChange={() => alternarNotificarFunc(f.id, f.notificar_os_email !== false)}
+                      />
+                      {f.nome}{f.email ? '' : ' (sem e-mail)'}
+                    </label>
+                  ))}
+                </div>
+              )}
             </div>
           )}
           <button type="button" className={styles.submitBtn} onClick={criarOS}>

@@ -17,7 +17,7 @@ router.get('/', requireMinRole('supervisor'), async (req: AuthRequest, res: Resp
   const page = parseInt(req.query.page as string) || 1;
   const pageSize = parseInt(req.query.pageSize as string) || 50;
 
-  const cols = 'id, email, nome, role, ativo, bloqueado, motivo_bloqueio, administrador_id, supervisor_id, condominio_id, avatar_url, telefone, cargo, criado_em';
+  const cols = 'id, email, nome, role, ativo, bloqueado, motivo_bloqueio, administrador_id, supervisor_id, condominio_id, avatar_url, telefone, cargo, notificar_os_email, criado_em';
   let result;
 
   if (user.role === 'master') {
@@ -214,6 +214,18 @@ router.patch('/:id/reset-senha', requireMinRole('administrador'), validate(usuar
   await execute('UPDATE usuarios SET senha_hash = $1 WHERE id = $2', [hash, req.params.id]);
   await auditLog(req.user!, 'usuario_reset_senha', 'usuarios', req.params.id).catch(() => {});
   res.json({ ok: true });
+});
+
+// PATCH /api/usuarios/:id/notificar-email
+router.patch('/:id/notificar-email', requireMinRole('supervisor'), async (req: AuthRequest, res: Response) => {
+  const notificar = req.body?.notificar;
+  if (typeof notificar !== 'boolean') { res.status(400).json({ error: 'Campo notificar (boolean) obrigatório' }); return; }
+  const row = await queryOne(
+    `UPDATE usuarios SET notificar_os_email = $1 WHERE id = $2 AND role = 'funcionario' RETURNING id, notificar_os_email`,
+    [notificar, req.params.id]
+  );
+  if (!row) { res.status(404).json({ error: 'Funcionário não encontrado' }); return; }
+  res.json(row);
 });
 
 // DELETE /api/usuarios/:id

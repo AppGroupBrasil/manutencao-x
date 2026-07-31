@@ -7,31 +7,22 @@ import { createNotification, auditLog } from '../middleware/helpers.js';
 import { sendPush } from '../services/push.js';
 import { sendEmail, emailOSCriada } from '../services/email.js';
 
-type EmailDestino = 'associados' | 'funcionarios' | 'sindicos';
-
-async function enviarEmailsOS(protocolo: string, titulo: string, prioridade: string, condominioId: string, destinos: EmailDestino[]) {
-  if (!destinos || destinos.length === 0) return;
+async function enviarEmailsOS(protocolo: string, titulo: string, prioridade: string, condominioId: string, criadorId: string) {
   const cond = await queryOne<{ nome: string }>('SELECT nome FROM condominios WHERE id = $1', [condominioId]);
   const emails = new Set<string>();
   const add = (rows: Array<{ email: string | null }>) => rows.forEach(r => { if (r.email) emails.add(r.email); });
-  if (destinos.includes('funcionarios')) {
-    add(await query<{ email: string }>(
-      `SELECT email FROM usuarios WHERE condominio_id = $1 AND role = 'funcionario' AND ativo = true AND bloqueado = false AND email IS NOT NULL AND email <> ''`,
-      [condominioId]
-    ));
-  }
-  if (destinos.includes('sindicos')) {
-    add(await query<{ email: string }>(
-      `SELECT email FROM usuarios WHERE condominio_id = $1 AND role IN ('administrador','supervisor') AND ativo = true AND bloqueado = false AND email IS NOT NULL AND email <> ''`,
-      [condominioId]
-    ));
-  }
-  if (destinos.includes('associados')) {
-    add(await query<{ email: string }>(
-      `SELECT email FROM moradores WHERE condominio_id = $1 AND email IS NOT NULL AND email <> ''`,
-      [condominioId]
-    ));
-  }
+  add(await query<{ email: string }>(
+    `SELECT email FROM usuarios WHERE condominio_id = $1 AND role IN ('administrador','supervisor') AND id <> $2 AND ativo = true AND bloqueado = false AND email IS NOT NULL AND email <> ''`,
+    [condominioId, criadorId]
+  ));
+  add(await query<{ email: string }>(
+    `SELECT email FROM moradores WHERE condominio_id = $1 AND email IS NOT NULL AND email <> ''`,
+    [condominioId]
+  ));
+  add(await query<{ email: string }>(
+    `SELECT email FROM usuarios WHERE condominio_id = $1 AND role = 'funcionario' AND notificar_os_email = true AND ativo = true AND bloqueado = false AND email IS NOT NULL AND email <> ''`,
+    [condominioId]
+  ));
   if (emails.size === 0) return;
   const opts = emailOSCriada(protocolo, titulo, cond?.nome || '', prioridade);
   await sendEmail({ ...opts, bcc: [...emails] });
@@ -130,7 +121,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
 router.post('/', requireMinRole('supervisor'), validate(ordemServicoSchema), async (req: AuthRequest, res: Response) => {
   const ids: string[] = req.condominioIds!;
   const { condominioId, titulo, descricao, tipo, prioridade, local, responsavelId, supervisorId,
-    equipamentoId, fornecedorId, planoId, custoMaterial, custoMaoObra, custoExterno, dataPrevisao, emailDestinos } = req.body;
+    equipamentoId, fornecedorId, planoId, custoMaterial, custoMaoObra, custoExterno, dataPrevisao } = req.body;
   if (!condominioId || !ids.includes(condominioId)) {
     res.status(403).json({ error: 'Sem acesso a este condomínio' });
     return;
@@ -155,7 +146,7 @@ router.post('/', requireMinRole('supervisor'), validate(ordemServicoSchema), asy
   }
   if (!row) { res.status(500).json({ error: 'Não foi possível gerar protocolo único' }); return; }
   notificarFuncionariosAuto(String(row.id), titulo, condominioId, req.user!.id).catch(() => {});
-  enviarEmailsOS(String(row.protocolo), titulo, prioridade || 'media', condominioId, emailDestinos || [])
+  enviarEmailsOS(String(row.protocolo), titulo, prioridade || 'media', condominioId, req.user!.id)
     .catch((err) => console.error('[OS] Erro ao enviar e-mails:', err?.message));
   res.status(201).json(row);
 });

@@ -75,7 +75,6 @@ export const ordemServicoSchema = z.object({
   custoMaoObra: z.number().min(0).optional().nullable(),
   custoExterno: z.number().min(0).optional().nullable(),
   dataPrevisao: z.string().max(30).refine(v => !isNaN(Date.parse(v)), 'Data de previsão inválida').optional().nullable(),
-  emailDestinos: z.array(z.enum(['associados', 'funcionarios', 'sindicos'])).max(3).optional(),
 });
 
 export const condominioSchema = z.object({

@@ -485,6 +485,7 @@ export const usuarios = {
   },
   bloquear: (id: string, bloqueado: boolean, motivo?: string) => patch(`/usuarios/${id}/bloquear`, { bloqueado, motivo }),
   resetSenha: (id: string, novaSenha: string) => patch(`/usuarios/${id}/reset-senha`, { novaSenha }),
+  setNotificarEmail: (id: string, notificar: boolean) => patch(`/usuarios/${id}/notificar-email`, { notificar }),
 };
 export const configuracoes = {
   getTema: () => request('/configuracoes/tema'),
