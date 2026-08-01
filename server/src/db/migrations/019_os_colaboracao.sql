@@ -1,3 +1,16 @@
+DO $legado$
+BEGIN
+  IF to_regclass('public.os_responsaveis') IS NOT NULL
+     AND NOT EXISTS (
+       SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'os_responsaveis' AND column_name = 'os_id'
+     ) THEN
+    ALTER TABLE os_responsaveis RENAME TO os_responsaveis_legado;
+    RAISE NOTICE 'os_responsaveis legada (schema antigo) renomeada para os_responsaveis_legado';
+  END IF;
+END
+$legado$;
+
 CREATE TABLE IF NOT EXISTS os_responsaveis (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   os_id UUID NOT NULL REFERENCES ordens_servico(id) ON DELETE CASCADE,
