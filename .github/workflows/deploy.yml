@@ -32,7 +32,7 @@ jobs:
         run: |
           ssh -o ServerAliveInterval=30 \
             ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
-            "cd ${{ env.APP_PATH }} && touch .env && sed -i '/^SMTP_HOST=/d;/^SMTP_PORT=/d;/^SMTP_USER=/d;/^SMTP_PASS=/d' .env && printf 'SMTP_HOST=%s\nSMTP_PORT=%s\nSMTP_USER=%s\nSMTP_PASS=%s\n' '${{ secrets.SMTP_HOST }}' '${{ secrets.SMTP_PORT }}' '${{ secrets.SMTP_USER }}' '${{ secrets.SMTP_PASS }}' >> .env"
+            "cd ${{ env.APP_PATH }} && touch .env && sed -i '/^SMTP_HOST=/d;/^SMTP_PORT=/d;/^SMTP_USER=/d;/^SMTP_PASS=/d' .env && printf 'SMTP_HOST=%s\nSMTP_PORT=%s\nSMTP_USER=%s\nSMTP_PASS=%s\n' '${{ secrets.SMTP_HOST }}' '${{ secrets.SMTP_PORT }}' '${{ secrets.SMTP_USER }}' '${{ secrets.SMTP_PASS }}' >> .env && if [ -n '${{ secrets.SMTP_FROM }}' ]; then sed -i '/^SMTP_FROM=/d' .env && printf 'SMTP_FROM=%s\n' '${{ secrets.SMTP_FROM }}' >> .env; fi"
 
       - name: Build and restart
         run: |

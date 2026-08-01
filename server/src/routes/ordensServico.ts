@@ -1,11 +1,16 @@
 import { Router, Response } from 'express';
 import { query, queryOne, execute, paginate } from '../db/database.js';
 import { AuthRequest } from '../middleware/auth.js';
-import { validate, ordemServicoSchema, ordemServicoStatusSchema, ordemServicoAvaliacaoSchema, ordemServicoUpdateSchema } from '../middleware/validation.js';
+import { validate, ordemServicoSchema, ordemServicoStatusSchema, ordemServicoAvaliacaoSchema, ordemServicoUpdateSchema,
+  osResponsaveisSchema, osDescricaoSchema, osFotosSchema } from '../middleware/validation.js';
 import { requireMinRole } from '../middleware/rbac.js';
 import { createNotification, auditLog } from '../middleware/helpers.js';
 import { sendPush } from '../services/push.js';
 import { sendEmail, emailOSCriada } from '../services/email.js';
+import {
+  AutorOS, adicionarDescricao, adicionarFotos, definirResponsaveis, detalhesColaboracao,
+  listarCandidatos, listarHistorico, registrarHistorico, removerFoto,
+} from '../services/osColaboracao.js';
 
 async function enviarEmailsOS(protocolo: string, titulo: string, prioridade: string, condominioId: string, criadorId: string) {
   const cond = await queryOne<{ nome: string }>('SELECT nome FROM condominios WHERE id = $1', [condominioId]);
@@ -83,6 +88,23 @@ async function validarReferencias(req: AuthRequest, condominioId: string): Promi
   return null;
 }
 
+function autorDe(req: AuthRequest): AutorOS {
+  return { id: req.user!.id, nome: req.user!.nome, origem: 'painel' };
+}
+
+async function carregarOS(req: AuthRequest): Promise<{ id: string; condominio_id: string; protocolo: string; titulo: string } | null> {
+  return queryOne(
+    'SELECT id, condominio_id, protocolo, titulo FROM ordens_servico WHERE id = $1 AND condominio_id = ANY($2)',
+    [req.params.id, req.condominioIds!]
+  );
+}
+
+const SELECT_RESPONSAVEIS = `
+  COALESCE((
+    SELECT json_agg(json_build_object('id', r.id, 'usuarioId', r.usuario_id, 'nome', r.nome, 'papel', r.papel) ORDER BY r.criado_em)
+      FROM os_responsaveis r WHERE r.os_id = os.id
+  ), '[]'::json) AS responsaveis`;
+
 // GET /api/ordens-servico
 router.get('/', async (req: AuthRequest, res: Response) => {
   const ids: string[] = req.condominioIds!;
@@ -90,7 +112,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
   const page = parseInt(req.query.page as string) || 1;
   const pageSize = parseInt(req.query.pageSize as string) || 50;
   const result = await paginate(
-    `SELECT os.*, c.nome as condominio_nome, u.nome as responsavel_nome
+    `SELECT os.*, c.nome as condominio_nome, u.nome as responsavel_nome, ${SELECT_RESPONSAVEIS}
      FROM ordens_servico os
      LEFT JOIN condominios c ON c.id = os.condominio_id
      LEFT JOIN usuarios u ON u.id = os.responsavel_id
@@ -101,12 +123,23 @@ router.get('/', async (req: AuthRequest, res: Response) => {
   res.json(result);
 });
 
+// GET /api/ordens-servico/candidatos?condominioId=
+router.get('/candidatos', async (req: AuthRequest, res: Response) => {
+  const condominioId = String(req.query.condominioId || '');
+  if (!req.condominioIds!.includes(condominioId)) {
+    res.status(403).json({ error: 'Condomínio fora do escopo' });
+    return;
+  }
+  res.json(await listarCandidatos(condominioId));
+});
+
 // GET /api/ordens-servico/:id
 router.get('/:id', async (req: AuthRequest, res: Response) => {
   const ids: string[] = req.condominioIds!;
   const row = await queryOne(
-    `SELECT os.*, c.nome as condominio_nome FROM ordens_servico os
+    `SELECT os.*, c.nome as condominio_nome, u.nome as criado_por_nome FROM ordens_servico os
      LEFT JOIN condominios c ON c.id = os.condominio_id
+     LEFT JOIN usuarios u ON u.id = os.criado_por
      WHERE os.id = $1`,
     [req.params.id]
   );
@@ -114,7 +147,58 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
     res.status(404).json({ error: 'OS não encontrada' });
     return;
   }
-  res.json(row);
+  const detalhes = await detalhesColaboracao(req.params.id);
+  res.json({ ...row, ...detalhes });
+});
+
+// GET /api/ordens-servico/:id/candidatos — gestores, síndico e funcionários elegíveis
+router.get('/:id/candidatos', async (req: AuthRequest, res: Response) => {
+  const os = await carregarOS(req);
+  if (!os) { res.status(404).json({ error: 'OS não encontrada' }); return; }
+  res.json(await listarCandidatos(os.condominio_id));
+});
+
+// GET /api/ordens-servico/:id/historico
+router.get('/:id/historico', async (req: AuthRequest, res: Response) => {
+  const os = await carregarOS(req);
+  if (!os) { res.status(404).json({ error: 'OS não encontrada' }); return; }
+  res.json(await listarHistorico(req.params.id));
+});
+
+// PUT /api/ordens-servico/:id/responsaveis
+router.put('/:id/responsaveis', validate(osResponsaveisSchema), async (req: AuthRequest, res: Response) => {
+  const os = await carregarOS(req);
+  if (!os) { res.status(404).json({ error: 'OS não encontrada' }); return; }
+  const resultado = await definirResponsaveis(req.params.id, os.condominio_id, req.body.responsaveis, autorDe(req));
+  if ('erro' in resultado) { res.status(400).json({ error: resultado.erro }); return; }
+  res.json(resultado);
+});
+
+// POST /api/ordens-servico/:id/descricoes
+router.post('/:id/descricoes', validate(osDescricaoSchema), async (req: AuthRequest, res: Response) => {
+  const os = await carregarOS(req);
+  if (!os) { res.status(404).json({ error: 'OS não encontrada' }); return; }
+  const resultado = await adicionarDescricao(req.params.id, req.body.texto, autorDe(req));
+  if ('erro' in resultado) { res.status(400).json({ error: resultado.erro }); return; }
+  res.status(201).json(resultado);
+});
+
+// POST /api/ordens-servico/:id/fotos
+router.post('/:id/fotos', validate(osFotosSchema), async (req: AuthRequest, res: Response) => {
+  const os = await carregarOS(req);
+  if (!os) { res.status(404).json({ error: 'OS não encontrada' }); return; }
+  const resultado = await adicionarFotos(req.params.id, req.body.fotos, autorDe(req));
+  if ('erro' in resultado) { res.status(400).json({ error: resultado.erro }); return; }
+  res.status(201).json(resultado);
+});
+
+// DELETE /api/ordens-servico/:id/fotos/:fotoId
+router.delete('/:id/fotos/:fotoId', async (req: AuthRequest, res: Response) => {
+  const os = await carregarOS(req);
+  if (!os) { res.status(404).json({ error: 'OS não encontrada' }); return; }
+  const resultado = await removerFoto(req.params.id, req.params.fotoId, autorDe(req));
+  if ('erro' in resultado) { res.status(404).json({ error: resultado.erro }); return; }
+  res.json(resultado);
 });
 
 // POST /api/ordens-servico
@@ -145,10 +229,24 @@ router.post('/', requireMinRole('supervisor'), validate(ordemServicoSchema), asy
     }
   }
   if (!row) { res.status(500).json({ error: 'Não foi possível gerar protocolo único' }); return; }
+  const autor = autorDe(req);
+  const listaResp: Array<{ usuarioId?: string | null; nome?: string | null }> = Array.isArray(req.body.responsaveis)
+    ? req.body.responsaveis
+    : (responsavelId ? [{ usuarioId: responsavelId }] : []);
+  let responsaveis: unknown[] = [];
+  if (listaResp.length > 0) {
+    const resultado = await definirResponsaveis(String(row.id), condominioId, listaResp, autor)
+      .catch((err) => ({ erro: String(err?.message || 'falha ao definir responsáveis') }));
+    if ('erro' in resultado) console.warn(`[OS] Responsáveis não aplicados em ${row.id}: ${resultado.erro}`);
+    else responsaveis = resultado.responsaveis;
+  }
+  if (descricao && String(descricao).trim()) {
+    await registrarHistorico(String(row.id), 'descricao', String(descricao).trim().slice(0, 5000), { inicial: true }, autor).catch(() => {});
+  }
   notificarFuncionariosAuto(String(row.id), titulo, condominioId, req.user!.id).catch(() => {});
   enviarEmailsOS(String(row.protocolo), titulo, prioridade || 'media', condominioId, req.user!.id)
     .catch((err) => console.error('[OS] Erro ao enviar e-mails:', err?.message));
-  res.status(201).json(row);
+  res.status(201).json({ ...row, responsaveis });
 });
 
 // PATCH /api/ordens-servico/:id/status
@@ -165,6 +263,7 @@ router.patch('/:id/status', validate(ordemServicoStatusSchema), async (req: Auth
     [status, req.params.id, ids]
   );
   if (!row) { res.status(404).json({ error: 'OS não encontrada' }); return; }
+  registrarHistorico(req.params.id, 'status', `Status alterado para ${status}`, { para: status }, autorDe(req)).catch(() => {});
   res.json(row);
 });
 
@@ -184,19 +283,32 @@ router.patch('/:id/avaliacao', validate(ordemServicoAvaliacaoSchema), async (req
 const COLUNAS_OS: Record<string, string> = {
   titulo: 'titulo', descricao: 'descricao', tipo: 'tipo', prioridade: 'prioridade',
   local: 'local', responsavelId: 'responsavel_id', supervisorId: 'supervisor_id',
-  observacoes: 'observacoes', fotos: 'fotos', dataPrevisao: 'data_previsao',
+  observacoes: 'observacoes', dataPrevisao: 'data_previsao',
   equipamentoId: 'equipamento_id', fornecedorId: 'fornecedor_id', planoId: 'plano_id',
   custoMaterial: 'custo_material', custoMaoObra: 'custo_mao_obra', custoExterno: 'custo_terceiros',
 };
 
-router.put('/:id', requireMinRole('supervisor'), validate(ordemServicoUpdateSchema), async (req: AuthRequest, res: Response) => {
+export function camposAlterados(antes: Record<string, any>, depois: Record<string, any>, colunas: Record<string, string>) {
+  const mudancas: Record<string, { de: unknown; para: unknown }> = {};
+  for (const coluna of Object.values(colunas)) {
+    const de = antes?.[coluna] ?? null;
+    const para = depois?.[coluna] ?? null;
+    const iguais = de instanceof Date && para instanceof Date
+      ? de.getTime() === para.getTime()
+      : String(de) === String(para);
+    if (!iguais) mudancas[coluna] = { de, para };
+  }
+  return mudancas;
+}
+
+router.put('/:id', validate(ordemServicoUpdateSchema), async (req: AuthRequest, res: Response) => {
   const ids: string[] = req.condominioIds!;
-  const os = await queryOne<{ condominio_id: string }>(
-    'SELECT condominio_id FROM ordens_servico WHERE id = $1 AND condominio_id = ANY($2)',
+  const antes = await queryOne<any>(
+    'SELECT * FROM ordens_servico WHERE id = $1 AND condominio_id = ANY($2)',
     [req.params.id, ids]
   );
-  if (!os) { res.status(404).json({ error: 'OS não encontrada' }); return; }
-  const erroRef = await validarReferencias(req, os.condominio_id);
+  if (!antes) { res.status(404).json({ error: 'OS não encontrada' }); return; }
+  const erroRef = await validarReferencias(req, antes.condominio_id);
   if (erroRef) { res.status(403).json({ error: erroRef }); return; }
   const fields: string[] = [];
   const values: any[] = [];
@@ -206,13 +318,17 @@ router.put('/:id', requireMinRole('supervisor'), validate(ordemServicoUpdateSche
   }
   if (fields.length === 0) { res.status(400).json({ error: 'Nenhum campo para atualizar' }); return; }
   values.push(req.params.id, ids);
-  const row = await queryOne(
+  const row = await queryOne<any>(
     `UPDATE ordens_servico SET ${fields.join(', ')} WHERE id = $${idx++} AND condominio_id = ANY($${idx}) RETURNING *`,
     values
   );
   if (!row) { res.status(404).json({ error: 'OS não encontrada' }); return; }
+  const mudancas = camposAlterados(antes, row, COLUNAS_OS);
+  if (Object.keys(mudancas).length > 0) {
+    await registrarHistorico(req.params.id, 'edicao', Object.keys(mudancas).join(', '), { mudancas }, autorDe(req)).catch(() => {});
+  }
   await auditLog(req.user!, 'os_atualizada', 'ordens_servico', req.params.id, { campos: Object.keys(req.body) }).catch(() => {});
-  res.json(row);
+  res.json({ ...row, ...(await detalhesColaboracao(req.params.id)) });
 });
 
 // DELETE /api/ordens-servico/:id

@@ -1,9 +1,35 @@
 import { Router, Request, Response } from 'express';
+import multer from 'multer';
 import { queryOne, execute } from '../db/database.js';
 import { createNotification } from '../middleware/helpers.js';
 import { sendPush } from '../services/push.js';
+import {
+  IMAGE_MIME_TYPES,
+  MAX_IMAGE_BYTES,
+  bufferMatchesMimeType,
+  salvarImagemWebp,
+} from '../services/imagens.js';
+import {
+  AutorOS,
+  adicionarDescricao,
+  adicionarFotos,
+  definirResponsaveis,
+  detalhesColaboracao,
+  listarCandidatos,
+  registrarHistorico,
+  removerFoto,
+} from '../services/osColaboracao.js';
 
 const router = Router();
+
+const uploadPublico = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_IMAGE_BYTES, files: 5 },
+  fileFilter: (_req, file, cb) => {
+    if (IMAGE_MIME_TYPES.has(file.mimetype)) cb(null, true);
+    else cb(new Error('Tipo de imagem não permitido'));
+  },
+});
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -37,7 +63,118 @@ router.get('/os/:id', async (req: Request, res: Response) => {
     [req.params.id]
   );
   if (!row) { res.status(404).json({ error: 'Ordem de serviço não encontrada' }); return; }
-  res.json(row);
+  res.json({ ...row, ...(await detalhesColaboracao(req.params.id)) });
+});
+
+async function carregarOSPublica(id: string) {
+  if (!idValido(id)) return null;
+  return queryOne<{ id: string; condominio_id: string; status: string; protocolo: string; titulo: string; criado_por: string | null }>(
+    'SELECT id, condominio_id, status, protocolo, titulo, criado_por FROM ordens_servico WHERE id = $1',
+    [id]
+  );
+}
+
+function autorPublico(body: any): AutorOS | null {
+  const nome = lerNome(body);
+  if (!nome) return null;
+  return { id: null, nome, origem: 'publico' };
+}
+
+router.get('/os/:id/candidatos', async (req: Request, res: Response) => {
+  const os = await carregarOSPublica(req.params.id);
+  if (!os) { res.status(404).json({ error: 'Ordem de serviço não encontrada' }); return; }
+  res.json(await listarCandidatos(os.condominio_id));
+});
+
+router.put('/os/:id/responsaveis', async (req: Request, res: Response) => {
+  const os = await carregarOSPublica(req.params.id);
+  if (!os) { res.status(404).json({ error: 'Ordem de serviço não encontrada' }); return; }
+  const autor = autorPublico(req.body);
+  if (!autor) { res.status(400).json({ error: 'Informe seu nome (mínimo 3 caracteres)' }); return; }
+  const lista = Array.isArray(req.body?.responsaveis) ? req.body.responsaveis : null;
+  if (!lista) { res.status(400).json({ error: 'Lista de responsáveis inválida' }); return; }
+  const resultado = await definirResponsaveis(os.id, os.condominio_id, lista.slice(0, 20), autor);
+  if ('erro' in resultado) { res.status(400).json({ error: resultado.erro }); return; }
+  res.json(resultado);
+});
+
+router.post('/os/:id/descricoes', async (req: Request, res: Response) => {
+  const os = await carregarOSPublica(req.params.id);
+  if (!os) { res.status(404).json({ error: 'Ordem de serviço não encontrada' }); return; }
+  const autor = autorPublico(req.body);
+  if (!autor) { res.status(400).json({ error: 'Informe seu nome (mínimo 3 caracteres)' }); return; }
+  const resultado = await adicionarDescricao(os.id, String(req.body?.texto || ''), autor);
+  if ('erro' in resultado) { res.status(400).json({ error: resultado.erro }); return; }
+  res.status(201).json(resultado);
+});
+
+const CAMPOS_EDITAVEIS_PUBLICO: Record<string, string> = {
+  titulo: 'titulo', descricao: 'descricao', local: 'local',
+  prioridade: 'prioridade', observacoes: 'observacoes',
+};
+const PRIORIDADES = ['baixa', 'media', 'alta', 'urgente'];
+
+router.put('/os/:id', async (req: Request, res: Response) => {
+  const os = await carregarOSPublica(req.params.id);
+  if (!os) { res.status(404).json({ error: 'Ordem de serviço não encontrada' }); return; }
+  const autor = autorPublico(req.body);
+  if (!autor) { res.status(400).json({ error: 'Informe seu nome (mínimo 3 caracteres)' }); return; }
+  if (os.status === 'cancelada') { res.status(409).json({ error: 'Esta ordem de serviço foi cancelada' }); return; }
+
+  const fields: string[] = [];
+  const values: any[] = [];
+  const mudancas: Record<string, unknown> = {};
+  let idx = 1;
+  for (const [campo, coluna] of Object.entries(CAMPOS_EDITAVEIS_PUBLICO)) {
+    const valor = req.body?.[campo];
+    if (valor === undefined) continue;
+    const texto = String(valor).trim().slice(0, campo === 'titulo' ? 255 : 5000);
+    if (campo === 'titulo' && texto.length < 3) { res.status(400).json({ error: 'Título muito curto' }); return; }
+    if (campo === 'prioridade') {
+      if (!PRIORIDADES.includes(texto)) { res.status(400).json({ error: 'Prioridade inválida' }); return; }
+      fields.push(`${coluna} = $${idx++}::prioridade`);
+    } else {
+      fields.push(`${coluna} = $${idx++}`);
+    }
+    values.push(texto);
+    mudancas[coluna] = texto;
+  }
+  if (fields.length === 0) { res.status(400).json({ error: 'Nenhum campo para atualizar' }); return; }
+  values.push(os.id);
+  const row = await queryOne(`UPDATE ordens_servico SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`, values);
+  await registrarHistorico(os.id, 'edicao', Object.keys(mudancas).join(', '), { mudancas }, autor).catch(() => {});
+  res.json({ ...row, ...(await detalhesColaboracao(os.id)) });
+});
+
+router.post('/os/:id/fotos', uploadPublico.array('files', 5), async (req: Request, res: Response) => {
+  const os = await carregarOSPublica(req.params.id);
+  if (!os) { res.status(404).json({ error: 'Ordem de serviço não encontrada' }); return; }
+  const autor = autorPublico(req.body);
+  if (!autor) { res.status(400).json({ error: 'Informe seu nome (mínimo 3 caracteres)' }); return; }
+  const arquivos = (req.files as Express.Multer.File[] | undefined) || [];
+  if (arquivos.length === 0) { res.status(400).json({ error: 'Nenhuma imagem enviada' }); return; }
+  for (const f of arquivos) {
+    if (!bufferMatchesMimeType(f.buffer, f.mimetype)) {
+      res.status(400).json({ error: 'Conteúdo do arquivo inválido para o tipo informado' });
+      return;
+    }
+  }
+  const urls: Array<{ url: string }> = [];
+  for (const f of arquivos) urls.push({ url: await salvarImagemWebp(f.buffer) });
+  const resultado = await adicionarFotos(os.id, urls, autor);
+  if ('erro' in resultado) { res.status(400).json({ error: resultado.erro }); return; }
+  res.status(201).json(resultado);
+});
+
+router.delete('/os/:id/fotos/:fotoId', async (req: Request, res: Response) => {
+  const os = await carregarOSPublica(req.params.id);
+  if (!os) { res.status(404).json({ error: 'Ordem de serviço não encontrada' }); return; }
+  if (!idValido(req.params.fotoId)) { res.status(404).json({ error: 'Imagem não encontrada' }); return; }
+  const autor = autorPublico(req.query.executadoPor ? { executadoPor: req.query.executadoPor } : req.body);
+  if (!autor) { res.status(400).json({ error: 'Informe seu nome (mínimo 3 caracteres)' }); return; }
+  const resultado = await removerFoto(os.id, req.params.fotoId, autor);
+  if ('erro' in resultado) { res.status(404).json({ error: resultado.erro }); return; }
+  res.json(resultado);
 });
 
 router.post('/os/:id/status', async (req: Request, res: Response) => {
@@ -66,6 +203,10 @@ router.post('/os/:id/status', async (req: Request, res: Response) => {
      WHERE id = $4`,
     [status, nome, observacoes, req.params.id]
   );
+  registrarHistorico(
+    req.params.id, 'status', `Status alterado para ${status}`,
+    { de: atual.status, para: status }, { id: null, nome, origem: 'publico' }
+  ).catch(() => {});
   if (status === 'concluida' && atual.criado_por) {
     const msg = `${atual.protocolo} — ${atual.titulo} concluída por ${nome}`;
     createNotification(atual.criado_por, 'OS concluída', msg, 'info', '/ordens-servico').catch(() => {});

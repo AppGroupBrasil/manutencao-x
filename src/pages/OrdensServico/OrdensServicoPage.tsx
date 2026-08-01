@@ -13,7 +13,8 @@ import type { OrdemServico, StatusOS } from '../../types';
 import { Plus, Search, MapPin, Calendar, Wrench, AlertTriangle, X, Hash } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useDemo } from '../../contexts/DemoContext';
-import { ordensServico as osApi, condominios as condominiosApi, usuarios as usuariosApi } from '../../services/api';
+import { ordensServico as osApi, condominios as condominiosApi, usuarios as usuariosApi, upload as uploadApi } from '../../services/api';
+import ColaboracaoOS from '../../components/OS/ColaboracaoOS';
 import LoadingSpinner from '../../components/Common/LoadingSpinner';
 import EmptyState from '../../components/Common/EmptyState';
 import WhatsAppShare from '../../components/Common/WhatsAppShare';
@@ -22,6 +23,7 @@ import styles from './OrdensServico.module.css';
 
 interface OSComProtocolo extends OrdemServico {
   protocolo: string;
+  responsaveis?: Array<{ id: string; usuario_id?: string | null; nome: string; papel?: string }>;
 }
 
 const STATUS_OPTIONS: { value: StatusOS; label: string }[] = [
@@ -55,7 +57,7 @@ const mapOS = (r: any): OSComProtocolo => {
     local: r.local || '',
     responsavelId: r.responsavelId ?? r.responsavel_id,
     supervisorId: r.supervisorId ?? r.supervisor_id,
-    fotos: r.fotos || [],
+    fotos: Array.isArray(r.fotos) ? r.fotos.map((f: any) => (typeof f === 'string' ? f : f.url)) : [],
     observacoes: r.observacoes || '',
     dataAbertura: abertura ? new Date(abertura).getTime() : Date.now(),
     dataPrevisao: previsao ? new Date(previsao).getTime() : undefined,
@@ -63,6 +65,7 @@ const mapOS = (r: any): OSComProtocolo => {
     criadoPor: r.criadoPor ?? r.criado_por,
     avaliacaoNota: r.avaliacaoNota ?? r.avaliacao_nota,
     avaliacaoComentario: r.avaliacaoComentario ?? r.avaliacao_comentario,
+    responsaveis: Array.isArray(r.responsaveis) ? r.responsaveis : [],
   };
 };
 
@@ -75,6 +78,66 @@ const OrdensServicoPage: React.FC = () => {
   const [busca, setBusca] = useState('');
   const [filtroStatus, setFiltroStatus] = useState('todos');
   const [modalNova, setModalNova] = useState(false);
+  const [detalhe, setDetalhe] = useState<any>(null);
+  const [carregandoDetalhe, setCarregandoDetalhe] = useState(false);
+  const [editandoOS, setEditandoOS] = useState(false);
+  const [salvandoEdicao, setSalvandoEdicao] = useState(false);
+  const [edicao, setEdicao] = useState({ titulo: '', descricao: '', local: '', prioridade: 'media', dataPrevisao: '' });
+
+  const abrirDetalhe = async (id: string) => {
+    setCarregandoDetalhe(true);
+    setDetalhe({ id, carregando: true });
+    try {
+      const row: any = await osApi.get(id);
+      setDetalhe(row);
+      setEdicao({
+        titulo: row.titulo || '',
+        descricao: row.descricao || '',
+        local: row.local || '',
+        prioridade: row.prioridade || 'media',
+        dataPrevisao: row.data_previsao ? String(row.data_previsao).slice(0, 10) : '',
+      });
+      setEditandoOS(false);
+    } catch {
+      setDetalhe(null);
+      alert('Não foi possível abrir a O.S.');
+    } finally {
+      setCarregandoDetalhe(false);
+    }
+  };
+
+  const sincronizarLista = (row: any) => {
+    setOrdens(prev => prev.map(o => o.id === row.id ? { ...o, ...mapOS({ ...o, ...row }) } : o));
+  };
+
+  const recarregarDetalhe = async () => {
+    if (!detalhe?.id) return;
+    const row: any = await osApi.get(detalhe.id);
+    setDetalhe(row);
+    sincronizarLista(row);
+  };
+
+  const salvarEdicao = async () => {
+    if (!tentarAcao()) return;
+    if (edicao.titulo.trim().length < 3) { alert('Título muito curto.'); return; }
+    setSalvandoEdicao(true);
+    try {
+      const row: any = await osApi.update(detalhe.id, {
+        titulo: edicao.titulo.trim(),
+        descricao: edicao.descricao.trim(),
+        local: edicao.local.trim(),
+        prioridade: edicao.prioridade,
+        ...(edicao.dataPrevisao ? { dataPrevisao: edicao.dataPrevisao } : {}),
+      } as any);
+      setDetalhe(row);
+      sincronizarLista(row);
+      setEditandoOS(false);
+    } catch (e: any) {
+      alert(e?.message || 'Erro ao salvar edição');
+    } finally {
+      setSalvandoEdicao(false);
+    }
+  };
 
   useEffect(() => {
     Promise.all([osApi.list().catch(() => []), condominiosApi.list().catch(() => [])])
@@ -97,6 +160,24 @@ const OrdensServicoPage: React.FC = () => {
   const [novaLocal, setNovaLocal] = useState('');
   const [funcionarios, setFuncionarios] = useState<any[]>([]);
   const [salvandoAuto, setSalvandoAuto] = useState(false);
+  const [candidatosNova, setCandidatosNova] = useState<any[]>([]);
+  const [novaResponsaveis, setNovaResponsaveis] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!modalNova || !novaCond) { return; }
+    setNovaResponsaveis([]);
+    osApi.candidatosPorCondominio(novaCond)
+      .then(setCandidatosNova)
+      .catch(() => setCandidatosNova([]));
+  }, [modalNova, novaCond]);
+
+  const chaveCandidato = (c: any) => (c.id ? `id:${c.id}` : `nome:${String(c.nome).trim().toLowerCase()}`);
+
+  const responsaveisSelecionados = (chaves: string[], lista: any[]) =>
+    chaves.map(chave => {
+      const c = lista.find(x => chaveCandidato(x) === chave);
+      return c?.id ? { usuarioId: c.id } : { nome: c?.nome ?? chave.replace(/^nome:/, '') };
+    });
 
   useEffect(() => {
     if (modalNova && roleNivel >= 3 && funcionarios.length === 0) {
@@ -191,10 +272,12 @@ const OrdensServicoPage: React.FC = () => {
         tipo: novaTipo,
         prioridade: novaPrioridade,
         local: novaLocal.trim(),
+        responsaveis: responsaveisSelecionados(novaResponsaveis, candidatosNova),
       } as any);
       setOrdens(prev => [mapOS(created), ...prev]);
       setNovaTitulo(''); setNovaDesc(''); setNovaTipo('limpeza');
       setNovaPrioridade('media'); setNovaCond(condominiosList[0]?.id || ''); setNovaLocal('');
+      setNovaResponsaveis([]);
       setModalNova(false);
     } catch { alert('Erro ao criar O.S.'); }
   };
@@ -298,6 +381,14 @@ const OrdensServicoPage: React.FC = () => {
                     <StatusBadge texto={statusInfo.texto} variante={statusInfo.variante} />
                   </div>
                 </div>
+                {(os.responsaveis?.length ?? 0) > 0 && (
+                  <div className={styles.respLinha}>
+                    <span className={styles.respRotulo}>Responsáveis:</span>
+                    {os.responsaveis!.map(r => (
+                      <span key={r.id} className={styles.respChip}>{r.nome}</span>
+                    ))}
+                  </div>
+                )}
                 <h4 className={styles.osTitle}>{os.titulo}</h4>
                 <p className={styles.osDesc}>{os.descricao}</p>
                 <div className={styles.osMeta}>
@@ -323,6 +414,9 @@ const OrdensServicoPage: React.FC = () => {
                       </select>
                     </div>
                   )}
+                  <button type="button" className={styles.detalheBtn} onClick={() => abrirDetalhe(os.id)}>
+                    Abrir O.S.
+                  </button>
                   <WhatsAppShare mensagem={`*Ordem de Serviço*\n*Protocolo:* ${os.protocolo}\n*Título:* ${os.titulo}\n*Tipo:* ${os.tipo}\n*Prioridade:* ${os.prioridade}\n*Status:* ${os.status}\n*Local:* ${os.local || 'N/A'}\n*Abertura:* ${formatarDataHora(os.dataAbertura)}`} />
                   <ShareButton tipo="os" id={os.id} titulo={os.titulo} />
                 </div>
@@ -400,6 +494,34 @@ const OrdensServicoPage: React.FC = () => {
               <input placeholder="Ex: Bloco A - 3º andar" value={novaLocal} onChange={e => setNovaLocal(e.target.value)} />
             </div>
           </div>
+          <div className={styles.formGroup}>
+            <label>Responsáveis pela O.S.</label>
+            <p style={{ fontSize: 13, color: '#666', margin: '4px 0 8px' }}>
+              Marque uma ou mais pessoas — gestores, síndico e funcionários do condomínio:
+            </p>
+            {candidatosNova.length === 0 ? (
+              <p style={{ fontSize: 13, color: '#999' }}>Nenhuma pessoa disponível neste condomínio.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 180, overflowY: 'auto' }}>
+                {candidatosNova.map(c => {
+                  const chave = chaveCandidato(c);
+                  return (
+                    <label key={chave} style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 400 }}>
+                      <input
+                        type="checkbox"
+                        checked={novaResponsaveis.includes(chave)}
+                        onChange={() => setNovaResponsaveis(prev =>
+                          prev.includes(chave) ? prev.filter(k => k !== chave) : [...prev, chave]
+                        )}
+                      />
+                      {c.nome}
+                      <span style={{ fontSize: 11, color: '#888', textTransform: 'capitalize' }}>{c.cargo || c.role}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+          </div>
           {roleNivel >= 3 && (
             <label className={styles.autoNotifRow}>
               <input
@@ -444,6 +566,91 @@ const OrdensServicoPage: React.FC = () => {
             <Plus size={18} /> Criar Ordem de Serviço
           </button>
         </div>
+      </Modal>
+
+      {/* Modal Detalhe da OS */}
+      <Modal
+        aberto={!!detalhe}
+        onFechar={() => { setDetalhe(null); setEditandoOS(false); }}
+        titulo={detalhe?.titulo ? `${detalhe.protocolo || ''} — ${detalhe.titulo}` : 'Ordem de Serviço'}
+        largura="lg"
+      >
+        {carregandoDetalhe || !detalhe?.titulo ? (
+          <LoadingSpinner />
+        ) : (
+          <div className={styles.detalhe}>
+            <div className={styles.detalheTopo}>
+              <span className={styles.respRotulo}>Responsáveis:</span>
+              {(detalhe.responsaveis || []).length === 0
+                ? <span className={styles.respVazio}>ninguém definido</span>
+                : detalhe.responsaveis.map((r: any) => <span key={r.id} className={styles.respChip}>{r.nome}</span>)}
+            </div>
+
+            {editandoOS ? (
+              <div className={styles.form}>
+                <div className={styles.formGroup}>
+                  <label>Título</label>
+                  <input value={edicao.titulo} onChange={e => setEdicao({ ...edicao, titulo: e.target.value })} />
+                </div>
+                <div className={styles.formGroup}>
+                  <label>Descrição</label>
+                  <textarea rows={3} value={edicao.descricao} onChange={e => setEdicao({ ...edicao, descricao: e.target.value })} />
+                </div>
+                <div className={styles.formRow}>
+                  <div className={styles.formGroup}>
+                    <label>Local</label>
+                    <input value={edicao.local} onChange={e => setEdicao({ ...edicao, local: e.target.value })} />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label>Prioridade</label>
+                    <select value={edicao.prioridade} onChange={e => setEdicao({ ...edicao, prioridade: e.target.value })}>
+                      <option value="baixa">Baixa</option>
+                      <option value="media">Média</option>
+                      <option value="alta">Alta</option>
+                      <option value="urgente">Urgente</option>
+                    </select>
+                  </div>
+                </div>
+                <div className={styles.formGroup}>
+                  <label>Previsão</label>
+                  <input type="date" value={edicao.dataPrevisao} onChange={e => setEdicao({ ...edicao, dataPrevisao: e.target.value })} />
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button type="button" className={styles.submitBtn} onClick={salvarEdicao} disabled={salvandoEdicao}>
+                    {salvandoEdicao ? 'Salvando…' : 'Salvar alterações'}
+                  </button>
+                  <button type="button" className={styles.detalheBtn} onClick={() => setEditandoOS(false)}>Cancelar</button>
+                </div>
+              </div>
+            ) : (
+              <div className={styles.detalheInfo}>
+                <p className={styles.osDesc}>{detalhe.descricao || 'Sem descrição inicial.'}</p>
+                <div className={styles.osMeta}>
+                  <span><MapPin size={13} /> {detalhe.local || '—'}</span>
+                  <span><Calendar size={13} /> {formatarDataHora(detalhe.data_abertura)}</span>
+                  {detalhe.criado_por_nome && <span>Aberta por {detalhe.criado_por_nome}</span>}
+                </div>
+                <button type="button" className={styles.detalheBtn} onClick={() => setEditandoOS(true)}>Editar O.S.</button>
+              </div>
+            )}
+
+            <ColaboracaoOS
+              responsaveis={detalhe.responsaveis || []}
+              fotos={(detalhe.fotos || []).filter((f: any) => f && typeof f === 'object')}
+              historico={detalhe.historico || []}
+              carregarCandidatos={() => osApi.candidatos(detalhe.id)}
+              onSalvarResponsaveis={async lista => { await osApi.setResponsaveis(detalhe.id, lista); await recarregarDetalhe(); }}
+              onAdicionarDescricao={async texto => { await osApi.addDescricao(detalhe.id, texto); await recarregarDetalhe(); }}
+              onEnviarFotos={async arquivos => {
+                const urls: Array<{ url: string }> = [];
+                for (const a of arquivos) urls.push({ url: await uploadApi.image(a, 'fotos') });
+                await osApi.addFotos(detalhe.id, urls);
+                await recarregarDetalhe();
+              }}
+              onRemoverFoto={async fotoId => { await osApi.removerFoto(detalhe.id, fotoId); await recarregarDetalhe(); }}
+            />
+          </div>
+        )}
       </Modal>
       </>}
     </div>

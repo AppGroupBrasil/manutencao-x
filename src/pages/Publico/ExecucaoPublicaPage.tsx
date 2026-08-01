@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { CheckCircle2, Circle, CheckCheck } from 'lucide-react';
 import { publico as publicoApi } from '../../services/api';
+import ColaboracaoOS from '../../components/OS/ColaboracaoOS';
 import styles from './ExecucaoPublica.module.css';
 
 type Tipo = 'os' | 'checklist' | 'atividade';
@@ -51,6 +52,8 @@ export default function ExecucaoPublicaPage() {
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState('');
   const [pronto, setPronto] = useState(false);
+  const [editando, setEditando] = useState(false);
+  const [edicao, setEdicao] = useState({ titulo: '', descricao: '', local: '', prioridade: 'media' });
 
   const tipoValido = tipo === 'os' || tipo === 'checklist' || tipo === 'atividade';
 
@@ -62,6 +65,12 @@ export default function ExecucaoPublicaPage() {
         if (Array.isArray(row.itens)) setItens(row.itens);
         if (row.executado_por_nome) setNome(row.executado_por_nome);
         if (row.observacoes) setObservacoes(row.observacoes);
+        setEdicao({
+          titulo: row.titulo || '',
+          descricao: row.descricao || '',
+          local: row.local || '',
+          prioridade: row.prioridade || 'media',
+        });
       })
       .catch(e => setErro(e.message || 'Não foi possível carregar'))
       .finally(() => setLoading(false));
@@ -79,6 +88,34 @@ export default function ExecucaoPublicaPage() {
       await publicoApi.updateStatus(tipo, id, payload);
       if (status === statusFinal[tipo]) setPronto(true);
       else setDados({ ...dados, status });
+    } catch (e: any) {
+      setErro(e.message || 'Não foi possível salvar');
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  const recarregar = async () => {
+    if (!tipoValido || !id) return;
+    const row = await publicoApi.get(tipo!, id);
+    setDados(row);
+  };
+
+  const nomeValido = nome.trim().length >= 3;
+
+  const salvarEdicaoPublica = async () => {
+    if (!id || !nomeValido) { setErro('Informe seu nome completo'); return; }
+    setSalvando(true);
+    setErro('');
+    try {
+      const row = await publicoApi.editarOS(id, nome.trim(), {
+        titulo: edicao.titulo.trim(),
+        descricao: edicao.descricao.trim(),
+        local: edicao.local.trim(),
+        prioridade: edicao.prioridade,
+      });
+      setDados(row);
+      setEditando(false);
     } catch (e: any) {
       setErro(e.message || 'Não foi possível salvar');
     } finally {
@@ -147,12 +184,17 @@ export default function ExecucaoPublicaPage() {
               <span className={styles.valor}>{dados.local}</span>
             </div>
           )}
-          {dados.responsavel_nome && (
+          {(Array.isArray(dados.responsaveis) && dados.responsaveis.length > 0) ? (
+            <div className={styles.linha}>
+              <span className={styles.rotulo}>Responsáveis</span>
+              <span className={styles.valor}>{dados.responsaveis.map((r: any) => r.nome).join(', ')}</span>
+            </div>
+          ) : dados.responsavel_nome ? (
             <div className={styles.linha}>
               <span className={styles.rotulo}>Responsável</span>
               <span className={styles.valor}>{dados.responsavel_nome}</span>
             </div>
-          )}
+          ) : null}
           {t === 'os' && (
             <>
               <div className={styles.linha}>
@@ -174,13 +216,78 @@ export default function ExecucaoPublicaPage() {
             </div>
           )}
 
-          {dados.descricao && <div className={styles.descricao}>{dados.descricao}</div>}
+          {dados.descricao && !editando && <div className={styles.descricao}>{dados.descricao}</div>}
 
-          {Array.isArray(dados.fotos) && dados.fotos.length > 0 && (
+          {t !== 'os' && Array.isArray(dados.fotos) && dados.fotos.length > 0 && (
             <div className={styles.fotos}>
-              {dados.fotos.map((f: string, i: number) => (
-                <img key={i} src={f} alt={`Foto ${i + 1}`} className={styles.foto} />
+              {dados.fotos.map((f: any, i: number) => (
+                <img key={i} src={typeof f === 'string' ? f : f.url} alt={`Foto ${i + 1}`} className={styles.foto} />
               ))}
+            </div>
+          )}
+
+          {t === 'os' && (
+            <div className={styles.secao}>
+              <div className={styles.secTitulo}>Colaborar nesta O.S.</div>
+              <div className={styles.campo}>
+                <label className={styles.label}>Seu nome *</label>
+                <input
+                  className={styles.input}
+                  value={nome}
+                  onChange={e => setNome(e.target.value)}
+                  placeholder="Fica registrado em tudo que você alterar"
+                  maxLength={255}
+                />
+              </div>
+
+              {editando ? (
+                <>
+                  <div className={styles.campo}>
+                    <label className={styles.label}>Título</label>
+                    <input className={styles.input} value={edicao.titulo} onChange={e => setEdicao({ ...edicao, titulo: e.target.value })} maxLength={255} />
+                  </div>
+                  <div className={styles.campo}>
+                    <label className={styles.label}>Descrição</label>
+                    <textarea className={styles.textarea} value={edicao.descricao} onChange={e => setEdicao({ ...edicao, descricao: e.target.value })} maxLength={5000} />
+                  </div>
+                  <div className={styles.campo}>
+                    <label className={styles.label}>Local</label>
+                    <input className={styles.input} value={edicao.local} onChange={e => setEdicao({ ...edicao, local: e.target.value })} maxLength={255} />
+                  </div>
+                  <div className={styles.campo}>
+                    <label className={styles.label}>Prioridade</label>
+                    <select className={styles.input} value={edicao.prioridade} onChange={e => setEdicao({ ...edicao, prioridade: e.target.value })}>
+                      <option value="baixa">Baixa</option>
+                      <option value="media">Média</option>
+                      <option value="alta">Alta</option>
+                      <option value="urgente">Urgente</option>
+                    </select>
+                  </div>
+                  <div className={styles.acoes}>
+                    <button className={`${styles.btn} ${styles.btnConcluir}`} onClick={salvarEdicaoPublica} disabled={salvando || !nomeValido}>
+                      {salvando ? 'Salvando…' : 'Salvar alterações'}
+                    </button>
+                    <button className={`${styles.btn} ${styles.btnIniciar}`} onClick={() => setEditando(false)}>Cancelar</button>
+                  </div>
+                </>
+              ) : (
+                <button className={`${styles.btn} ${styles.btnIniciar}`} onClick={() => setEditando(true)} disabled={!nomeValido}>
+                  Editar dados da O.S.
+                </button>
+              )}
+
+              <ColaboracaoOS
+                responsaveis={dados.responsaveis || []}
+                fotos={(dados.fotos || []).filter((f: any) => f && typeof f === 'object')}
+                historico={dados.historico || []}
+                carregarCandidatos={() => publicoApi.candidatosOS(id!)}
+                onSalvarResponsaveis={async lista => { await publicoApi.setResponsaveisOS(id!, nome.trim(), lista); await recarregar(); }}
+                onAdicionarDescricao={async texto => { await publicoApi.addDescricaoOS(id!, nome.trim(), texto); await recarregar(); }}
+                onEnviarFotos={async arquivos => { await publicoApi.enviarFotosOS(id!, nome.trim(), arquivos); await recarregar(); }}
+                onRemoverFoto={async fotoId => { await publicoApi.removerFotoOS(id!, fotoId, nome.trim()); await recarregar(); }}
+                somenteLeitura={!nomeValido}
+                avisoAcao={!nomeValido ? 'Informe seu nome acima para editar, comentar ou anexar imagens.' : undefined}
+              />
             </div>
           )}
 
@@ -211,16 +318,18 @@ export default function ExecucaoPublicaPage() {
                 </div>
               )}
 
-              <div className={styles.campo}>
-                <label className={styles.label}>Seu nome *</label>
-                <input
-                  className={styles.input}
-                  value={nome}
-                  onChange={e => setNome(e.target.value)}
-                  placeholder="Quem está executando"
-                  maxLength={255}
-                />
-              </div>
+              {t !== 'os' && (
+                <div className={styles.campo}>
+                  <label className={styles.label}>Seu nome *</label>
+                  <input
+                    className={styles.input}
+                    value={nome}
+                    onChange={e => setNome(e.target.value)}
+                    placeholder="Quem está executando"
+                    maxLength={255}
+                  />
+                </div>
+              )}
 
               {t === 'os' && (
                 <div className={styles.campo}>

@@ -26,6 +26,14 @@ if (SMTP_HOST) {
   console.log('[Email] SMTP_HOST não configurado. E-mails serão logados no console.');
 }
 
+export function emailConfigurado(): boolean {
+  return transporter !== null;
+}
+
+export function remetenteEmail(): string {
+  return SMTP_FROM;
+}
+
 export interface EmailOptions {
   to: string | string[];
   subject: string;

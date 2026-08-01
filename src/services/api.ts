@@ -375,6 +375,15 @@ export const ordensServico = {
   },
   updateStatus: (id: string, status: string) => patch(`/ordens-servico/${id}/status`, { status }),
   avaliar: (id: string, nota: number, comentario?: string) => patch(`/ordens-servico/${id}/avaliacao`, { nota, comentario }),
+  candidatos: (id: string) => request<any[]>(`/ordens-servico/${id}/candidatos`),
+  candidatosPorCondominio: (condominioId: string) =>
+    request<any[]>(`/ordens-servico/candidatos?condominioId=${encodeURIComponent(condominioId)}`),
+  historico: (id: string) => request<any[]>(`/ordens-servico/${id}/historico`),
+  setResponsaveis: (id: string, responsaveis: Array<{ usuarioId?: string | null; nome?: string | null }>) =>
+    put<any>(`/ordens-servico/${id}/responsaveis`, { responsaveis }),
+  addDescricao: (id: string, texto: string) => post<any>(`/ordens-servico/${id}/descricoes`, { texto }),
+  addFotos: (id: string, fotos: Array<{ url: string; legenda?: string }>) => post<any>(`/ordens-servico/${id}/fotos`, { fotos }),
+  removerFoto: (id: string, fotoId: string) => del(`/ordens-servico/${id}/fotos/${fotoId}`),
 };
 export const checklists = {
   ...crud('/checklists'),
@@ -468,6 +477,24 @@ export const publico = {
   get: (tipo: string, id: string) => publicoRequest<any>(`/${tipo}/${id}`),
   updateStatus: (tipo: string, id: string, data: Record<string, unknown>) =>
     publicoRequest<any>(`/${tipo}/${id}/status`, { method: 'POST', body: JSON.stringify(data) }),
+  candidatosOS: (id: string) => publicoRequest<any[]>(`/os/${id}/candidatos`),
+  setResponsaveisOS: (id: string, executadoPor: string, responsaveis: Array<{ usuarioId?: string | null; nome?: string | null }>) =>
+    publicoRequest<any>(`/os/${id}/responsaveis`, { method: 'PUT', body: JSON.stringify({ executadoPor, responsaveis }) }),
+  addDescricaoOS: (id: string, executadoPor: string, texto: string) =>
+    publicoRequest<any>(`/os/${id}/descricoes`, { method: 'POST', body: JSON.stringify({ executadoPor, texto }) }),
+  editarOS: (id: string, executadoPor: string, dados: Record<string, unknown>) =>
+    publicoRequest<any>(`/os/${id}`, { method: 'PUT', body: JSON.stringify({ executadoPor, ...dados }) }),
+  removerFotoOS: (id: string, fotoId: string, executadoPor: string) =>
+    publicoRequest<any>(`/os/${id}/fotos/${fotoId}?executadoPor=${encodeURIComponent(executadoPor)}`, { method: 'DELETE' }),
+  enviarFotosOS: async (id: string, executadoPor: string, arquivos: File[]) => {
+    const form = new FormData();
+    form.append('executadoPor', executadoPor);
+    arquivos.slice(0, 5).forEach(f => form.append('files', f));
+    const res = await fetch(`${API_BASE}/publico/os/${id}/fotos`, { method: 'POST', body: form });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error((body as any)?.error || 'Erro ao enviar imagens');
+    return body as any;
+  },
 };
 
 export const usuarios = {

@@ -75,7 +75,34 @@ export const ordemServicoSchema = z.object({
   custoMaoObra: z.number().min(0).optional().nullable(),
   custoExterno: z.number().min(0).optional().nullable(),
   dataPrevisao: z.string().max(30).refine(v => !isNaN(Date.parse(v)), 'Data de previsão inválida').optional().nullable(),
+  responsaveis: z.array(z.object({
+    usuarioId: z.string().uuid().optional().nullable(),
+    nome: z.string().max(255).optional().nullable(),
+  })).max(20).optional(),
 });
+
+const urlImagem = z.string().max(500).regex(
+  /^(https?:\/\/[^\s]+|\/uploads\/[a-z]+\/[\w.-]+)$/,
+  'URL de imagem inválida'
+);
+
+export const osResponsaveisSchema = z.object({
+  responsaveis: z.array(z.object({
+    usuarioId: z.string().uuid().optional().nullable(),
+    nome: z.string().max(255).optional().nullable(),
+  })).max(20),
+}).strict();
+
+export const osDescricaoSchema = z.object({
+  texto: z.string().min(2, 'Descreva com pelo menos 2 caracteres').max(5000),
+}).strict();
+
+export const osFotosSchema = z.object({
+  fotos: z.array(z.object({
+    url: urlImagem,
+    legenda: z.string().max(255).optional().nullable(),
+  })).min(1).max(10),
+}).strict();
 
 export const condominioSchema = z.object({
   nome: z.string().min(2, 'Nome deve ter no mínimo 2 caracteres').max(255),
@@ -332,7 +359,6 @@ export const ordemServicoUpdateSchema = z.object({
   responsavelId: z.string().uuid().optional().nullable(),
   supervisorId: z.string().uuid().optional().nullable(),
   observacoes: z.string().max(5000).optional().nullable(),
-  fotos: z.array(z.string().url().max(500)).max(20).optional(),
   dataPrevisao: z.string().max(30).refine(v => !isNaN(Date.parse(v)), 'Data de previsão inválida').optional().nullable(),
   equipamentoId: z.string().uuid().optional().nullable(),
   fornecedorId: z.string().uuid().optional().nullable(),

@@ -15,6 +15,32 @@ function gerarProtocolo(): string {
   return `MAT-${y}${m}${d}-${r}`;
 }
 
+async function alertarEstoqueBaixo(materialId: string, origem: string) {
+  try {
+    const mat = await queryOne<any>(
+      `SELECT m.nome, m.quantidade, m.quantidade_minima, m.unidade, m.email_notificacao, c.nome AS condominio_nome
+       FROM materiais m LEFT JOIN condominios c ON c.id = m.condominio_id WHERE m.id = $1`,
+      [materialId]
+    );
+    if (!mat) return;
+    const minimo = Number(mat.quantidade_minima);
+    const atual = Number(mat.quantidade);
+    if (!Number.isFinite(minimo) || minimo <= 0 || !Number.isFinite(atual) || atual > minimo) return;
+    const destino = String(mat.email_notificacao || '').trim();
+    if (!destino) {
+      console.warn(`[Materiais] Estoque baixo (${origem}) em "${mat.nome}" sem e-mail de notificação cadastrado.`);
+      return;
+    }
+    const enviado = await sendEmail({
+      ...emailEstoqueBaixo(mat.nome, atual, minimo, mat.unidade, mat.condominio_nome || ''),
+      to: destino,
+    });
+    console.log(`[Materiais] Alerta estoque baixo (${origem}) "${mat.nome}" para ${destino}: ${enviado ? 'enviado' : 'falhou'}`);
+  } catch (err: any) {
+    console.error(`[Materiais] Falha no alerta de estoque baixo (${origem}):`, err?.message);
+  }
+}
+
 // GET /api/materiais
 router.get('/', async (req: AuthRequest, res: Response) => {
   const ids: string[] = req.condominioIds!;
@@ -42,6 +68,7 @@ router.post('/', validate(materialSchema), async (req: AuthRequest, res: Respons
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
     [protocolo, nome, categoria, unidade || 'un', quantidade || 0, quantidadeMinima || 0, custoUnitario || 0, condominioId, emailNotificacao]
   );
+  void alertarEstoqueBaixo(String((row as any).id), 'cadastro');
   res.status(201).json(row);
 });
 
@@ -49,12 +76,19 @@ router.post('/', validate(materialSchema), async (req: AuthRequest, res: Respons
 router.put('/:id', validate(materialSchema), async (req: AuthRequest, res: Response) => {
   const ids: string[] = req.condominioIds!;
   const { nome, categoria, unidade, quantidadeMinima, custoUnitario, emailNotificacao } = req.body;
+  const antes = await queryOne<any>(
+    'SELECT quantidade_minima, email_notificacao FROM materiais WHERE id = $1 AND condominio_id = ANY($2)',
+    [req.params.id, ids]
+  );
   const row = await queryOne(
     `UPDATE materiais SET nome=$1, categoria=$2, unidade=$3, quantidade_minima=$4, custo_unitario=$5, email_notificacao=$6
      WHERE id=$7 AND condominio_id = ANY($8) RETURNING *`,
     [nome, categoria, unidade, quantidadeMinima, custoUnitario, emailNotificacao, req.params.id, ids]
   );
   if (!row) { res.status(404).json({ error: 'Material não encontrado' }); return; }
+  const mudouAlerta = Number(antes?.quantidade_minima || 0) !== Number(quantidadeMinima || 0)
+    || String(antes?.email_notificacao || '').trim() !== String(emailNotificacao || '').trim();
+  if (mudouAlerta) void alertarEstoqueBaixo(String((row as any).id), 'ajuste de nível mínimo');
   res.json(row);
 });
 
@@ -116,15 +150,7 @@ router.post('/:id/movimentacoes', async (req: AuthRequest, res: Response) => {
     return rows[0];
   });
 
-  if (tipo === 'saida' && mat.email_notificacao) {
-    const anterior = Number(mat.quantidade);
-    const minimo = Number(mat.quantidade_minima);
-    const novaQtd = anterior - Number(quantidade);
-    if (anterior > minimo && novaQtd <= minimo) {
-      const emailOpts = { ...emailEstoqueBaixo(mat.nome, novaQtd, minimo, mat.unidade, mat.condominio_nome || ''), to: mat.email_notificacao };
-      sendEmail(emailOpts).catch((err) => console.error('[Materiais] Erro email estoque baixo:', err?.message));
-    }
-  }
+  if (tipo === 'saida') void alertarEstoqueBaixo(materialId, 'saída');
 
   res.status(201).json(row);
 });

@@ -68,6 +68,7 @@ import { iniciarScheduler } from './scheduler.js';
 import { initSocket } from './socket.js';
 import { runMigrations } from './db/migrate.js';
 import { initSentry } from './services/sentry.js';
+import { emailConfigurado, remetenteEmail } from './services/email.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -321,6 +322,7 @@ app.get('/api/health', async (_req, res) => {
       status: 'ok',
       service: 'manutencao-api',
       environment: process.env.NODE_ENV || 'development',
+      smtp: { configurado: emailConfigurado(), remetente: remetenteEmail() },
       timestamp: new Date().toISOString(),
       uptimeSeconds: Math.round(process.uptime()),
     });
