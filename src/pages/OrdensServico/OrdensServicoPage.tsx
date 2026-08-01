@@ -140,15 +140,14 @@ const OrdensServicoPage: React.FC = () => {
   };
 
   useEffect(() => {
-    Promise.all([osApi.list().catch(() => []), condominiosApi.list().catch(() => [])])
-      .then(([rows, conds]) => {
+    osApi.list()
+      .then(rows => {
         const lista = Array.isArray(rows) ? rows : (rows as any)?.data ?? [];
         setOrdens(lista.map(mapOS));
-        setCondominiosList(conds);
-        if (conds.length > 0) setNovaCond(conds[0].id);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
+    carregarCondominios();
   }, []);
 
   // Form nova OS
@@ -162,6 +161,22 @@ const OrdensServicoPage: React.FC = () => {
   const [salvandoAuto, setSalvandoAuto] = useState(false);
   const [candidatosNova, setCandidatosNova] = useState<any[]>([]);
   const [novaResponsaveis, setNovaResponsaveis] = useState<string[]>([]);
+  const [condsCarregando, setCondsCarregando] = useState(false);
+  const [condsErro, setCondsErro] = useState('');
+
+  function carregarCondominios() {
+    setCondsCarregando(true);
+    setCondsErro('');
+    condominiosApi.list()
+      .then((conds: any) => {
+        const lista = Array.isArray(conds) ? conds : conds?.data ?? [];
+        setCondominiosList(lista);
+        if (lista.length > 0) setNovaCond(prev => prev || lista[0].id);
+        else setCondsErro('Nenhum condomínio cadastrado nesta conta.');
+      })
+      .catch((e: any) => setCondsErro(e?.message || 'Não foi possível carregar os condomínios.'))
+      .finally(() => setCondsCarregando(false));
+  }
 
   useEffect(() => {
     if (!modalNova || !novaCond) { return; }
@@ -217,12 +232,7 @@ const OrdensServicoPage: React.FC = () => {
   };
 
   useEffect(() => {
-    if (modalNova && condominiosList.length === 0) {
-      condominiosApi.list().then((conds: any[]) => {
-        setCondominiosList(conds);
-        if (conds.length > 0) setNovaCond(conds[0].id);
-      }).catch(() => {});
-    }
+    if (modalNova && condominiosList.length === 0 && !condsCarregando) carregarCondominios();
   }, [modalNova]);
 
   const filtered = useMemo(() => {
@@ -486,8 +496,17 @@ const OrdensServicoPage: React.FC = () => {
             <div className={styles.formGroup}>
               <label>Condomínio</label>
               <select value={novaCond} onChange={e => setNovaCond(e.target.value)}>
+                <option value="">{condsCarregando ? 'Carregando...' : 'Selecione o condomínio'}</option>
                 {condominiosList.map((c: any) => <option key={c.id} value={c.id}>{c.nome}</option>)}
               </select>
+              {condominiosList.length === 0 && !condsCarregando && (
+                <p style={{ fontSize: 12, color: '#c0392b', margin: '6px 0 0' }}>
+                  {condsErro || 'Lista indisponível.'}{' '}
+                  <button type="button" onClick={carregarCondominios} style={{ background: 'none', border: 'none', color: '#2980b9', textDecoration: 'underline', cursor: 'pointer', padding: 0, fontSize: 12 }}>
+                    Tentar de novo
+                  </button>
+                </p>
+              )}
             </div>
             <div className={styles.formGroup}>
               <label>Local</label>
