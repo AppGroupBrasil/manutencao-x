@@ -37,6 +37,14 @@ function hasWebpSignature(buffer: Buffer) {
     && buffer.subarray(8, 12).toString() === 'WEBP';
 }
 
+export function detectarTipoReal(buffer: Buffer): string | null {
+  if (hasPdfSignature(buffer)) return 'application/pdf';
+  if (hasJpegSignature(buffer)) return 'image/jpeg';
+  if (hasPngSignature(buffer)) return 'image/png';
+  if (hasWebpSignature(buffer)) return 'image/webp';
+  return null;
+}
+
 export function bufferMatchesMimeType(buffer: Buffer, mimeType: string) {
   switch (mimeType) {
     case 'application/pdf':

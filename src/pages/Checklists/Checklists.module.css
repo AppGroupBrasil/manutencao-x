@@ -279,6 +279,31 @@
   color: var(--cor-primaria);
 }
 
+.itemAlerta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--cor-texto-secundario);
+  border-radius: 6px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+
+.itemAlerta:hover {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.itemAlertaAtivo {
+  background: #fff3e0;
+  color: #e65100;
+}
+
 .unchecked {
   width: 16px;
   height: 16px;
@@ -494,6 +519,29 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.anexoArquivo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  height: 100%;
+  padding: 6px;
+  background: var(--cor-fundo, #f5f7fa);
+  color: var(--cor-primaria);
+  text-align: center;
+}
+
+.anexoArquivoNome {
+  font-size: 10px;
+  color: var(--cor-texto);
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .imagemRemover {

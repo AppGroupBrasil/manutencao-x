@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { ImagePlus, Trash2, Users, MessageSquarePlus, History } from 'lucide-react';
+import { ImagePlus, Trash2, Users, MessageSquarePlus, History, FileText } from 'lucide-react';
+import { ehAnexoArquivo, urlAnexoSegura, ACCEPT_ANEXOS } from '../../utils/anexos';
 import styles from './ColaboracaoOS.module.css';
 
 export interface CandidatoOS {
@@ -14,10 +15,13 @@ export interface FotoOS {
   id: string;
   url: string;
   legenda?: string | null;
+  nome?: string | null;
+  tipo?: 'imagem' | 'arquivo';
   autor_nome?: string;
   autorNome?: string;
   criado_em?: string;
 }
+
 
 export interface ResponsavelOS {
   id: string;
@@ -48,6 +52,7 @@ interface Props {
   onRemoverFoto: (fotoId: string) => Promise<void>;
   somenteLeitura?: boolean;
   avisoAcao?: string;
+  aceitaArquivos?: boolean;
 }
 
 const ROTULO_TIPO: Record<string, string> = {
@@ -71,7 +76,7 @@ function chaveDe(c: CandidatoOS) {
 export default function ColaboracaoOS({
   responsaveis, fotos, historico,
   carregarCandidatos, onSalvarResponsaveis, onAdicionarDescricao, onEnviarFotos, onRemoverFoto,
-  somenteLeitura, avisoAcao,
+  somenteLeitura, avisoAcao, aceitaArquivos,
 }: Props) {
   const [candidatos, setCandidatos] = useState<CandidatoOS[]>([]);
   const [carregandoCand, setCarregandoCand] = useState(false);
@@ -142,19 +147,19 @@ export default function ColaboracaoOS({
     try {
       await onEnviarFotos(arquivos.slice(0, 5));
     } catch (err: any) {
-      setErro(err?.message || 'Erro ao enviar imagens');
+      setErro(err?.message || 'Erro ao enviar anexos');
     } finally {
       setEnviandoFoto(false);
     }
   };
 
   const remover = async (fotoId: string) => {
-    if (!confirm('Remover esta imagem?')) return;
+    if (!confirm('Remover este anexo?')) return;
     setErro('');
     try {
       await onRemoverFoto(fotoId);
     } catch (e: any) {
-      setErro(e?.message || 'Erro ao remover imagem');
+      setErro(e?.message || 'Erro ao remover anexo');
     }
   };
 
@@ -234,14 +239,23 @@ export default function ColaboracaoOS({
       </section>
 
       <section className={styles.bloco}>
-        <div className={styles.blocoTitulo}><ImagePlus size={16} /> Galeria de imagens</div>
-        {fotos.length === 0 && <div className={styles.vazio}>Nenhuma imagem anexada.</div>}
+        <div className={styles.blocoTitulo}>
+          <ImagePlus size={16} /> {aceitaArquivos ? 'Arquivos e imagens' : 'Galeria de imagens'}
+        </div>
+        {fotos.length === 0 && <div className={styles.vazio}>Nenhum anexo adicionado.</div>}
         {fotos.length > 0 && (
           <div className={styles.galeria}>
             {fotos.map(f => (
               <figure key={f.id} className={styles.figura}>
-                <a href={f.url} target="_blank" rel="noreferrer">
-                  <img src={f.url} alt={f.legenda || 'Imagem da O.S.'} className={styles.imagem} />
+                <a href={urlAnexoSegura(f.url)} target="_blank" rel="noreferrer">
+                  {ehAnexoArquivo(f) ? (
+                    <span className={styles.arquivo}>
+                      <FileText size={22} />
+                      <span className={styles.arquivoNome}>{f.nome || 'Arquivo'}</span>
+                    </span>
+                  ) : (
+                    <img src={urlAnexoSegura(f.url)} alt={f.legenda || 'Imagem da O.S.'} className={styles.imagem} />
+                  )}
                 </a>
                 <figcaption className={styles.legenda}>{f.autor_nome ?? f.autorNome}</figcaption>
                 {!somenteLeitura && (
@@ -258,13 +272,13 @@ export default function ColaboracaoOS({
             <input
               ref={inputFile}
               type="file"
-              accept="image/png,image/jpeg,image/webp"
+              accept={aceitaArquivos ? ACCEPT_ANEXOS : 'image/png,image/jpeg,image/webp'}
               multiple
               hidden
               onChange={escolherArquivos}
             />
             <button type="button" className={styles.btn} onClick={() => inputFile.current?.click()} disabled={enviandoFoto}>
-              {enviandoFoto ? 'Enviando…' : 'Anexar imagens'}
+              {enviandoFoto ? 'Enviando…' : aceitaArquivos ? 'Anexar arquivos / imagens' : 'Anexar imagens'}
             </button>
           </>
         )}

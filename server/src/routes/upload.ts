@@ -12,7 +12,12 @@ import {
   MAX_IMAGE_BYTES,
   MAX_DOC_BYTES,
   bufferMatchesMimeType,
+  detectarTipoReal,
 } from '../services/imagens.js';
+
+const GENERIC_MIME_TYPES = new Set(['application/octet-stream', 'binary/octet-stream', '']);
+
+const erro400 = (msg: string) => Object.assign(new Error(msg), { status: 400 });
 
 const QUOTA_MAX_FILES_PER_DAY = Number.parseInt(process.env.UPLOAD_MAX_FILES_DAY || '200', 10);
 const QUOTA_MAX_BYTES_PER_DAY = Number.parseInt(process.env.UPLOAD_MAX_BYTES_DAY || '524288000', 10); // 500MB
@@ -55,18 +60,18 @@ async function enforceQuota(userId: string, bytes: number): Promise<{ ok: boolea
 const storage = multer.memoryStorage();
 
 const imageFileFilter = (_req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-  if (IMAGE_MIME_TYPES.has(file.mimetype)) {
+  if (IMAGE_MIME_TYPES.has(file.mimetype) || GENERIC_MIME_TYPES.has(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Tipo de imagem não permitido'));
+    cb(erro400('Envie uma imagem JPG, PNG ou WebP'));
   }
 };
 
 const documentFileFilter = (_req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-  if (DOCUMENT_MIME_TYPES.has(file.mimetype)) {
+  if (DOCUMENT_MIME_TYPES.has(file.mimetype) || GENERIC_MIME_TYPES.has(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Tipo de documento não permitido'));
+    cb(erro400('Envie um PDF ou uma imagem JPG, PNG ou WebP'));
   }
 };
 
@@ -91,8 +96,9 @@ router.post('/image', imageUpload.single('file'), async (req: AuthRequest, res: 
     return;
   }
 
-  if (!bufferMatchesMimeType(req.file.buffer, req.file.mimetype)) {
-    res.status(400).json({ error: 'Conteúdo do arquivo inválido para o tipo informado' });
+  const tipoReal = detectarTipoReal(req.file.buffer);
+  if (!tipoReal || !IMAGE_MIME_TYPES.has(tipoReal)) {
+    res.status(400).json({ error: 'Arquivo não é uma imagem JPG, PNG ou WebP válida' });
     return;
   }
 
@@ -125,8 +131,9 @@ router.post('/avatar', imageUpload.single('file'), async (req: AuthRequest, res:
     return;
   }
 
-  if (!bufferMatchesMimeType(req.file.buffer, req.file.mimetype)) {
-    res.status(400).json({ error: 'Conteúdo do arquivo inválido para o tipo informado' });
+  const tipoReal = detectarTipoReal(req.file.buffer);
+  if (!tipoReal || !IMAGE_MIME_TYPES.has(tipoReal)) {
+    res.status(400).json({ error: 'Arquivo não é uma imagem JPG, PNG ou WebP válida' });
     return;
   }
 
@@ -153,8 +160,9 @@ router.post('/document', documentUpload.single('file'), async (req: AuthRequest,
     return;
   }
 
-  if (!bufferMatchesMimeType(req.file.buffer, req.file.mimetype)) {
-    res.status(400).json({ error: 'Conteúdo do arquivo inválido para o tipo informado' });
+  const tipoReal = detectarTipoReal(req.file.buffer);
+  if (!tipoReal || !DOCUMENT_MIME_TYPES.has(tipoReal)) {
+    res.status(400).json({ error: 'Arquivo não é um PDF ou imagem válida' });
     return;
   }
 
@@ -162,7 +170,7 @@ router.post('/document', documentUpload.single('file'), async (req: AuthRequest,
   if (!quota.ok) { res.status(429).json({ error: quota.reason }); return; }
 
   const ALLOWED_EXTS: Record<string, string> = { 'application/pdf': '.pdf', 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp' };
-  const ext = ALLOWED_EXTS[req.file.mimetype] || '.pdf';
+  const ext = ALLOWED_EXTS[tipoReal];
   const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
   const filepath = path.join(UPLOADS_DIR, 'documentos', filename);
 

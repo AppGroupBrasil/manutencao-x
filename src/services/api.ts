@@ -382,7 +382,7 @@ export const ordensServico = {
   setResponsaveis: (id: string, responsaveis: Array<{ usuarioId?: string | null; nome?: string | null }>) =>
     put<any>(`/ordens-servico/${id}/responsaveis`, { responsaveis }),
   addDescricao: (id: string, texto: string) => post<any>(`/ordens-servico/${id}/descricoes`, { texto }),
-  addFotos: (id: string, fotos: Array<{ url: string; legenda?: string }>) => post<any>(`/ordens-servico/${id}/fotos`, { fotos }),
+  addFotos: (id: string, fotos: Array<{ url: string; legenda?: string; nome?: string; tipo?: 'imagem' | 'arquivo' }>) => post<any>(`/ordens-servico/${id}/fotos`, { fotos }),
   removerFoto: (id: string, fotoId: string) => del(`/ordens-servico/${id}/fotos/${fotoId}`),
 };
 export const checklists = {
@@ -820,7 +820,8 @@ export const upload = {
       headers: { Authorization: `Bearer ${authToken}` },
       body: formData,
     });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Erro ao enviar imagem');
     return data.url;
   },
   avatar: async (file: File): Promise<string> => {
@@ -842,7 +843,8 @@ export const upload = {
       headers: { Authorization: `Bearer ${authToken}` },
       body: formData,
     });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Erro ao enviar arquivo');
     return data.url;
   },
 };

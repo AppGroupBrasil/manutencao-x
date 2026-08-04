@@ -101,6 +101,8 @@ export const osFotosSchema = z.object({
   fotos: z.array(z.object({
     url: urlImagem,
     legenda: z.string().max(255).optional().nullable(),
+    nome: z.string().max(255).optional().nullable(),
+    tipo: z.enum(['imagem', 'arquivo']).optional(),
   })).min(1).max(10),
 }).strict();
 
@@ -300,6 +302,18 @@ export const checklistSchema = z.object({
   condominioId: z.string().uuid('ID do condomínio inválido'),
   local: z.string().min(1, 'Local obrigatório').max(255),
   tipo: z.string().max(100).optional(),
+}).passthrough();
+
+export const checklistItensSchema = z.object({
+  itens: z.array(z.object({
+    id: z.string().max(64),
+    observacao: z.string().max(5000).optional().nullable(),
+    anexos: z.array(z.object({
+      url: urlImagem,
+      nome: z.string().max(255).optional().nullable(),
+      tipo: z.enum(['imagem', 'arquivo']).optional(),
+    })).max(10).optional(),
+  }).passthrough()).max(200),
 }).passthrough();
 
 // ── Documentos Técnicos ──

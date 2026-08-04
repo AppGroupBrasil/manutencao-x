@@ -162,12 +162,19 @@ export interface OrdemServico {
 }
 
 // ===== Checklist de Limpeza =====
+export interface AnexoItemChecklist {
+  url: string;
+  nome: string;
+  tipo: 'arquivo' | 'imagem';
+}
+
 export interface ItemChecklist {
   id: string;
   descricao: string;
   concluido: boolean;
   observacao?: string;
   foto?: string;
+  anexos?: AnexoItemChecklist[];
 }
 
 export interface ChecklistLimpeza {

@@ -309,6 +309,74 @@
   border-color: var(--cor-primaria);
 }
 
+.anexoBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 2px dashed var(--cor-borda);
+  border-radius: 8px;
+  background: var(--cor-superficie);
+  color: var(--cor-primaria);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.anexoBtn:hover:not(:disabled) {
+  border-color: var(--cor-primaria);
+}
+
+.anexoBtn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.anexoDica {
+  font-size: 12px;
+  color: var(--cor-texto-secundario, #5f6368);
+  margin: 0;
+}
+
+.anexoLista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.anexoItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--cor-borda);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--cor-texto);
+}
+
+.anexoNome {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.anexoRemover {
+  border: none;
+  background: none;
+  color: #d32f2f;
+  cursor: pointer;
+  display: flex;
+  padding: 2px;
+}
+
 .autoNotifRow {
   display: flex;
   align-items: flex-start;

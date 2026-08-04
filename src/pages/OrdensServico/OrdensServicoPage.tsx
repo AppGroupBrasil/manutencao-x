@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { usePermissions } from '../../contexts/PermissionsContext';
 import HowItWorks from '../../components/Common/HowItWorks';
 import PageHeader from '../../components/Common/PageHeader';
@@ -10,10 +10,11 @@ import { compartilharConteudo, imprimirElemento, gerarPdfDeElemento } from '../.
 import { formatarDataHora } from '../../utils/dateUtils';
 import { usePagination } from '../../hooks/usePagination';
 import type { OrdemServico, StatusOS } from '../../types';
-import { Plus, Search, MapPin, Calendar, Wrench, AlertTriangle, X, Hash } from 'lucide-react';
+import { Plus, Search, MapPin, Calendar, Wrench, AlertTriangle, X, Hash, Paperclip, FileText, Trash2 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useDemo } from '../../contexts/DemoContext';
-import { ordensServico as osApi, condominios as condominiosApi, usuarios as usuariosApi, upload as uploadApi } from '../../services/api';
+import { ordensServico as osApi, condominios as condominiosApi, usuarios as usuariosApi } from '../../services/api';
+import { enviarAnexo, ACCEPT_ANEXOS } from '../../utils/anexos';
 import ColaboracaoOS from '../../components/OS/ColaboracaoOS';
 import LoadingSpinner from '../../components/Common/LoadingSpinner';
 import EmptyState from '../../components/Common/EmptyState';
@@ -163,6 +164,18 @@ const OrdensServicoPage: React.FC = () => {
   const [novaResponsaveis, setNovaResponsaveis] = useState<string[]>([]);
   const [condsCarregando, setCondsCarregando] = useState(false);
   const [condsErro, setCondsErro] = useState('');
+  const [novosAnexos, setNovosAnexos] = useState<File[]>([]);
+  const [enviandoAnexos, setEnviandoAnexos] = useState(false);
+  const inputAnexos = useRef<HTMLInputElement>(null);
+
+  const MAX_ANEXOS_NOVA_OS = 10;
+
+  const selecionarAnexos = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const escolhidos = Array.from(e.target.files || []);
+    if (inputAnexos.current) inputAnexos.current.value = '';
+    if (escolhidos.length === 0) return;
+    setNovosAnexos(prev => [...prev, ...escolhidos].slice(0, MAX_ANEXOS_NOVA_OS));
+  };
 
   function carregarCondominios() {
     setCondsCarregando(true);
@@ -274,6 +287,19 @@ const OrdensServicoPage: React.FC = () => {
     if (!novaTitulo.trim()) return;
     if (!novaCond) { alert('Selecione um condomínio.'); return; }
 
+    let anexosEnviados: Array<{ url: string; nome: string; tipo: 'arquivo' | 'imagem' }> = [];
+    if (novosAnexos.length > 0) {
+      setEnviandoAnexos(true);
+      try {
+        for (const file of novosAnexos) anexosEnviados.push(await enviarAnexo(file));
+      } catch (e: any) {
+        alert(e?.message || 'Erro ao enviar os anexos. A O.S. não foi criada.');
+        return;
+      } finally {
+        setEnviandoAnexos(false);
+      }
+    }
+
     try {
       const created: any = await osApi.create({
         condominioId: novaCond,
@@ -284,10 +310,17 @@ const OrdensServicoPage: React.FC = () => {
         local: novaLocal.trim(),
         responsaveis: responsaveisSelecionados(novaResponsaveis, candidatosNova),
       } as any);
+      if (anexosEnviados.length > 0) {
+        try {
+          await osApi.addFotos(created.id, anexosEnviados);
+        } catch {
+          alert('A O.S. foi criada, mas os anexos não puderam ser salvos. Anexe novamente em "Abrir O.S.".');
+        }
+      }
       setOrdens(prev => [mapOS(created), ...prev]);
       setNovaTitulo(''); setNovaDesc(''); setNovaTipo('limpeza');
       setNovaPrioridade('media'); setNovaCond(condominiosList[0]?.id || ''); setNovaLocal('');
-      setNovaResponsaveis([]);
+      setNovaResponsaveis([]); setNovosAnexos([]);
       setModalNova(false);
     } catch { alert('Erro ao criar O.S.'); }
   };
@@ -469,6 +502,45 @@ const OrdensServicoPage: React.FC = () => {
             <input required placeholder="Ex: Manutenção do elevador" value={novaTitulo} onChange={e => setNovaTitulo(e.target.value)} />
           </div>
           <div className={styles.formGroup}>
+            <label>Anexar arquivos / imagens</label>
+            <input
+              ref={inputAnexos}
+              type="file"
+              accept={ACCEPT_ANEXOS}
+              multiple
+              hidden
+              onChange={selecionarAnexos}
+            />
+            <button
+              type="button"
+              className={styles.anexoBtn}
+              onClick={() => inputAnexos.current?.click()}
+              disabled={novosAnexos.length >= MAX_ANEXOS_NOVA_OS}
+            >
+              <Paperclip size={16} />
+              {novosAnexos.length >= MAX_ANEXOS_NOVA_OS ? `Limite de ${MAX_ANEXOS_NOVA_OS} anexos` : 'Selecionar arquivos ou imagens'}
+            </button>
+            <p className={styles.anexoDica}>Fotos (JPG, PNG, WebP) e documentos PDF — até {MAX_ANEXOS_NOVA_OS} por O.S.</p>
+            {novosAnexos.length > 0 && (
+              <ul className={styles.anexoLista}>
+                {novosAnexos.map((f, i) => (
+                  <li key={`${f.name}-${i}`} className={styles.anexoItem}>
+                    <FileText size={14} />
+                    <span className={styles.anexoNome}>{f.name}</span>
+                    <button
+                      type="button"
+                      className={styles.anexoRemover}
+                      onClick={() => setNovosAnexos(prev => prev.filter((_, j) => j !== i))}
+                      title="Remover anexo"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <div className={styles.formGroup}>
             <label>Descrição</label>
             <textarea rows={3} placeholder="Descreva o problema detalhadamente..." value={novaDesc} onChange={e => setNovaDesc(e.target.value)} />
           </div>
@@ -581,8 +653,8 @@ const OrdensServicoPage: React.FC = () => {
               )}
             </div>
           )}
-          <button type="button" className={styles.submitBtn} onClick={criarOS}>
-            <Plus size={18} /> Criar Ordem de Serviço
+          <button type="button" className={styles.submitBtn} onClick={criarOS} disabled={enviandoAnexos}>
+            <Plus size={18} /> {enviandoAnexos ? 'Enviando anexos…' : 'Criar Ordem de Serviço'}
           </button>
         </div>
       </Modal>
@@ -660,10 +732,11 @@ const OrdensServicoPage: React.FC = () => {
               carregarCandidatos={() => osApi.candidatos(detalhe.id)}
               onSalvarResponsaveis={async lista => { await osApi.setResponsaveis(detalhe.id, lista); await recarregarDetalhe(); }}
               onAdicionarDescricao={async texto => { await osApi.addDescricao(detalhe.id, texto); await recarregarDetalhe(); }}
+              aceitaArquivos
               onEnviarFotos={async arquivos => {
-                const urls: Array<{ url: string }> = [];
-                for (const a of arquivos) urls.push({ url: await uploadApi.image(a, 'fotos') });
-                await osApi.addFotos(detalhe.id, urls);
+                const anexos = [];
+                for (const a of arquivos) anexos.push(await enviarAnexo(a));
+                await osApi.addFotos(detalhe.id, anexos);
                 await recarregarDetalhe();
               }}
               onRemoverFoto={async fotoId => { await osApi.removerFoto(detalhe.id, fotoId); await recarregarDetalhe(); }}

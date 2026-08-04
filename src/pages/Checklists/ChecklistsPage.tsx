@@ -6,8 +6,9 @@ import StatusBadge from '../../components/Common/StatusBadge';
 import Modal from '../../components/Common/Modal';
 import { validarImagem } from '../../utils/imageUtils';
 import { compartilharConteudo, imprimirElemento, gerarPdfDeElemento } from '../../utils/exportUtils';
-import type { ChecklistLimpeza } from '../../types';
-import { Plus, CheckCircle2, ClipboardCheck, MoreVertical, AlertTriangle, Camera, X, Upload, ChevronRight, MessageCircle, Settings, Save, Trash2, Hash, Search, Minus, Edit2 } from 'lucide-react';
+import type { ChecklistLimpeza, ItemChecklist, AnexoItemChecklist } from '../../types';
+import { enviarAnexo, ehAnexoArquivo, urlAnexoSegura, ACCEPT_ANEXOS } from '../../utils/anexos';
+import { Plus, CheckCircle2, ClipboardCheck, MoreVertical, AlertTriangle, Camera, X, Upload, ChevronRight, MessageCircle, Settings, Save, Trash2, Hash, Search, Minus, Edit2, FileText } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { useDemo } from '../../contexts/DemoContext';
 import { checklists as checklistsApi, reportes as reportesApi, moradores as moradoresApi, condominios as condominiosApi, antesDepois as antesDepoisApi } from '../../services/api';
@@ -230,6 +231,61 @@ const ChecklistsPage: React.FC = () => {
     setAcoesModal({ ckId, itemId, itemDesc });
   };
 
+  // Anexos + descrição do item (botão de alerta)
+  const [obsModal, setObsModal] = useState<{ ckId: string; itemId: string; itemDesc: string } | null>(null);
+  const [obsTexto, setObsTexto] = useState('');
+  const [obsAnexos, setObsAnexos] = useState<AnexoItemChecklist[]>([]);
+  const [obsEnviando, setObsEnviando] = useState(false);
+  const [obsSalvando, setObsSalvando] = useState(false);
+  const obsInputRef = useRef<HTMLInputElement>(null);
+
+  const MAX_ANEXOS_ITEM = 10;
+
+  const itemTemRegistro = (item: ItemChecklist) => !!item.observacao?.trim() || (item.anexos?.length ?? 0) > 0;
+
+  const abrirObservacao = (ckId: string, item: ItemChecklist) => {
+    setObsTexto(item.observacao || '');
+    setObsAnexos(item.anexos || []);
+    setObsModal({ ckId, itemId: item.id, itemDesc: item.descricao });
+  };
+
+  const escolherAnexosObs = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const arquivos = Array.from(e.target.files || []);
+    e.target.value = '';
+    if (arquivos.length === 0) return;
+    setObsEnviando(true);
+    try {
+      const novos: AnexoItemChecklist[] = [];
+      for (const file of arquivos) novos.push(await enviarAnexo(file));
+      setObsAnexos(prev => [...prev, ...novos].slice(0, MAX_ANEXOS_ITEM));
+    } catch (err: any) {
+      alert(err?.message || 'Erro ao enviar o anexo.');
+    } finally {
+      setObsEnviando(false);
+    }
+  };
+
+  const salvarObservacao = async () => {
+    if (!tentarAcao()) return;
+    if (!obsModal) return;
+    const ck = checklists.find(c => c.id === obsModal.ckId);
+    if (!ck) return;
+    const itens = ck.itens.map(i =>
+      i.id === obsModal.itemId ? { ...i, observacao: obsTexto.trim(), anexos: obsAnexos } : i
+    );
+    setObsSalvando(true);
+    try {
+      await checklistsApi.updateItens(ck.id, { itens });
+      setChecklists(prev => prev.map(c => c.id === ck.id ? { ...c, itens } : c));
+      setObsModal(null);
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao salvar. Tente novamente.');
+    } finally {
+      setObsSalvando(false);
+    }
+  };
+
   const abrirProblema = () => {
     if (!acoesModal) return;
     setProblema({ itemId: acoesModal.itemId, checklistId: acoesModal.ckId, descricao: '', status: 'aberto', prioridade: 'media', imagens: [] });
@@ -423,6 +479,13 @@ const ChecklistsPage: React.FC = () => {
                       </div>
                       <span className={styles.itemText}>{item.descricao}</span>
                       <button
+                        className={`${styles.itemAlerta} ${itemTemRegistro(item) ? styles.itemAlertaAtivo : ''}`}
+                        onClick={() => abrirObservacao(ck.id, item)}
+                        title={itemTemRegistro(item) ? 'Ver anexos e descrição' : 'Anexar arquivo/imagem e descrever'}
+                      >
+                        <AlertTriangle size={16} />
+                      </button>
+                      <button
                         className={styles.itemAction}
                         onClick={() => abrirAcoes(ck.id, item.id, item.descricao)}
                         title="Ações"
@@ -460,6 +523,52 @@ const ChecklistsPage: React.FC = () => {
           </ResponsiveContainer>
         </Card>
       </div>
+
+      {/* ===== MODAL ANEXOS + DESCRIÇÃO DO ITEM ===== */}
+      <Modal aberto={!!obsModal} onFechar={() => setObsModal(null)} titulo="Anexos e descrição do item" largura="md">
+        <div className={styles.problemaForm}>
+          <p className={styles.modalItemDesc}>Item: <strong>{obsModal?.itemDesc}</strong></p>
+
+          <label className={styles.formLabel}>Arquivos e imagens</label>
+          <div className={styles.imagensArea}>
+            {obsAnexos.map((a, i) => (
+              <div key={`${a.url}-${i}`} className={styles.imagemThumb}>
+                <a href={urlAnexoSegura(a.url)} target="_blank" rel="noreferrer" title={a.nome}>
+                  {ehAnexoArquivo(a)
+                    ? <span className={styles.anexoArquivo}><FileText size={22} /><span className={styles.anexoArquivoNome}>{a.nome}</span></span>
+                    : <img src={urlAnexoSegura(a.url)} alt={a.nome} />}
+                </a>
+                <button className={styles.imagemRemover} onClick={() => setObsAnexos(prev => prev.filter((_, j) => j !== i))}>
+                  <X size={14} />
+                </button>
+              </div>
+            ))}
+            <button
+              className={styles.imagemAdd}
+              onClick={() => obsInputRef.current?.click()}
+              disabled={obsEnviando || obsAnexos.length >= MAX_ANEXOS_ITEM}
+            >
+              <Upload size={20} />
+              <span>{obsEnviando ? 'Enviando…' : obsAnexos.length >= MAX_ANEXOS_ITEM ? `Máx. ${MAX_ANEXOS_ITEM}` : 'Adicionar'}</span>
+            </button>
+            <input ref={obsInputRef} type="file" accept={ACCEPT_ANEXOS} multiple hidden onChange={escolherAnexosObs} />
+          </div>
+
+          <label className={styles.formLabel}>Descrição</label>
+          <textarea
+            className={styles.formTextarea}
+            placeholder="Descreva a situação deste item do checklist..."
+            value={obsTexto}
+            onChange={e => setObsTexto(e.target.value)}
+            rows={4}
+            maxLength={5000}
+          />
+
+          <button className={styles.formSubmit} onClick={salvarObservacao} disabled={obsSalvando || obsEnviando}>
+            <Save size={16} /> {obsSalvando ? 'Salvando…' : 'Salvar'}
+          </button>
+        </div>
+      </Modal>
 
       {/* ===== MODAL AÇÕES (2 opções) ===== */}
       <Modal aberto={!!acoesModal} onFechar={() => setAcoesModal(null)} titulo="Açõe do Item" largura="sm">

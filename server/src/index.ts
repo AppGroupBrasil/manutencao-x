@@ -405,6 +405,16 @@ app.use((err: any, req: express.Request, res: express.Response, _next: express.N
     res.status(400).json({ error: 'Dados inválidos na requisição' });
     return;
   }
+  // Multer (upload) → 4xx com mensagem util
+  if (err.name === 'MulterError') {
+    const msg = err.code === 'LIMIT_FILE_SIZE'
+      ? 'Arquivo muito grande. Limite: 5 MB para imagens e 10 MB para PDF'
+      : err.code === 'LIMIT_FILE_COUNT' || err.code === 'LIMIT_UNEXPECTED_FILE'
+        ? 'Envie um arquivo por vez'
+        : 'Falha no envio do arquivo';
+    res.status(err.code === 'LIMIT_FILE_SIZE' ? 413 : 400).json({ error: msg });
+    return;
+  }
   const reqId = req.requestId;
   if (isProduction) {
     console.error(`[ERROR] [${reqId}] ${req.method} ${req.path}: ${err.message}`);
@@ -413,7 +423,7 @@ app.use((err: any, req: express.Request, res: express.Response, _next: express.N
   }
   const status = err.status || 500;
   res.status(status).json({
-    error: isProduction ? 'Erro interno do servidor' : err.message,
+    error: status < 500 ? err.message : (isProduction ? 'Erro interno do servidor' : err.message),
     requestId: reqId,
   });
 });

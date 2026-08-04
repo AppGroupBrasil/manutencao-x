@@ -42,7 +42,7 @@ export async function listarResponsaveis(osId: string) {
 
 export async function listarFotos(osId: string) {
   return query(
-    `SELECT id, url, legenda, autor_id, autor_nome, origem, criado_em
+    `SELECT id, url, legenda, nome, tipo, autor_id, autor_nome, origem, criado_em
        FROM os_fotos WHERE os_id = $1 ORDER BY criado_em`,
     [osId]
   );
@@ -159,7 +159,7 @@ export async function definirResponsaveis(
 export async function sincronizarFotosLegado(osId: string): Promise<void> {
   await execute(
     `UPDATE ordens_servico
-        SET fotos = COALESCE((SELECT array_agg(url ORDER BY criado_em) FROM os_fotos WHERE os_id = $1), '{}')
+        SET fotos = COALESCE((SELECT array_agg(url ORDER BY criado_em) FROM os_fotos WHERE os_id = $1 AND tipo = 'imagem'), '{}')
       WHERE id = $1`,
     [osId]
   );
@@ -167,22 +167,23 @@ export async function sincronizarFotosLegado(osId: string): Promise<void> {
 
 export async function adicionarFotos(
   osId: string,
-  urls: Array<{ url: string; legenda?: string | null }>,
+  urls: Array<{ url: string; legenda?: string | null; nome?: string | null; tipo?: 'imagem' | 'arquivo' }>,
   autor: AutorOS
 ) {
   const total = await queryOne<{ total: string }>('SELECT COUNT(*) as total FROM os_fotos WHERE os_id = $1', [osId]);
   if (Number(total?.total ?? 0) + urls.length > 30) {
-    return { erro: 'Limite de 30 imagens por ordem de serviço' as const };
+    return { erro: 'Limite de 30 anexos por ordem de serviço' as const };
   }
   for (const item of urls) {
+    const tipo = item.tipo ?? (/\.pdf$/i.test(item.url) ? 'arquivo' : 'imagem');
     await execute(
-      `INSERT INTO os_fotos (os_id, url, legenda, autor_id, autor_nome, origem)
-       VALUES ($1,$2,$3,$4,$5,$6)`,
-      [osId, item.url, item.legenda?.slice(0, 255) ?? null, autor.id ?? null, autor.nome, autor.origem]
+      `INSERT INTO os_fotos (os_id, url, legenda, nome, tipo, autor_id, autor_nome, origem)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+      [osId, item.url, item.legenda?.slice(0, 255) ?? null, item.nome?.slice(0, 255) ?? null, tipo, autor.id ?? null, autor.nome, autor.origem]
     );
   }
   await sincronizarFotosLegado(osId);
-  await registrarHistorico(osId, 'fotos', `${urls.length} imagem(ns) anexada(s)`, { urls: urls.map(u => u.url) }, autor).catch(() => {});
+  await registrarHistorico(osId, 'fotos', `${urls.length} anexo(s) adicionado(s)`, { urls: urls.map(u => u.url) }, autor).catch(() => {});
   return { fotos: await listarFotos(osId) };
 }
 
@@ -191,9 +192,9 @@ export async function removerFoto(osId: string, fotoId: string, autor: AutorOS) 
     'DELETE FROM os_fotos WHERE id = $1 AND os_id = $2 RETURNING url',
     [fotoId, osId]
   );
-  if (!row) return { erro: 'Imagem não encontrada' as const };
+  if (!row) return { erro: 'Anexo não encontrado' as const };
   await sincronizarFotosLegado(osId);
-  await registrarHistorico(osId, 'fotos', 'Imagem removida', { url: row.url, removida: true }, autor).catch(() => {});
+  await registrarHistorico(osId, 'fotos', 'Anexo removido', { url: row.url, removida: true }, autor).catch(() => {});
   return { fotos: await listarFotos(osId) };
 }
 

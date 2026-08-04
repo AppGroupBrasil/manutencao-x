@@ -1,7 +1,7 @@
 import { Router, Response } from 'express';
 import { query, queryOne, execute } from '../db/database.js';
 import { AuthRequest } from '../middleware/auth.js';
-import { validate, checklistSchema } from '../middleware/validation.js';
+import { validate, checklistSchema, checklistItensSchema } from '../middleware/validation.js';
 
 const router = Router();
 
@@ -94,7 +94,7 @@ router.put('/:id', validate(checklistSchema), async (req: AuthRequest, res: Resp
 });
 
 // PATCH /api/checklists/:id/itens
-router.patch('/:id/itens', async (req: AuthRequest, res: Response) => {
+router.patch('/:id/itens', validate(checklistItensSchema), async (req: AuthRequest, res: Response) => {
   const ids: string[] = req.condominioIds!;
   const { itens, status, horaFim, assinatura } = req.body;
   const fields: string[] = ['itens = $1'];

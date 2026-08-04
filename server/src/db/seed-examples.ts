@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import bcrypt from 'bcryptjs';
 import { PoolClient } from 'pg';
 import pool from './database.js';
