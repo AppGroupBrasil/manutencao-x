@@ -25,6 +25,8 @@ export async function prepararImagem(file: File): Promise<File> {
     canvas.height = altura;
     const ctx = canvas.getContext('2d');
     if (!ctx) return file;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, largura, altura);
     ctx.drawImage(bitmap, 0, 0, largura, altura);
     bitmap.close();
     const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.85));

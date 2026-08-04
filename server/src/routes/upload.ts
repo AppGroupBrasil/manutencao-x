@@ -11,7 +11,6 @@ import {
   DOCUMENT_MIME_TYPES,
   MAX_IMAGE_BYTES,
   MAX_DOC_BYTES,
-  bufferMatchesMimeType,
   detectarTipoReal,
 } from '../services/imagens.js';
 

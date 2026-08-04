@@ -45,21 +45,6 @@ export function detectarTipoReal(buffer: Buffer): string | null {
   return null;
 }
 
-export function bufferMatchesMimeType(buffer: Buffer, mimeType: string) {
-  switch (mimeType) {
-    case 'application/pdf':
-      return hasPdfSignature(buffer);
-    case 'image/jpeg':
-      return hasJpegSignature(buffer);
-    case 'image/png':
-      return hasPngSignature(buffer);
-    case 'image/webp':
-      return hasWebpSignature(buffer);
-    default:
-      return false;
-  }
-}
-
 export async function salvarImagemWebp(
   buffer: Buffer,
   subfolder = 'fotos',

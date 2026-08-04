@@ -1,5 +1,6 @@
 ﻿import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { usePermissions } from '../../contexts/PermissionsContext';
+import { useAuth } from '../../contexts/AuthContext';
 import HowItWorks from '../../components/Common/HowItWorks';
 import PageHeader from '../../components/Common/PageHeader';
 import Card from '../../components/Common/Card';
@@ -72,6 +73,7 @@ const mapOS = (r: any): OSComProtocolo => {
 
 const OrdensServicoPage: React.FC = () => {
   const { podeCriar, podeEditar, roleNivel } = usePermissions();
+  const { usuario } = useAuth();
   const { tentarAcao } = useDemo();
   const [ordens, setOrdens] = useState<OSComProtocolo[]>([]);
   const [condominiosList, setCondominiosList] = useState<any[]>([]);
@@ -271,6 +273,26 @@ const OrdensServicoPage: React.FC = () => {
     { status: 'Canceladas', total: ordens.filter(o => o.status === 'cancelada').length },
   ], [ordens]);
 
+  const podeExcluirOS = (os: OSComProtocolo) => {
+    if (!usuario) return false;
+    if (usuario.role === 'master') return true;
+    if (usuario.role !== 'administrador' || usuario.administradorId) return false;
+    const cond: any = condominiosList.find((c: any) => c.id === os.condominioId);
+    return !!cond && (cond.criado_por ?? cond.criadoPor) === usuario.id;
+  };
+
+  const excluirOS = async (os: OSComProtocolo) => {
+    if (!tentarAcao()) return;
+    if (!confirm(`Excluir a O.S. ${os.protocolo} — "${os.titulo}"?\n\nEsta ação não pode ser desfeita.`)) return;
+    try {
+      await osApi.remove(os.id);
+      setOrdens(prev => prev.filter(o => o.id !== os.id));
+      if (detalhe?.id === os.id) { setDetalhe(null); setEditandoOS(false); }
+    } catch (e: any) {
+      alert(e?.message || 'Erro ao excluir a O.S.');
+    }
+  };
+
   const atualizarStatus = async (id: string, novoStatus: StatusOS) => {
     if (!tentarAcao()) return;
     try {
@@ -461,6 +483,17 @@ const OrdensServicoPage: React.FC = () => {
                   <button type="button" className={styles.detalheBtn} onClick={() => abrirDetalhe(os.id)}>
                     Abrir O.S.
                   </button>
+                  {podeExcluirOS(os) && (
+                    <button
+                      type="button"
+                      className={styles.excluirBtn}
+                      onClick={() => excluirOS(os)}
+                      title="Excluir O.S."
+                      aria-label={`Excluir O.S. ${os.protocolo}`}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
                   <WhatsAppShare mensagem={`*Ordem de Serviço*\n*Protocolo:* ${os.protocolo}\n*Título:* ${os.titulo}\n*Tipo:* ${os.tipo}\n*Prioridade:* ${os.prioridade}\n*Status:* ${os.status}\n*Local:* ${os.local || 'N/A'}\n*Abertura:* ${formatarDataHora(os.dataAbertura)}`} />
                   <ShareButton tipo="os" id={os.id} titulo={os.titulo} />
                 </div>

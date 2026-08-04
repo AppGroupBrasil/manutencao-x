@@ -355,9 +355,26 @@ router.put('/:id', validate(ordemServicoUpdateSchema), async (req: AuthRequest, 
   res.json({ ...row, ...(await detalhesColaboracao(req.params.id)) });
 });
 
-// DELETE /api/ordens-servico/:id
-router.delete('/:id', requireMinRole('supervisor'), async (req: AuthRequest, res: Response) => {
+// DELETE /api/ordens-servico/:id — apenas master ou o gestor titular que cadastrou o condomínio
+router.delete('/:id', requireMinRole('administrador'), async (req: AuthRequest, res: Response) => {
   const ids: string[] = req.condominioIds!;
+  const os = await queryOne<{ condominio_id: string }>(
+    'SELECT condominio_id FROM ordens_servico WHERE id = $1 AND condominio_id = ANY($2)',
+    [req.params.id, ids]
+  );
+  if (!os) { res.status(404).json({ error: 'OS não encontrada' }); return; }
+
+  if (req.user!.role !== 'master') {
+    const cond = await queryOne<{ criado_por: string }>(
+      'SELECT criado_por FROM condominios WHERE id = $1',
+      [os.condominio_id]
+    );
+    if (req.user!.administrador_id || cond?.criado_por !== req.user!.id) {
+      res.status(403).json({ error: 'Somente o gestor principal que cadastrou o condomínio pode excluir ordens de serviço' });
+      return;
+    }
+  }
+
   const row = await queryOne<{ id: string; protocolo: string; titulo: string }>(
     'DELETE FROM ordens_servico WHERE id = $1 AND condominio_id = ANY($2) RETURNING id, protocolo, titulo',
     [req.params.id, ids]

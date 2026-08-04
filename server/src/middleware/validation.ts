@@ -306,7 +306,7 @@ export const checklistSchema = z.object({
 
 export const checklistItensSchema = z.object({
   itens: z.array(z.object({
-    id: z.string().max(64),
+    id: z.string().max(64).optional(),
     observacao: z.string().max(5000).optional().nullable(),
     anexos: z.array(z.object({
       url: urlImagem,

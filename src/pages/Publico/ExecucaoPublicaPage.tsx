@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { CheckCircle2, Circle, CheckCheck } from 'lucide-react';
 import { publico as publicoApi } from '../../services/api';
 import ColaboracaoOS from '../../components/OS/ColaboracaoOS';
+import { prepararImagem } from '../../utils/anexos';
 import styles from './ExecucaoPublica.module.css';
 
 type Tipo = 'os' | 'checklist' | 'atividade';
@@ -283,7 +284,12 @@ export default function ExecucaoPublicaPage() {
                 carregarCandidatos={() => publicoApi.candidatosOS(id!)}
                 onSalvarResponsaveis={async lista => { await publicoApi.setResponsaveisOS(id!, nome.trim(), lista); await recarregar(); }}
                 onAdicionarDescricao={async texto => { await publicoApi.addDescricaoOS(id!, nome.trim(), texto); await recarregar(); }}
-                onEnviarFotos={async arquivos => { await publicoApi.enviarFotosOS(id!, nome.trim(), arquivos); await recarregar(); }}
+                onEnviarFotos={async arquivos => {
+                  const prontos = [];
+                  for (const a of arquivos) prontos.push(await prepararImagem(a));
+                  await publicoApi.enviarFotosOS(id!, nome.trim(), prontos);
+                  await recarregar();
+                }}
                 onRemoverFoto={async fotoId => { await publicoApi.removerFotoOS(id!, fotoId, nome.trim()); await recarregar(); }}
                 somenteLeitura={!nomeValido}
                 avisoAcao={!nomeValido ? 'Informe seu nome acima para editar, comentar ou anexar imagens.' : undefined}

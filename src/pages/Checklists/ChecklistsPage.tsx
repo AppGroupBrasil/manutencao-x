@@ -232,7 +232,7 @@ const ChecklistsPage: React.FC = () => {
   };
 
   // Anexos + descrição do item (botão de alerta)
-  const [obsModal, setObsModal] = useState<{ ckId: string; itemId: string; itemDesc: string } | null>(null);
+  const [obsModal, setObsModal] = useState<{ ckId: string; itemIdx: number; itemDesc: string } | null>(null);
   const [obsTexto, setObsTexto] = useState('');
   const [obsAnexos, setObsAnexos] = useState<AnexoItemChecklist[]>([]);
   const [obsEnviando, setObsEnviando] = useState(false);
@@ -244,10 +244,10 @@ const ChecklistsPage: React.FC = () => {
 
   const itemTemRegistro = (item: ItemChecklist) => !!item.observacao?.trim() || (item.anexos?.length ?? 0) > 0;
 
-  const abrirObservacao = (ckId: string, item: ItemChecklist) => {
+  const abrirObservacao = (ckId: string, item: ItemChecklist, itemIdx: number) => {
     setObsTexto(item.observacao || '');
     setObsAnexos(item.anexos || []);
-    setObsModal({ ckId, itemId: item.id, itemDesc: item.descricao });
+    setObsModal({ ckId, itemIdx, itemDesc: item.descricao });
   };
 
   const escolherAnexosObs = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -271,8 +271,8 @@ const ChecklistsPage: React.FC = () => {
     if (!obsModal) return;
     const ck = checklists.find(c => c.id === obsModal.ckId);
     if (!ck) return;
-    const itens = ck.itens.map(i =>
-      i.id === obsModal.itemId ? { ...i, observacao: obsTexto.trim(), anexos: obsAnexos } : i
+    const itens = ck.itens.map((i, idx) =>
+      idx === obsModal.itemIdx ? { ...i, observacao: obsTexto.trim(), anexos: obsAnexos } : i
     );
     setObsSalvando(true);
     try {
@@ -473,15 +473,15 @@ const ChecklistsPage: React.FC = () => {
                 </div>
 
                 <div className={styles.itemsList}>
-                  {ck.itens.map(item => (
-                    <div key={item.id} className={`${styles.item} ${item.concluido ? styles.itemDone : ''}`}>
+                  {ck.itens.map((item, itemIdx) => (
+                    <div key={item.id ?? itemIdx} className={`${styles.item} ${item.concluido ? styles.itemDone : ''}`}>
                       <div className={styles.itemCheck}>
                         {item.concluido ? <CheckCircle2 size={16} color="#2e7d32" /> : <div className={styles.unchecked} />}
                       </div>
                       <span className={styles.itemText}>{item.descricao}</span>
                       <button
                         className={`${styles.itemAlerta} ${itemTemRegistro(item) ? styles.itemAlertaAtivo : ''}`}
-                        onClick={() => abrirObservacao(ck.id, item)}
+                        onClick={() => abrirObservacao(ck.id, item, itemIdx)}
                         title={itemTemRegistro(item) ? 'Ver anexos e descrição' : 'Anexar arquivo/imagem e descrever'}
                       >
                         <AlertTriangle size={16} />

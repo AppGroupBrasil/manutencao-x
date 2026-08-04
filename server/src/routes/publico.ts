@@ -7,7 +7,7 @@ import { notificarGestoresOSStatus } from '../services/notificacoesOS.js';
 import {
   IMAGE_MIME_TYPES,
   MAX_IMAGE_BYTES,
-  bufferMatchesMimeType,
+  detectarTipoReal,
   salvarImagemWebp,
 } from '../services/imagens.js';
 import {
@@ -23,12 +23,14 @@ import {
 
 const router = Router();
 
+const MIMES_GENERICOS = new Set(['application/octet-stream', 'binary/octet-stream', '']);
+
 const uploadPublico = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: MAX_IMAGE_BYTES, files: 5 },
   fileFilter: (_req, file, cb) => {
-    if (IMAGE_MIME_TYPES.has(file.mimetype)) cb(null, true);
-    else cb(new Error('Tipo de imagem não permitido'));
+    if (IMAGE_MIME_TYPES.has(file.mimetype) || MIMES_GENERICOS.has(file.mimetype)) cb(null, true);
+    else cb(Object.assign(new Error('Envie uma imagem JPG, PNG ou WebP'), { status: 400 }));
   },
 });
 
@@ -155,8 +157,9 @@ router.post('/os/:id/fotos', uploadPublico.array('files', 5), async (req: Reques
   const arquivos = (req.files as Express.Multer.File[] | undefined) || [];
   if (arquivos.length === 0) { res.status(400).json({ error: 'Nenhuma imagem enviada' }); return; }
   for (const f of arquivos) {
-    if (!bufferMatchesMimeType(f.buffer, f.mimetype)) {
-      res.status(400).json({ error: 'Conteúdo do arquivo inválido para o tipo informado' });
+    const tipoReal = detectarTipoReal(f.buffer);
+    if (!tipoReal || !IMAGE_MIME_TYPES.has(tipoReal)) {
+      res.status(400).json({ error: 'Arquivo não é uma imagem JPG, PNG ou WebP válida' });
       return;
     }
   }
