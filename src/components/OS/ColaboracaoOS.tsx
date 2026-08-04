@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { ImagePlus, Trash2, Users, MessageSquarePlus, History, FileText } from 'lucide-react';
-import { ehAnexoArquivo, urlAnexoSegura, ACCEPT_ANEXOS } from '../../utils/anexos';
+import { ImagePlus, Trash2, Users, MessageSquarePlus, History, FileText, Camera } from 'lucide-react';
+import { ehAnexoArquivo, urlAnexoSegura, ACCEPT_ANEXOS, ACCEPT_CAMERA } from '../../utils/anexos';
 import styles from './ColaboracaoOS.module.css';
 
 export interface CandidatoOS {
@@ -88,6 +88,7 @@ export default function ColaboracaoOS({
   const [erro, setErro] = useState('');
   const [verHistorico, setVerHistorico] = useState(false);
   const inputFile = useRef<HTMLInputElement>(null);
+  const inputCamera = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setCarregandoCand(true);
@@ -140,7 +141,7 @@ export default function ColaboracaoOS({
 
   const escolherArquivos = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const arquivos = Array.from(e.target.files || []);
-    if (inputFile.current) inputFile.current.value = '';
+    e.target.value = '';
     if (arquivos.length === 0) return;
     setErro('');
     setEnviandoFoto(true);
@@ -277,9 +278,22 @@ export default function ColaboracaoOS({
               hidden
               onChange={escolherArquivos}
             />
-            <button type="button" className={styles.btn} onClick={() => inputFile.current?.click()} disabled={enviandoFoto}>
-              {enviandoFoto ? 'Enviando…' : aceitaArquivos ? 'Anexar arquivos / imagens' : 'Anexar imagens'}
-            </button>
+            <input
+              ref={inputCamera}
+              type="file"
+              accept={ACCEPT_CAMERA}
+              capture="environment"
+              hidden
+              onChange={escolherArquivos}
+            />
+            <div className={styles.acoesAnexo}>
+              <button type="button" className={styles.btn} onClick={() => inputCamera.current?.click()} disabled={enviandoFoto}>
+                <Camera size={15} /> Tirar foto
+              </button>
+              <button type="button" className={styles.btn} onClick={() => inputFile.current?.click()} disabled={enviandoFoto}>
+                {enviandoFoto ? 'Enviando…' : aceitaArquivos ? 'Anexar arquivo' : 'Anexar imagem'}
+              </button>
+            </div>
           </>
         )}
       </section>

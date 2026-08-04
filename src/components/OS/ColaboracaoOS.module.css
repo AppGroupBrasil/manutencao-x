@@ -84,6 +84,18 @@
   color: inherit;
 }
 
+.acoesAnexo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.acoesAnexo .btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .btn {
   align-self: flex-start;
   border: none;

@@ -10,11 +10,11 @@ import { compartilharConteudo, imprimirElemento, gerarPdfDeElemento } from '../.
 import { formatarDataHora } from '../../utils/dateUtils';
 import { usePagination } from '../../hooks/usePagination';
 import type { OrdemServico, StatusOS } from '../../types';
-import { Plus, Search, MapPin, Calendar, Wrench, AlertTriangle, X, Hash, Paperclip, FileText, Trash2 } from 'lucide-react';
+import { Plus, Search, MapPin, Calendar, Wrench, AlertTriangle, X, Hash, Paperclip, FileText, Trash2, Camera } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useDemo } from '../../contexts/DemoContext';
 import { ordensServico as osApi, condominios as condominiosApi, usuarios as usuariosApi } from '../../services/api';
-import { enviarAnexo, ACCEPT_ANEXOS } from '../../utils/anexos';
+import { enviarAnexo, ACCEPT_ANEXOS, ACCEPT_CAMERA } from '../../utils/anexos';
 import ColaboracaoOS from '../../components/OS/ColaboracaoOS';
 import LoadingSpinner from '../../components/Common/LoadingSpinner';
 import EmptyState from '../../components/Common/EmptyState';
@@ -167,12 +167,13 @@ const OrdensServicoPage: React.FC = () => {
   const [novosAnexos, setNovosAnexos] = useState<File[]>([]);
   const [enviandoAnexos, setEnviandoAnexos] = useState(false);
   const inputAnexos = useRef<HTMLInputElement>(null);
+  const inputCamera = useRef<HTMLInputElement>(null);
 
   const MAX_ANEXOS_NOVA_OS = 10;
 
   const selecionarAnexos = (e: React.ChangeEvent<HTMLInputElement>) => {
     const escolhidos = Array.from(e.target.files || []);
-    if (inputAnexos.current) inputAnexos.current.value = '';
+    e.target.value = '';
     if (escolhidos.length === 0) return;
     setNovosAnexos(prev => [...prev, ...escolhidos].slice(0, MAX_ANEXOS_NOVA_OS));
   };
@@ -511,15 +512,33 @@ const OrdensServicoPage: React.FC = () => {
               hidden
               onChange={selecionarAnexos}
             />
-            <button
-              type="button"
-              className={styles.anexoBtn}
-              onClick={() => inputAnexos.current?.click()}
-              disabled={novosAnexos.length >= MAX_ANEXOS_NOVA_OS}
-            >
-              <Paperclip size={16} />
-              {novosAnexos.length >= MAX_ANEXOS_NOVA_OS ? `Limite de ${MAX_ANEXOS_NOVA_OS} anexos` : 'Selecionar arquivos ou imagens'}
-            </button>
+            <input
+              ref={inputCamera}
+              type="file"
+              accept={ACCEPT_CAMERA}
+              capture="environment"
+              hidden
+              onChange={selecionarAnexos}
+            />
+            <div className={styles.anexoAcoes}>
+              <button
+                type="button"
+                className={styles.anexoBtn}
+                onClick={() => inputCamera.current?.click()}
+                disabled={novosAnexos.length >= MAX_ANEXOS_NOVA_OS}
+              >
+                <Camera size={16} /> Tirar foto
+              </button>
+              <button
+                type="button"
+                className={styles.anexoBtn}
+                onClick={() => inputAnexos.current?.click()}
+                disabled={novosAnexos.length >= MAX_ANEXOS_NOVA_OS}
+              >
+                <Paperclip size={16} />
+                {novosAnexos.length >= MAX_ANEXOS_NOVA_OS ? `Limite de ${MAX_ANEXOS_NOVA_OS}` : 'Anexar arquivo'}
+              </button>
+            </div>
             <p className={styles.anexoDica}>Fotos (JPG, PNG, WebP) e documentos PDF — até {MAX_ANEXOS_NOVA_OS} por O.S.</p>
             {novosAnexos.length > 0 && (
               <ul className={styles.anexoLista}>

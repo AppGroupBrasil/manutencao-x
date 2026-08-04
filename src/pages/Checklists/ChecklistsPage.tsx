@@ -7,7 +7,7 @@ import Modal from '../../components/Common/Modal';
 import { validarImagem } from '../../utils/imageUtils';
 import { compartilharConteudo, imprimirElemento, gerarPdfDeElemento } from '../../utils/exportUtils';
 import type { ChecklistLimpeza, ItemChecklist, AnexoItemChecklist } from '../../types';
-import { enviarAnexo, ehAnexoArquivo, urlAnexoSegura, ACCEPT_ANEXOS } from '../../utils/anexos';
+import { enviarAnexo, ehAnexoArquivo, urlAnexoSegura, ACCEPT_ANEXOS, ACCEPT_CAMERA } from '../../utils/anexos';
 import { Plus, CheckCircle2, ClipboardCheck, MoreVertical, AlertTriangle, Camera, X, Upload, ChevronRight, MessageCircle, Settings, Save, Trash2, Hash, Search, Minus, Edit2, FileText } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { useDemo } from '../../contexts/DemoContext';
@@ -238,6 +238,7 @@ const ChecklistsPage: React.FC = () => {
   const [obsEnviando, setObsEnviando] = useState(false);
   const [obsSalvando, setObsSalvando] = useState(false);
   const obsInputRef = useRef<HTMLInputElement>(null);
+  const obsCameraRef = useRef<HTMLInputElement>(null);
 
   const MAX_ANEXOS_ITEM = 10;
 
@@ -545,13 +546,22 @@ const ChecklistsPage: React.FC = () => {
             ))}
             <button
               className={styles.imagemAdd}
+              onClick={() => obsCameraRef.current?.click()}
+              disabled={obsEnviando || obsAnexos.length >= MAX_ANEXOS_ITEM}
+            >
+              <Camera size={20} />
+              <span>Tirar foto</span>
+            </button>
+            <button
+              className={styles.imagemAdd}
               onClick={() => obsInputRef.current?.click()}
               disabled={obsEnviando || obsAnexos.length >= MAX_ANEXOS_ITEM}
             >
               <Upload size={20} />
-              <span>{obsEnviando ? 'Enviando…' : obsAnexos.length >= MAX_ANEXOS_ITEM ? `Máx. ${MAX_ANEXOS_ITEM}` : 'Adicionar'}</span>
+              <span>{obsEnviando ? 'Enviando…' : obsAnexos.length >= MAX_ANEXOS_ITEM ? `Máx. ${MAX_ANEXOS_ITEM}` : 'Anexar'}</span>
             </button>
             <input ref={obsInputRef} type="file" accept={ACCEPT_ANEXOS} multiple hidden onChange={escolherAnexosObs} />
+            <input ref={obsCameraRef} type="file" accept={ACCEPT_CAMERA} capture="environment" hidden onChange={escolherAnexosObs} />
           </div>
 
           <label className={styles.formLabel}>Descrição</label>

@@ -309,7 +309,14 @@
   border-color: var(--cor-primaria);
 }
 
+.anexoAcoes {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .anexoBtn {
+  flex: 1 1 140px;
   display: flex;
   align-items: center;
   justify-content: center;
