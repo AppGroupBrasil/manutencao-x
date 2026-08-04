@@ -2,6 +2,7 @@ import cron from 'node-cron';
 import { query, queryOne } from './db/database.js';
 import { sendEmail, emailVencimentoAlerta } from './services/email.js';
 import { sendPush } from './services/push.js';
+import { notificarGestoresOSCriada } from './services/notificacoesOS.js';
 
 function gerarProtocolo(): string {
   const now = new Date();
@@ -79,6 +80,12 @@ async function processarPlanos() {
          VALUES ('plano_preventivo', $1, $2, 'sucesso', $3)`,
         [plano.id, os?.id, `OS ${protocolo} gerada para plano "${plano.titulo}"`]
       );
+
+      if (os?.id) {
+        await notificarGestoresOSCriada(
+          { id: String(os.id), protocolo, titulo, condominioId: plano.condominio_id, prioridade: 'media' }
+        ).catch(() => {});
+      }
 
       geradas++;
     } catch (err: any) {

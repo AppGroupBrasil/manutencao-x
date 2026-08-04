@@ -7,17 +7,18 @@ import { requireMinRole } from '../middleware/rbac.js';
 import { createNotification, auditLog } from '../middleware/helpers.js';
 import { sendPush } from '../services/push.js';
 import { sendEmail, emailOSCriada } from '../services/email.js';
+import { notificarGestoresOSCriada, notificarGestoresOSStatus } from '../services/notificacoesOS.js';
 import {
   AutorOS, adicionarDescricao, adicionarFotos, definirResponsaveis, detalhesColaboracao,
   listarCandidatos, listarHistorico, registrarHistorico, removerFoto,
 } from '../services/osColaboracao.js';
 
-async function enviarEmailsOS(protocolo: string, titulo: string, prioridade: string, condominioId: string, criadorId: string) {
+async function enviarEmailsOS(protocolo: string, titulo: string, prioridade: string, condominioId: string, criadorId: string, jaEnviados: string[] = []) {
   const cond = await queryOne<{ nome: string }>('SELECT nome FROM condominios WHERE id = $1', [condominioId]);
   const emails = new Set<string>();
   const add = (rows: Array<{ email: string | null }>) => rows.forEach(r => { if (r.email) emails.add(r.email); });
   add(await query<{ email: string }>(
-    `SELECT email FROM usuarios WHERE condominio_id = $1 AND role IN ('administrador','supervisor') AND id <> $2 AND ativo = true AND bloqueado = false AND email IS NOT NULL AND email <> ''`,
+    `SELECT email FROM usuarios WHERE condominio_id = $1 AND role IN ('administrador','supervisor') AND id <> $2 AND notificar_os_email = true AND ativo = true AND bloqueado = false AND email IS NOT NULL AND email <> ''`,
     [condominioId, criadorId]
   ));
   add(await query<{ email: string }>(
@@ -28,6 +29,7 @@ async function enviarEmailsOS(protocolo: string, titulo: string, prioridade: str
     `SELECT email FROM usuarios WHERE condominio_id = $1 AND role = 'funcionario' AND notificar_os_email = true AND ativo = true AND bloqueado = false AND email IS NOT NULL AND email <> ''`,
     [condominioId]
   ));
+  jaEnviados.forEach(e => emails.delete(e));
   if (emails.size === 0) return;
   const opts = emailOSCriada(protocolo, titulo, cond?.nome || '', prioridade);
   await sendEmail({ ...opts, bcc: [...emails] });
@@ -44,18 +46,21 @@ function gerarProtocolo(): string {
   return `OS-${y}${m}${d}-${r}`;
 }
 
-async function notificarFuncionariosAuto(osId: string, titulo: string, condominioId: string, autorId?: string) {
+async function notificarFuncionariosAuto(osId: string, titulo: string, condominioId: string, autorId?: string, excluirIds: string[] = []) {
   const cond = await queryOne<any>('SELECT os_auto_notificar FROM condominios WHERE id = $1', [condominioId]);
   if (!cond?.os_auto_notificar) return;
-  const funcionarios = await query<{ id: string }>(
-    `SELECT id FROM usuarios
+  const funcionarios = await query<{ id: string; notificar_os_push: boolean }>(
+    `SELECT id, notificar_os_push FROM usuarios
        WHERE condominio_id = $1 AND ativo = true AND bloqueado = false
-         AND role <> 'master' AND ($2::uuid IS NULL OR id <> $2::uuid)`,
-    [condominioId, autorId ?? null]
+         AND role <> 'master' AND ($2::uuid IS NULL OR id <> $2::uuid)
+         AND NOT (id = ANY($3::uuid[]))`,
+    [condominioId, autorId ?? null, excluirIds]
   );
   for (const f of funcionarios) {
     await createNotification(f.id, 'Nova Ordem de Serviço', titulo, 'info', `/x/os/${osId}`).catch(() => {});
-    await sendPush(f.id, { title: 'Nova Ordem de Serviço', body: titulo, url: `/x/os/${osId}` }).catch(() => {});
+    if (f.notificar_os_push) {
+      await sendPush(f.id, { title: 'Nova Ordem de Serviço', body: titulo, url: `/x/os/${osId}` }).catch(() => {});
+    }
   }
 }
 
@@ -243,9 +248,18 @@ router.post('/', requireMinRole('supervisor'), validate(ordemServicoSchema), asy
   if (descricao && String(descricao).trim()) {
     await registrarHistorico(String(row.id), 'descricao', String(descricao).trim().slice(0, 5000), { inicial: true }, autor).catch(() => {});
   }
-  notificarFuncionariosAuto(String(row.id), titulo, condominioId, req.user!.id).catch(() => {});
-  enviarEmailsOS(String(row.protocolo), titulo, prioridade || 'media', condominioId, req.user!.id)
-    .catch((err) => console.error('[OS] Erro ao enviar e-mails:', err?.message));
+  const osCriada = row;
+  notificarGestoresOSCriada(
+    { id: String(osCriada.id), protocolo: String(osCriada.protocolo), titulo, condominioId, prioridade: prioridade || 'media' },
+    req.user!.id
+  )
+    .catch(() => ({ ids: [], emails: [] }))
+    .then(async (gestores) => {
+      await notificarFuncionariosAuto(String(osCriada.id), titulo, condominioId, req.user!.id, gestores.ids).catch(() => {});
+      await enviarEmailsOS(String(osCriada.protocolo), titulo, prioridade || 'media', condominioId, req.user!.id, gestores.emails)
+        .catch((err) => console.error('[OS] Erro ao enviar e-mails:', err?.message));
+    })
+    .catch(() => {});
   res.status(201).json({ ...row, responsaveis });
 });
 
@@ -258,12 +272,22 @@ router.patch('/:id/status', validate(ordemServicoStatusSchema), async (req: Auth
     return;
   }
   const extra = status === 'concluida' ? ', data_conclusao = NOW()' : ', data_conclusao = NULL';
+  const anterior = await queryOne<{ status: string }>(
+    'SELECT status FROM ordens_servico WHERE id = $1 AND condominio_id = ANY($2)',
+    [req.params.id, ids]
+  );
   const row = await queryOne(
     `UPDATE ordens_servico SET status = $1 ${extra} WHERE id = $2 AND condominio_id = ANY($3) RETURNING *`,
     [status, req.params.id, ids]
   );
   if (!row) { res.status(404).json({ error: 'OS não encontrada' }); return; }
   registrarHistorico(req.params.id, 'status', `Status alterado para ${status}`, { para: status }, autorDe(req)).catch(() => {});
+  notificarGestoresOSStatus(
+    { id: String(row.id), protocolo: String(row.protocolo), titulo: String(row.titulo), condominioId: String(row.condominio_id) },
+    anterior?.status || 'aberta',
+    status,
+    req.user!.id
+  ).catch(() => {});
   res.json(row);
 });
 

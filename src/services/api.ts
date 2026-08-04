@@ -558,6 +558,7 @@ export const perfil = {
   update: (data: { nome?: string; telefone?: string; cargo?: string }) => put('/perfil', data),
   changeSenha: (senhaAtual: string, novaSenha: string) => put('/perfil/senha', { senhaAtual, novaSenha }),
   updateAvatar: (avatarUrl: string) => put('/perfil/avatar', { avatarUrl }),
+  updateNotificacoes: (data: { notificarOsEmail?: boolean; notificarOsPush?: boolean }) => put('/perfil/notificacoes', data),
 };
 export const audit = {
   list: (page?: number, limit?: number) => request<any>(`/audit?page=${page || 1}&limit=${limit || 50}`),

@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import { queryOne, query } from '../db/database.js';
 import { AuthRequest } from '../middleware/auth.js';
 import { requireMinRole } from '../middleware/rbac.js';
+import { notificarGestoresOSCriada } from '../services/notificacoesOS.js';
 
 const router = Router();
 
@@ -177,6 +178,11 @@ router.patch('/:id/converter-os', requireMinRole('supervisor'), async (req: Auth
        WHERE id = $3 RETURNING *`,
       [os.id, req.user!.id, req.params.id]
     );
+
+    notificarGestoresOSCriada(
+      { id: String(os.id), protocolo, titulo: sol.titulo, condominioId: sol.condominio_id, prioridade: 'media' },
+      req.user!.id
+    ).catch(() => {});
 
     res.json({ solicitacao_id: sol.id, ordem_servico: os });
   } catch (err: any) {

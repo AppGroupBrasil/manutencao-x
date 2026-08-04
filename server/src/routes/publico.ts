@@ -3,6 +3,7 @@ import multer from 'multer';
 import { queryOne, execute } from '../db/database.js';
 import { createNotification } from '../middleware/helpers.js';
 import { sendPush } from '../services/push.js';
+import { notificarGestoresOSStatus } from '../services/notificacoesOS.js';
 import {
   IMAGE_MIME_TYPES,
   MAX_IMAGE_BYTES,
@@ -184,8 +185,8 @@ router.post('/os/:id/status', async (req: Request, res: Response) => {
   if (!nome) { res.status(400).json({ error: 'Informe seu nome (mínimo 3 caracteres)' }); return; }
   if (!STATUS_OS.includes(status)) { res.status(400).json({ error: 'Status inválido' }); return; }
 
-  const atual = await queryOne<{ status: string; criado_por: string | null; protocolo: string; titulo: string }>(
-    'SELECT status, criado_por, protocolo, titulo FROM ordens_servico WHERE id = $1', [req.params.id]
+  const atual = await queryOne<{ status: string; criado_por: string | null; protocolo: string; titulo: string; condominio_id: string }>(
+    'SELECT status, criado_por, protocolo, titulo, condominio_id FROM ordens_servico WHERE id = $1', [req.params.id]
   );
   if (!atual) { res.status(404).json({ error: 'Ordem de serviço não encontrada' }); return; }
   if (atual.status === 'cancelada' || atual.status === 'concluida') {
@@ -212,6 +213,12 @@ router.post('/os/:id/status', async (req: Request, res: Response) => {
     createNotification(atual.criado_por, 'OS concluída', msg, 'info', '/ordens-servico').catch(() => {});
     sendPush(atual.criado_por, { title: 'OS concluída', body: msg, url: '/ordens-servico' }).catch(() => {});
   }
+  notificarGestoresOSStatus(
+    { id: req.params.id, protocolo: atual.protocolo, titulo: atual.titulo, condominioId: atual.condominio_id },
+    atual.status,
+    status,
+    status === 'concluida' ? atual.criado_por : null
+  ).catch(() => {});
   res.json({ ok: true });
 });
 

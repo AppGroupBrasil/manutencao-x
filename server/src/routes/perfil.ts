@@ -10,7 +10,8 @@ const router = Router();
 router.get('/', async (req: AuthRequest, res: Response) => {
   try {
     const user = await queryOne(
-      `SELECT id, email, nome, role, telefone, cargo, avatar_url, criado_em FROM usuarios WHERE id = $1`,
+      `SELECT id, email, nome, role, telefone, cargo, avatar_url, criado_em, notificar_os_email, notificar_os_push
+         FROM usuarios WHERE id = $1`,
       [req.user!.id]
     );
     res.json(user);
@@ -55,6 +56,30 @@ router.put('/senha', async (req: AuthRequest, res: Response) => {
     res.json({ ok: true, message: 'Senha alterada com sucesso' });
   } catch (err) {
     console.error('Erro PUT /perfil/senha:', err);
+    res.status(500).json({ error: 'Erro interno' });
+  }
+});
+
+// PUT /api/perfil/notificacoes — preferências de notificação de OS
+router.put('/notificacoes', async (req: AuthRequest, res: Response) => {
+  try {
+    const { notificarOsEmail, notificarOsPush } = req.body;
+    if (notificarOsEmail !== undefined && typeof notificarOsEmail !== 'boolean') { res.status(400).json({ error: 'notificarOsEmail inválido' }); return; }
+    if (notificarOsPush !== undefined && typeof notificarOsPush !== 'boolean') { res.status(400).json({ error: 'notificarOsPush inválido' }); return; }
+    if (notificarOsEmail === undefined && notificarOsPush === undefined) { res.status(400).json({ error: 'Nenhuma preferência informada' }); return; }
+
+    const user = await queryOne(
+      `UPDATE usuarios
+          SET notificar_os_email = COALESCE($1::boolean, notificar_os_email),
+              notificar_os_push = COALESCE($2::boolean, notificar_os_push),
+              atualizado_em = NOW()
+        WHERE id = $3 RETURNING id, notificar_os_email, notificar_os_push`,
+      [notificarOsEmail ?? null, notificarOsPush ?? null, req.user!.id]
+    );
+    await auditLog(req.user!, 'preferencias_notificacao_atualizadas', 'usuarios', req.user!.id, { notificarOsEmail, notificarOsPush }).catch(() => {});
+    res.json(user);
+  } catch (err) {
+    console.error('Erro PUT /perfil/notificacoes:', err);
     res.status(500).json({ error: 'Erro interno' });
   }
 });

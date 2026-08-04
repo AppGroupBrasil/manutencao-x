@@ -4,7 +4,7 @@ import { perfil as perfilApi, upload as uploadApi } from '../../services/api';
 import { validarImagem } from '../../utils/imageUtils';
 import PageHeader from '../../components/Common/PageHeader';
 import Card from '../../components/Common/Card';
-import { User, Mail, Phone, Briefcase, Camera, Lock, Check, AlertTriangle } from 'lucide-react';
+import { User, Mail, Phone, Briefcase, Camera, Lock, Check, AlertTriangle, Bell } from 'lucide-react';
 import styles from './Perfil.module.css';
 
 const PerfilPage: React.FC = () => {
@@ -12,6 +12,8 @@ const PerfilPage: React.FC = () => {
   const [form, setForm] = useState({ nome: '', telefone: '', cargo: '' });
   const [senhaForm, setSenhaForm] = useState({ senhaAtual: '', novaSenha: '', confirmar: '' });
   const [avatarUrl, setAvatarUrl] = useState<string | undefined>();
+  const [notif, setNotif] = useState({ email: true, push: true });
+  const [salvandoNotif, setSalvandoNotif] = useState(false);
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [msg, setMsg] = useState<{ tipo: 'sucesso' | 'erro'; texto: string } | null>(null);
@@ -21,8 +23,26 @@ const PerfilPage: React.FC = () => {
     perfilApi.get().then((data: any) => {
       setForm({ nome: data.nome || '', telefone: data.telefone || '', cargo: data.cargo || '' });
       setAvatarUrl(data.avatarUrl);
+      setNotif({ email: data.notificarOsEmail !== false, push: data.notificarOsPush !== false });
     }).catch(() => {}).finally(() => setLoading(false));
   }, []);
+
+  const alternarNotif = async (canal: 'email' | 'push') => {
+    const anterior = notif;
+    const novo = { ...notif, [canal]: !notif[canal] };
+    setNotif(novo);
+    setSalvandoNotif(true); setMsg(null);
+    try {
+      await perfilApi.updateNotificacoes(
+        canal === 'email' ? { notificarOsEmail: novo.email } : { notificarOsPush: novo.push }
+      );
+      setMsg({ tipo: 'sucesso', texto: 'Preferências de notificação atualizadas!' });
+    } catch {
+      setNotif(anterior);
+      setMsg({ tipo: 'erro', texto: 'Erro ao salvar preferências' });
+    }
+    setSalvandoNotif(false);
+  };
 
   const salvarPerfil = async () => {
     setSalvando(true); setMsg(null);
@@ -118,6 +138,26 @@ const PerfilPage: React.FC = () => {
           <button className={styles.btnSalvar} onClick={salvarPerfil} disabled={salvando}>
             {salvando ? 'Salvando...' : 'Salvar Alterações'}
           </button>
+        </Card>
+
+        <Card padding="md">
+          <h3 className={styles.sectionTitle}><Bell size={16} /> Notificações</h3>
+          <p className={styles.notifIntro}>Avisos de abertura e mudança de status das ordens de serviço.</p>
+          <label className={styles.notifRow}>
+            <input type="checkbox" checked={notif.email} disabled={salvandoNotif} onChange={() => alternarNotif('email')} />
+            <span>
+              <strong>Notificações por e-mail</strong>
+              {notif.email ? ' — ativado.' : ' — desabilitado: você não receberá mais e-mails de O.S.'}
+            </span>
+          </label>
+          <label className={styles.notifRow}>
+            <input type="checkbox" checked={notif.push} disabled={salvandoNotif} onChange={() => alternarNotif('push')} />
+            <span>
+              <strong>Push notification no aplicativo</strong>
+              {notif.push ? ' — ativado.' : ' — desabilitado: você não receberá mais alertas no celular.'}
+            </span>
+          </label>
+          <p className={styles.notifIntro}>As notificações continuam disponíveis na tela Notificações, mesmo com as opções desligadas.</p>
         </Card>
 
         <Card padding="md">

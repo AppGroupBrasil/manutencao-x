@@ -148,11 +148,31 @@ export function emailEstoqueBaixo(
   };
 }
 
+const STATUS_OS_LABEL: Record<string, string> = {
+  aberta: 'Aberta',
+  em_andamento: 'Em andamento',
+  aguardando: 'Aguardando',
+  concluida: 'Concluída',
+  cancelada: 'Cancelada',
+};
+
+const RODAPE_PREFERENCIAS = `
+  <p style="font-size:12px;color:#9ca3af;margin-top:24px;border-top:1px solid #e5e7eb;padding-top:12px;">
+    Para deixar de receber estes e-mails, acesse Meu Perfil &gt; Notificações no Manutenção X.
+  </p>
+`;
+
+function botaoEmail(link: string | undefined, rotulo: string): string {
+  if (!link) return '';
+  return `<a href="${link}" style="display:inline-block;padding:10px 20px;background:#2563eb;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;margin:16px 0;">${rotulo}</a>`;
+}
+
 export function emailOSCriada(
   protocolo: string,
   titulo: string,
   condominioNome: string,
-  prioridade: string
+  prioridade: string,
+  link?: string
 ): EmailOptions {
   return {
     to: '',
@@ -166,8 +186,41 @@ export function emailOSCriada(
           <tr><td style="padding:6px 0;color:#6b7280;">Condomínio</td><td style="padding:6px 0;">${condominioNome}</td></tr>
           <tr><td style="padding:6px 0;color:#6b7280;">Prioridade</td><td style="padding:6px 0;text-transform:capitalize;">${prioridade}</td></tr>
         </table>
+        ${botaoEmail(link, 'Ver Ordem de Serviço')}
+        ${link ? RODAPE_PREFERENCIAS : ''}
       </div>
     `,
     text: `Nova OS ${protocolo}: ${titulo} (${condominioNome}) - Prioridade: ${prioridade}`,
+  };
+}
+
+export function emailOSStatus(
+  protocolo: string,
+  titulo: string,
+  condominioNome: string,
+  statusAnterior: string,
+  statusNovo: string,
+  link?: string
+): EmailOptions {
+  const de = STATUS_OS_LABEL[statusAnterior] || statusAnterior;
+  const para = STATUS_OS_LABEL[statusNovo] || statusNovo;
+  const cor = statusNovo === 'concluida' ? '#059669' : statusNovo === 'cancelada' ? '#dc2626' : '#2563eb';
+  return {
+    to: '',
+    subject: `OS ${protocolo}: ${para} - ${titulo}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: ${cor};">Ordem de Serviço ${para}</h2>
+        <table style="width:100%;border-collapse:collapse;">
+          <tr><td style="padding:6px 0;color:#6b7280;">Protocolo</td><td style="padding:6px 0;font-weight:600;">${protocolo}</td></tr>
+          <tr><td style="padding:6px 0;color:#6b7280;">Título</td><td style="padding:6px 0;">${titulo}</td></tr>
+          <tr><td style="padding:6px 0;color:#6b7280;">Condomínio</td><td style="padding:6px 0;">${condominioNome}</td></tr>
+          <tr><td style="padding:6px 0;color:#6b7280;">Status</td><td style="padding:6px 0;">${de} &rarr; <strong style="color:${cor};">${para}</strong></td></tr>
+        </table>
+        ${botaoEmail(link, 'Ver Ordem de Serviço')}
+        ${RODAPE_PREFERENCIAS}
+      </div>
+    `,
+    text: `OS ${protocolo} (${condominioNome}): ${titulo} — status alterado de ${de} para ${para}`,
   };
 }
