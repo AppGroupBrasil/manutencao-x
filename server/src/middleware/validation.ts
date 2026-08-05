@@ -103,6 +103,7 @@ export const osFotosSchema = z.object({
     legenda: z.string().max(255).optional().nullable(),
     nome: z.string().max(255).optional().nullable(),
     tipo: z.enum(['imagem', 'arquivo']).optional(),
+    fase: z.enum(['antes', 'depois']).optional(),
   })).min(1).max(10),
 }).strict();
 

@@ -17,6 +17,7 @@ export interface FotoOS {
   legenda?: string | null;
   nome?: string | null;
   tipo?: 'imagem' | 'arquivo';
+  fase?: 'antes' | 'depois';
   autor_nome?: string;
   autorNome?: string;
   criado_em?: string;
@@ -48,7 +49,7 @@ interface Props {
   carregarCandidatos: () => Promise<CandidatoOS[]>;
   onSalvarResponsaveis: (lista: Array<{ usuarioId?: string | null; nome?: string | null }>) => Promise<void>;
   onAdicionarDescricao: (texto: string) => Promise<void>;
-  onEnviarFotos: (arquivos: File[]) => Promise<void>;
+  onEnviarFotos: (arquivos: File[], fase: 'antes' | 'depois') => Promise<void>;
   onRemoverFoto: (fotoId: string) => Promise<void>;
   somenteLeitura?: boolean;
   avisoAcao?: string;
@@ -85,6 +86,7 @@ export default function ColaboracaoOS({
   const [texto, setTexto] = useState('');
   const [enviandoDesc, setEnviandoDesc] = useState(false);
   const [enviandoFoto, setEnviandoFoto] = useState(false);
+  const [faseUpload, setFaseUpload] = useState<'antes' | 'depois'>('antes');
   const [erro, setErro] = useState('');
   const [verHistorico, setVerHistorico] = useState(false);
   const inputFile = useRef<HTMLInputElement>(null);
@@ -146,7 +148,7 @@ export default function ColaboracaoOS({
     setErro('');
     setEnviandoFoto(true);
     try {
-      await onEnviarFotos(arquivos.slice(0, 5));
+      await onEnviarFotos(arquivos.slice(0, 5), faseUpload);
     } catch (err: any) {
       setErro(err?.message || 'Erro ao enviar anexos');
     } finally {
@@ -258,7 +260,12 @@ export default function ColaboracaoOS({
                     <img src={urlAnexoSegura(f.url)} alt={f.legenda || 'Imagem da O.S.'} className={styles.imagem} />
                   )}
                 </a>
-                <figcaption className={styles.legenda}>{f.autor_nome ?? f.autorNome}</figcaption>
+                <figcaption className={styles.legenda}>
+                  <span className={f.fase === 'depois' ? styles.faseDepois : styles.faseAntes}>
+                    {f.fase === 'depois' ? 'Depois' : 'Antes'}
+                  </span>
+                  {f.autor_nome ?? f.autorNome}
+                </figcaption>
                 {!somenteLeitura && (
                   <button type="button" className={styles.remover} onClick={() => remover(f.id)} title="Remover">
                     <Trash2 size={14} />
@@ -286,6 +293,19 @@ export default function ColaboracaoOS({
               hidden
               onChange={escolherArquivos}
             />
+            <div className={styles.faseSeletor}>
+              <span className={styles.faseRotulo}>Anexar como:</span>
+              {(['antes', 'depois'] as const).map(f => (
+                <button
+                  key={f}
+                  type="button"
+                  className={`${styles.faseOpcao} ${faseUpload === f ? styles.faseOpcaoAtiva : ''}`}
+                  onClick={() => setFaseUpload(f)}
+                >
+                  {f === 'antes' ? 'Antes' : 'Depois'}
+                </button>
+              ))}
+            </div>
             <div className={styles.acoesAnexo}>
               <button type="button" className={styles.btn} onClick={() => inputCamera.current?.click()} disabled={enviandoFoto}>
                 <Camera size={15} /> Tirar foto

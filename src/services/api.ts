@@ -382,7 +382,11 @@ export const ordensServico = {
   setResponsaveis: (id: string, responsaveis: Array<{ usuarioId?: string | null; nome?: string | null }>) =>
     put<any>(`/ordens-servico/${id}/responsaveis`, { responsaveis }),
   addDescricao: (id: string, texto: string) => post<any>(`/ordens-servico/${id}/descricoes`, { texto }),
-  addFotos: (id: string, fotos: Array<{ url: string; legenda?: string; nome?: string; tipo?: 'imagem' | 'arquivo' }>) => post<any>(`/ordens-servico/${id}/fotos`, { fotos }),
+  addFotos: (
+    id: string,
+    fotos: Array<{ url: string; legenda?: string; nome?: string; tipo?: 'imagem' | 'arquivo' }>,
+    fase: 'antes' | 'depois' = 'antes'
+  ) => post<any>(`/ordens-servico/${id}/fotos`, { fotos: fotos.map(f => ({ ...f, fase })) }),
   removerFoto: (id: string, fotoId: string) => del(`/ordens-servico/${id}/fotos/${fotoId}`),
 };
 export const checklists = {
@@ -486,9 +490,10 @@ export const publico = {
     publicoRequest<any>(`/os/${id}`, { method: 'PUT', body: JSON.stringify({ executadoPor, ...dados }) }),
   removerFotoOS: (id: string, fotoId: string, executadoPor: string) =>
     publicoRequest<any>(`/os/${id}/fotos/${fotoId}?executadoPor=${encodeURIComponent(executadoPor)}`, { method: 'DELETE' }),
-  enviarFotosOS: async (id: string, executadoPor: string, arquivos: File[]) => {
+  enviarFotosOS: async (id: string, executadoPor: string, arquivos: File[], fase: 'antes' | 'depois' = 'antes') => {
     const form = new FormData();
     form.append('executadoPor', executadoPor);
+    form.append('fase', fase);
     arquivos.slice(0, 5).forEach(f => form.append('files', f));
     const res = await fetch(`${API_BASE}/publico/os/${id}/fotos`, { method: 'POST', body: form });
     const body = await res.json().catch(() => ({}));

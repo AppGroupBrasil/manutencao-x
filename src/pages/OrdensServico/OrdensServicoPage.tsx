@@ -11,12 +11,13 @@ import { compartilharConteudo, imprimirElemento, gerarPdfDeElemento } from '../.
 import { formatarDataHora } from '../../utils/dateUtils';
 import { usePagination } from '../../hooks/usePagination';
 import type { OrdemServico, StatusOS } from '../../types';
-import { Plus, Search, MapPin, Calendar, Wrench, AlertTriangle, X, Hash, Paperclip, FileText, Trash2, Camera } from 'lucide-react';
+import { Plus, Search, MapPin, Calendar, Wrench, AlertTriangle, X, Hash, Paperclip, FileText, Trash2, Camera, ClipboardList } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useDemo } from '../../contexts/DemoContext';
 import { ordensServico as osApi, condominios as condominiosApi, usuarios as usuariosApi } from '../../services/api';
 import { enviarAnexo, ACCEPT_ANEXOS, ACCEPT_CAMERA } from '../../utils/anexos';
 import ColaboracaoOS from '../../components/OS/ColaboracaoOS';
+import FormularioOS from '../../components/OS/FormularioOS';
 import LoadingSpinner from '../../components/Common/LoadingSpinner';
 import EmptyState from '../../components/Common/EmptyState';
 import WhatsAppShare from '../../components/Common/WhatsAppShare';
@@ -82,6 +83,7 @@ const OrdensServicoPage: React.FC = () => {
   const [filtroStatus, setFiltroStatus] = useState('todos');
   const [modalNova, setModalNova] = useState(false);
   const [detalhe, setDetalhe] = useState<any>(null);
+  const [formularioId, setFormularioId] = useState<string | null>(null);
   const [carregandoDetalhe, setCarregandoDetalhe] = useState(false);
   const [editandoOS, setEditandoOS] = useState(false);
   const [salvandoEdicao, setSalvandoEdicao] = useState(false);
@@ -98,7 +100,7 @@ const OrdensServicoPage: React.FC = () => {
         descricao: row.descricao || '',
         local: row.local || '',
         prioridade: row.prioridade || 'media',
-        dataPrevisao: row.data_previsao ? String(row.data_previsao).slice(0, 10) : '',
+        dataPrevisao: row.dataPrevisao ? String(row.dataPrevisao).slice(0, 10) : '',
       });
       setEditandoOS(false);
     } catch {
@@ -480,6 +482,9 @@ const OrdensServicoPage: React.FC = () => {
                       </select>
                     </div>
                   )}
+                  <button type="button" className={styles.formularioBtn} onClick={() => setFormularioId(os.id)}>
+                    <ClipboardList size={15} /> Ver formulário
+                  </button>
                   <button type="button" className={styles.detalheBtn} onClick={() => abrirDetalhe(os.id)}>
                     Abrir O.S.
                   </button>
@@ -770,10 +775,19 @@ const OrdensServicoPage: React.FC = () => {
                 <p className={styles.osDesc}>{detalhe.descricao || 'Sem descrição inicial.'}</p>
                 <div className={styles.osMeta}>
                   <span><MapPin size={13} /> {detalhe.local || '—'}</span>
-                  <span><Calendar size={13} /> {formatarDataHora(detalhe.data_abertura)}</span>
-                  {detalhe.criado_por_nome && <span>Aberta por {detalhe.criado_por_nome}</span>}
+                  {detalhe.dataAbertura && <span><Calendar size={13} /> {formatarDataHora(new Date(detalhe.dataAbertura).getTime())}</span>}
+                  {detalhe.criadoPorNome && <span>Aberta por {detalhe.criadoPorNome}</span>}
                 </div>
-                <button type="button" className={styles.detalheBtn} onClick={() => setEditandoOS(true)}>Editar O.S.</button>
+                <div className={styles.detalheAcoes}>
+                  <button type="button" className={styles.detalheBtn} onClick={() => setEditandoOS(true)}>Editar O.S.</button>
+                  <button
+                    type="button"
+                    className={styles.formularioBtn}
+                    onClick={() => { setFormularioId(detalhe.id); setDetalhe(null); setEditandoOS(false); }}
+                  >
+                    <ClipboardList size={15} /> Ver formulário
+                  </button>
+                </div>
               </div>
             )}
 
@@ -785,10 +799,10 @@ const OrdensServicoPage: React.FC = () => {
               onSalvarResponsaveis={async lista => { await osApi.setResponsaveis(detalhe.id, lista); await recarregarDetalhe(); }}
               onAdicionarDescricao={async texto => { await osApi.addDescricao(detalhe.id, texto); await recarregarDetalhe(); }}
               aceitaArquivos
-              onEnviarFotos={async arquivos => {
+              onEnviarFotos={async (arquivos, fase) => {
                 const anexos = [];
                 for (const a of arquivos) anexos.push(await enviarAnexo(a));
-                await osApi.addFotos(detalhe.id, anexos);
+                await osApi.addFotos(detalhe.id, anexos, fase);
                 await recarregarDetalhe();
               }}
               onRemoverFoto={async fotoId => { await osApi.removerFoto(detalhe.id, fotoId); await recarregarDetalhe(); }}
@@ -796,6 +810,15 @@ const OrdensServicoPage: React.FC = () => {
           </div>
         )}
       </Modal>
+
+      <FormularioOS
+        osId={formularioId}
+        onFechar={() => setFormularioId(null)}
+        onAtualizado={row => {
+          sincronizarLista(row);
+          if (detalhe?.id === row.id) setDetalhe(row);
+        }}
+      />
       </>}
     </div>
   );

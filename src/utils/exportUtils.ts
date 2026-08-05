@@ -57,6 +57,31 @@ export async function gerarPdfDeElemento(elementIdOrEl: string | HTMLElement, no
   pdf.save(`${nomeArquivo}.pdf`);
 }
 
+export async function gerarPdfDeElementoPaginado(elementIdOrEl: string | HTMLElement, nomeArquivo: string) {
+  const el = typeof elementIdOrEl === 'string' ? document.getElementById(elementIdOrEl) : elementIdOrEl;
+  if (!el) return;
+
+  const { jsPDF, html2canvas } = await loadPdfModules();
+  const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+  const imgData = canvas.toDataURL('image/jpeg', 0.92);
+  const pdf = new jsPDF('p', 'mm', 'a4');
+  const largura = pdf.internal.pageSize.getWidth();
+  const alturaPagina = pdf.internal.pageSize.getHeight();
+  const alturaTotal = (canvas.height * largura) / canvas.width;
+
+  pdf.addImage(imgData, 'JPEG', 0, 0, largura, alturaTotal);
+  let restante = alturaTotal - alturaPagina;
+  let deslocamento = 0;
+  while (restante > 0) {
+    deslocamento -= alturaPagina;
+    pdf.addPage();
+    pdf.addImage(imgData, 'JPEG', 0, deslocamento, largura, alturaTotal);
+    restante -= alturaPagina;
+  }
+
+  pdf.save(`${nomeArquivo}.pdf`);
+}
+
 export function imprimirElemento(elementIdOrEl: string | HTMLElement) {
   const el = typeof elementIdOrEl === 'string' ? document.getElementById(elementIdOrEl) : elementIdOrEl;
   if (!el) return;
@@ -73,6 +98,7 @@ export function imprimirElemento(elementIdOrEl: string | HTMLElement) {
         table { width: 100%; border-collapse: collapse; }
         th, td { padding: 8px 12px; border: 1px solid #e0e4e8; text-align: left; }
         th { background: #1a73e8; color: white; }
+        img { max-width: 100%; }
         @media print { body { margin: 0; } }
       </style>
     </head>
@@ -80,7 +106,23 @@ export function imprimirElemento(elementIdOrEl: string | HTMLElement) {
     </html>
   `);
   win.document.close();
-  win.print();
+
+  let impresso = false;
+  const imprimir = () => {
+    if (impresso) return;
+    impresso = true;
+    try { win.print(); } catch { /* janela fechada pelo usuário */ }
+  };
+  const pendentes = Array.from(win.document.images).filter(img => !img.complete);
+  if (pendentes.length === 0) { imprimir(); return; }
+
+  let restantes = pendentes.length;
+  const concluir = () => { restantes -= 1; if (restantes <= 0) imprimir(); };
+  pendentes.forEach(img => {
+    img.addEventListener('load', concluir);
+    img.addEventListener('error', concluir);
+  });
+  window.setTimeout(imprimir, 5000);
 }
 
 export async function compartilharConteudo(titulo: string, texto: string) {

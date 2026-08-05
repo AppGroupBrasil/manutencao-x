@@ -460,6 +460,31 @@
   cursor: pointer;
 }
 
+.formularioBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--cor-primaria);
+  background: var(--cor-primaria);
+  color: #fff;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.formularioBtn:hover {
+  background: var(--cor-primaria-hover);
+}
+
+.detalheAcoes {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .excluirBtn {
   display: flex;
   align-items: center;

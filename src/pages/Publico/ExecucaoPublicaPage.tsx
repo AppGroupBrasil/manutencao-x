@@ -284,10 +284,10 @@ export default function ExecucaoPublicaPage() {
                 carregarCandidatos={() => publicoApi.candidatosOS(id!)}
                 onSalvarResponsaveis={async lista => { await publicoApi.setResponsaveisOS(id!, nome.trim(), lista); await recarregar(); }}
                 onAdicionarDescricao={async texto => { await publicoApi.addDescricaoOS(id!, nome.trim(), texto); await recarregar(); }}
-                onEnviarFotos={async arquivos => {
+                onEnviarFotos={async (arquivos, fase) => {
                   const prontos = [];
                   for (const a of arquivos) prontos.push(await prepararImagem(a));
-                  await publicoApi.enviarFotosOS(id!, nome.trim(), prontos);
+                  await publicoApi.enviarFotosOS(id!, nome.trim(), prontos, fase);
                   await recarregar();
                 }}
                 onRemoverFoto={async fotoId => { await publicoApi.removerFotoOS(id!, fotoId, nome.trim()); await recarregar(); }}

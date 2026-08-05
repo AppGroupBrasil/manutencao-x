@@ -42,7 +42,7 @@ export async function listarResponsaveis(osId: string) {
 
 export async function listarFotos(osId: string) {
   return query(
-    `SELECT id, url, legenda, nome, tipo, autor_id, autor_nome, origem, criado_em
+    `SELECT id, url, legenda, nome, tipo, fase, autor_id, autor_nome, origem, criado_em
        FROM os_fotos WHERE os_id = $1 ORDER BY criado_em`,
     [osId]
   );
@@ -167,7 +167,7 @@ export async function sincronizarFotosLegado(osId: string): Promise<void> {
 
 export async function adicionarFotos(
   osId: string,
-  urls: Array<{ url: string; legenda?: string | null; nome?: string | null; tipo?: 'imagem' | 'arquivo' }>,
+  urls: Array<{ url: string; legenda?: string | null; nome?: string | null; tipo?: 'imagem' | 'arquivo'; fase?: 'antes' | 'depois' }>,
   autor: AutorOS
 ) {
   const total = await queryOne<{ total: string }>('SELECT COUNT(*) as total FROM os_fotos WHERE os_id = $1', [osId]);
@@ -176,14 +176,16 @@ export async function adicionarFotos(
   }
   for (const item of urls) {
     const tipo = item.tipo ?? (/\.pdf$/i.test(item.url) ? 'arquivo' : 'imagem');
+    const fase = item.fase === 'depois' ? 'depois' : 'antes';
     await execute(
-      `INSERT INTO os_fotos (os_id, url, legenda, nome, tipo, autor_id, autor_nome, origem)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-      [osId, item.url, item.legenda?.slice(0, 255) ?? null, item.nome?.slice(0, 255) ?? null, tipo, autor.id ?? null, autor.nome, autor.origem]
+      `INSERT INTO os_fotos (os_id, url, legenda, nome, tipo, fase, autor_id, autor_nome, origem)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+      [osId, item.url, item.legenda?.slice(0, 255) ?? null, item.nome?.slice(0, 255) ?? null, tipo, fase, autor.id ?? null, autor.nome, autor.origem]
     );
   }
   await sincronizarFotosLegado(osId);
-  await registrarHistorico(osId, 'fotos', `${urls.length} anexo(s) adicionado(s)`, { urls: urls.map(u => u.url) }, autor).catch(() => {});
+  const fases = [...new Set(urls.map(u => (u.fase === 'depois' ? 'depois' : 'antes')))].join(' e ');
+  await registrarHistorico(osId, 'fotos', `${urls.length} anexo(s) adicionado(s) — ${fases}`, { urls: urls.map(u => u.url), fases }, autor).catch(() => {});
   return { fotos: await listarFotos(osId) };
 }
 

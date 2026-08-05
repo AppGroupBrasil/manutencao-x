@@ -195,6 +195,58 @@
   white-space: nowrap;
 }
 
+.faseAntes,
+.faseDepois {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 1px 6px;
+  margin-right: 4px;
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.faseAntes {
+  background: #e8f0fe;
+  color: #1a73e8;
+}
+
+.faseDepois {
+  background: #e6f4ea;
+  color: #1e8e3e;
+}
+
+.faseSeletor {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.faseRotulo {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--cor-texto-secundario, #5f6368);
+}
+
+.faseOpcao {
+  border: 1px solid var(--cor-borda, #e0e0e0);
+  background: var(--cor-superficie, #fff);
+  color: var(--cor-texto, #202124);
+  border-radius: 999px;
+  padding: 5px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.faseOpcaoAtiva {
+  background: var(--cor-primaria, #1a73e8);
+  border-color: var(--cor-primaria, #1a73e8);
+  color: #fff;
+}
+
 .remover {
   position: absolute;
   top: 4px;

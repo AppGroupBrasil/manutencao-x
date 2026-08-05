@@ -163,8 +163,9 @@ router.post('/os/:id/fotos', uploadPublico.array('files', 5), async (req: Reques
       return;
     }
   }
-  const urls: Array<{ url: string }> = [];
-  for (const f of arquivos) urls.push({ url: await salvarImagemWebp(f.buffer) });
+  const fase: 'antes' | 'depois' = req.body?.fase === 'depois' ? 'depois' : 'antes';
+  const urls: Array<{ url: string; fase: 'antes' | 'depois' }> = [];
+  for (const f of arquivos) urls.push({ url: await salvarImagemWebp(f.buffer), fase });
   const resultado = await adicionarFotos(os.id, urls, autor);
   if ('erro' in resultado) { res.status(400).json({ error: resultado.erro }); return; }
   res.status(201).json(resultado);
