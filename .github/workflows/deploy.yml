@@ -109,3 +109,11 @@ jobs:
           ssh -o ServerAliveInterval=30 \
             ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
             "docker ps --filter name=manutencao --format '{{.Names}}: {{.Status}}'"
+
+      # Converte imagens/PDFs antigos gravados como base64 em arquivos de /uploads.
+      # Idempotente: depois da primeira conversao nao acha mais nada para fazer.
+      - name: Converter base64 remanescente
+        run: |
+          ssh -o ServerAliveInterval=30 \
+            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
+            "docker exec manutencao-api node dist/scripts/migrarBase64.js"
