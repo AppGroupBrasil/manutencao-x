@@ -3,6 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { X, Upload, Star, ChevronRight, Image, CheckSquare, AlertTriangle, MessageCircle, Bell, FileText, BarChart3, UserCheck, Building2, Home, Mail, Phone, Siren, CalendarPlus, Fingerprint, MapPin, Clock, LogIn, LogOut as LogOutIcon, ClipboardCheck, Hourglass, Play, Square, Flag, PenTool, RotateCcw, Camera, Wrench } from 'lucide-react';
 import { qrcodes as qrcodesApi } from '../../services/api';
 import { safeStorage } from '../../utils/storage';
+import { enviarImagemPublica } from '../../utils/anexos';
 import styles from './QRCode.module.css';
 
 /* ═══════════════════════════════════════
@@ -791,24 +792,23 @@ const ResponderFormulario: React.FC<ResponderFormularioProps> = ({ formulario, o
                   accept="image/*"
                   multiple
                   hidden
-                  onChange={e => {
+                  onChange={async e => {
                     const files = Array.from(e.target.files || []);
                     const maxFotos = bloco.maxFotos || 5;
                     const atuais = (valor as string[]) || [];
                     const slots = maxFotos - atuais.length;
-                    files.slice(0, slots).forEach(file => {
-                      const reader = new FileReader();
-                      reader.onload = ev => {
-                        if (ev.target?.result) {
-                          setRespostas(prev => ({
-                            ...prev,
-                            [bloco.id]: [...((prev[bloco.id] as string[]) || []), ev.target!.result as string],
-                          }));
-                        }
-                      };
-                      reader.readAsDataURL(file);
-                    });
                     e.target.value = '';
+                    for (const file of files.slice(0, slots)) {
+                      try {
+                        const url = await enviarImagemPublica(file);
+                        setRespostas(prev => ({
+                          ...prev,
+                          [bloco.id]: [...((prev[bloco.id] as string[]) || []), url],
+                        }));
+                      } catch (err: any) {
+                        alert(err?.message || 'Não foi possível enviar a imagem.');
+                      }
+                    }
                   }}
                 />
               </label>
@@ -1143,18 +1143,19 @@ const ResponderFormulario: React.FC<ResponderFormularioProps> = ({ formulario, o
                       accept="image/*"
                       capture="environment"
                       hidden
-                      onChange={e => {
+                      onChange={async e => {
                         const file = e.target.files?.[0];
-                        if (!file) return;
-                        const reader = new FileReader();
-                        reader.onload = ev => {
-                          if (ev.target?.result) {
-                            const novasFotos = [...(valor?.fotos || []), ev.target.result as string];
-                            setRespostas(prev => ({ ...prev, [bloco.id]: { ...prev[bloco.id], fotos: novasFotos } }));
-                          }
-                        };
-                        reader.readAsDataURL(file);
                         e.target.value = '';
+                        if (!file) return;
+                        try {
+                          const url = await enviarImagemPublica(file);
+                          setRespostas(prev => ({
+                            ...prev,
+                            [bloco.id]: { ...prev[bloco.id], fotos: [...((prev[bloco.id] as any)?.fotos || []), url] },
+                          }));
+                        } catch (err: any) {
+                          alert(err?.message || 'Não foi possível enviar a imagem.');
+                        }
                       }}
                     />
                   </label>
@@ -1257,18 +1258,19 @@ const ResponderFormulario: React.FC<ResponderFormularioProps> = ({ formulario, o
                       accept="image/*"
                       capture="environment"
                       hidden
-                      onChange={e => {
+                      onChange={async e => {
                         const file = e.target.files?.[0];
-                        if (!file) return;
-                        const reader = new FileReader();
-                        reader.onload = ev => {
-                          if (ev.target?.result) {
-                            const novasFotos = [...(valor?.fotos || []), ev.target.result as string];
-                            setRespostas(prev => ({ ...prev, [bloco.id]: { ...prev[bloco.id], fotos: novasFotos } }));
-                          }
-                        };
-                        reader.readAsDataURL(file);
                         e.target.value = '';
+                        if (!file) return;
+                        try {
+                          const url = await enviarImagemPublica(file);
+                          setRespostas(prev => ({
+                            ...prev,
+                            [bloco.id]: { ...prev[bloco.id], fotos: [...((prev[bloco.id] as any)?.fotos || []), url] },
+                          }));
+                        } catch (err: any) {
+                          alert(err?.message || 'Não foi possível enviar a imagem.');
+                        }
                       }}
                     />
                   </label>

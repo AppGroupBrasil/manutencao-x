@@ -9,6 +9,7 @@ import Modal from '../../components/Common/Modal';
 import { compartilharConteudo, imprimirElemento, gerarPdfDeElemento } from '../../utils/exportUtils';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePermissions } from '../../contexts/PermissionsContext';
+import { enviarImagem } from '../../utils/anexos';
 import {
   Plus, QrCode, Search, X, Hash, Trash2, Upload, Eye, Star,
   ChevronRight, ChevronDown, GripVertical, Image, CheckSquare,
@@ -589,13 +590,15 @@ const QRCodePage: React.FC = () => {
   }, [qrcodes, busca]);
 
   /* ── Logo upload ── */
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => { if (ev.target?.result) setFormLogo(ev.target.result as string); };
-    reader.readAsDataURL(file);
     e.target.value = '';
+    if (!file) return;
+    try {
+      setFormLogo(await enviarImagem(file));
+    } catch (err: any) {
+      alert(err?.message || 'Não foi possível enviar a imagem.');
+    }
   };
 
   /* ── Adicionar bloco ao formulário ── */

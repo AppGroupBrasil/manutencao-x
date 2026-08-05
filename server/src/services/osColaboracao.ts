@@ -1,5 +1,6 @@
 import { query, queryOne, execute, transaction } from '../db/database.js';
 import { createNotification } from '../middleware/helpers.js';
+import { removerArquivoUpload, removerArquivosUpload } from './arquivos.js';
 import { sendPush } from './push.js';
 
 export interface AutorOS {
@@ -195,6 +196,7 @@ export async function removerFoto(osId: string, fotoId: string, autor: AutorOS) 
     [fotoId, osId]
   );
   if (!row) return { erro: 'Anexo não encontrado' as const };
+  await removerArquivoUpload(row.url);
   await sincronizarFotosLegado(osId);
   await registrarHistorico(osId, 'fotos', 'Anexo removido', { url: row.url, removida: true }, autor).catch(() => {});
   return { fotos: await listarFotos(osId) };
@@ -205,6 +207,11 @@ export async function adicionarDescricao(osId: string, texto: string, autor: Aut
   if (limpo.length < 2) return { erro: 'Descrição muito curta' as const };
   await registrarHistorico(osId, 'descricao', limpo, {}, autor);
   return { historico: await listarHistorico(osId) };
+}
+
+export async function urlsDosAnexosDaOS(osId: string): Promise<string[]> {
+  const fotos = await query<{ url: string }>('SELECT url FROM os_fotos WHERE os_id = $1', [osId]);
+  return fotos.map(f => f.url);
 }
 
 export async function detalhesColaboracao(osId: string) {

@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect, useRef } from 'react';
-import { validarImagem } from '../../utils/imageUtils';
+import { enviarImagem } from '../../utils/anexos';
 import HowItWorks from '../../components/Common/HowItWorks';
 import PageHeader from '../../components/Common/PageHeader';
 import Card from '../../components/Common/Card';
@@ -149,16 +149,16 @@ const CondominiosPage: React.FC = () => {
     setForm(prev => ({ ...prev, [key]: value }));
   };
 
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
-    const erro = validarImagem(file);
-    if (erro) { alert(erro); return; }
-    const reader = new FileReader();
-    reader.onload = () => {
-      setForm(prev => ({ ...prev, logoUrl: reader.result as string }));
-    };
-    reader.readAsDataURL(file);
+    try {
+      const url = await enviarImagem(file, 'avatars');
+      setForm(prev => ({ ...prev, logoUrl: url }));
+    } catch (err: any) {
+      alert(err?.message || 'Não foi possível enviar a imagem.');
+    }
   };
 
   // Master: abrir modal de status

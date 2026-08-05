@@ -2,7 +2,7 @@
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { usePermissions } from '../../contexts/PermissionsContext';
-import { validarImagem } from '../../utils/imageUtils';
+import { enviarImagem } from '../../utils/anexos';
 import HowItWorks from '../../components/Common/HowItWorks';
 import PageHeader from '../../components/Common/PageHeader';
 import Card from '../../components/Common/Card';
@@ -84,17 +84,17 @@ const ConfiguracoesPage: React.FC = () => {
     setTimeout(() => { win.print(); }, 400);
   }, []);
 
-  const handleLogo = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogo = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!tentarAcao()) return;
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
-    const erro = validarImagem(file);
-    if (erro) { alert(erro); return; }
-    const reader = new FileReader();
-    reader.onload = () => {
-      atualizarTema({ logoUrl: reader.result as string });
-    };
-    reader.readAsDataURL(file);
+    try {
+      const url = await enviarImagem(file, 'avatars');
+      atualizarTema({ logoUrl: url });
+    } catch (err: any) {
+      alert(err?.message || 'Não foi possível enviar a imagem.');
+    }
   };
 
   const corSections: { label: string; key: keyof typeof tema; desc: string }[] = [

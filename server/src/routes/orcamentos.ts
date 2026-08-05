@@ -4,8 +4,16 @@ import { query, queryOne, execute, paginate } from '../db/database.js';
 import { AuthRequest } from '../middleware/auth.js';
 import { validate } from '../middleware/validation.js';
 import { orcamentoSchema, orcamentoItemSchema } from '../middleware/validation.js';
+import { removerArquivosUpload } from '../services/arquivos.js';
 
 const router = Router();
+
+async function urlsDasFotos(orcamentoId: string): Promise<string[]> {
+  const rows = await query<{ url: string }>(
+    'SELECT url FROM orcamento_fotos WHERE orcamento_id = $1', [orcamentoId]
+  ).catch(() => [] as Array<{ url: string }>);
+  return rows.map(r => r.url);
+}
 
 // ── GET /api/orcamentos — Listar orçamentos ──
 router.get('/', async (req: AuthRequest, res: Response) => {
@@ -157,16 +165,20 @@ router.put('/:id', validate(orcamentoSchema), async (req: AuthRequest, res: Resp
   }
 
   // Substituir fotos
+  const fotosAntigas = await urlsDasFotos(req.params.id);
   await execute('DELETE FROM orcamento_fotos WHERE orcamento_id = $1', [req.params.id]);
+  const fotosMantidas = new Set<string>();
   if (Array.isArray(b.fotos)) {
     for (let i = 0; i < b.fotos.length; i++) {
       const f = b.fotos[i];
+      fotosMantidas.add(f.url);
       await execute(
         'INSERT INTO orcamento_fotos (orcamento_id, url, legenda, ordem) VALUES ($1,$2,$3,$4)',
         [req.params.id, f.url, f.legenda || '', i]
       );
     }
   }
+  await removerArquivosUpload(fotosAntigas.filter(url => !fotosMantidas.has(url))).catch(() => {});
 
   await recalcularTotais(req.params.id);
   const result = await queryOne('SELECT * FROM orcamentos WHERE id = $1', [req.params.id]);
@@ -199,7 +211,9 @@ router.delete('/:id', async (req: AuthRequest, res: Response) => {
     res.status(404).json({ error: 'Orçamento não encontrado' }); return;
   }
 
+  const fotos = await urlsDasFotos(req.params.id);
   await execute('DELETE FROM orcamentos WHERE id = $1', [req.params.id]);
+  await removerArquivosUpload(fotos).catch(() => {});
   res.status(204).send();
 });
 

@@ -6,7 +6,7 @@ import Modal from '../../components/Common/Modal';
 import StatusBadge from '../../components/Common/StatusBadge';
 import { usePermissions } from '../../contexts/PermissionsContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { validarImagem } from '../../utils/imageUtils';
+import { enviarImagem } from '../../utils/anexos';
 import { compartilharConteudo, imprimirElemento, gerarPdfDeElemento } from '../../utils/exportUtils';
 import { Plus, Package, Mail, Search, X, Hash, ArrowDownCircle, ArrowUpCircle, Camera, Mic, MicOff, FileText, Image, Building2, CheckCircle, Send } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
@@ -229,36 +229,29 @@ const MateriaisPage: React.FC = () => {
   };
 
   /* ── Fotos ── */
-  const handleFotos = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
-    Array.from(files).forEach(file => {
-      const erro = validarImagem(file);
-      if (erro) { alert(erro); return; }
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        if (ev.target?.result) {
-          setMovForm(p => ({ ...p, fotos: [...p.fotos, ev.target!.result as string] }));
-        }
-      };
-      reader.readAsDataURL(file);
-    });
+  const handleFotos = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
     e.target.value = '';
+    for (const file of files) {
+      try {
+        const url = await enviarImagem(file);
+        setMovForm(p => ({ ...p, fotos: [...p.fotos, url] }));
+      } catch (err: any) {
+        alert(err?.message || 'Não foi possível enviar a imagem.');
+      }
+    }
   };
 
-  const handleNotaFiscal = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleNotaFiscal = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-    const erro = validarImagem(file);
-    if (erro) { alert(erro); e.target.value = ''; return; }
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      if (ev.target?.result) {
-        setMovForm(p => ({ ...p, notaFiscalUrl: ev.target!.result as string }));
-      }
-    };
-    reader.readAsDataURL(file);
     e.target.value = '';
+    if (!file) return;
+    try {
+      const url = await enviarImagem(file);
+      setMovForm(p => ({ ...p, notaFiscalUrl: url }));
+    } catch (err: any) {
+      alert(err?.message || 'Não foi possível enviar a imagem.');
+    }
   };
 
   /* ── Áudio ── */

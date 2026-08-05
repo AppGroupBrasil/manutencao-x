@@ -3,12 +3,13 @@ import PageHeader from '../../components/Common/PageHeader';
 import Card from '../../components/Common/Card';
 import Modal from '../../components/Common/Modal';
 import HowItWorks from '../../components/Common/HowItWorks';
-import { validarImagem } from '../../utils/imageUtils';
+import { enviarImagem } from '../../utils/anexos';
 import { compartilharConteudo, imprimirElemento, gerarPdfDeElemento } from '../../utils/exportUtils';
 import {
   Plus, CalendarClock, Trash2, Save, Edit2, X, Mail, Bell, AlertTriangle,
-  Clock, CheckCircle2, FileText, Wrench, Building2, Search, ChevronDown, ChevronUp, BookmarkPlus, ImagePlus, Settings
+  Clock, CheckCircle2, FileText, Wrench, Building2, Search, ChevronDown, ChevronUp, BookmarkPlus, ImagePlus, Settings, Images
 } from 'lucide-react';
+import RegistroVencimento from '../../components/Vencimentos/RegistroVencimento';
 import { useDemo } from '../../contexts/DemoContext';
 import { configuracoes as configuracoesApi, vencimentos as vencimentosApi, condominios as condominiosApi } from '../../services/api';
 import LoadingSpinner from '../../components/Common/LoadingSpinner';
@@ -56,6 +57,8 @@ interface Vencimento {
   avisos: Aviso[];
   qtdNotificacoes: number;       // quantas vezes notificar
   imagens?: string[];             // base64 data URLs
+  registroDescricao?: string;     // descrição do serviço realizado
+  totalAnexos?: number;           // fotos de antes e depois
   criadoEm: string;
 }
 
@@ -165,6 +168,8 @@ function normalizarVencimento(vencimento: VencimentoApi, condominios: { id: stri
     avisos: vencimento.avisos || [],
     qtdNotificacoes: vencimento.qtdNotificacoes || 0,
     imagens: vencimento.imagens || [],
+    registroDescricao: vencimento.registroDescricao || '',
+    totalAnexos: vencimento.totalAnexos || 0,
     criadoEm: vencimento.criadoEm || new Date().toISOString(),
   };
 }
@@ -204,6 +209,8 @@ const VencimentosPage: React.FC = () => {
   const [filtroStatus, setFiltroStatus] = useState<StatusVencimento | 'todos'>('todos');
   const [busca, setBusca] = useState('');
   const [expandido, setExpandido] = useState<string | null>(null);
+  const [registroDe, setRegistroDe] = useState<Vencimento | null>(null);
+  const abrirRegistro = (v: Vencimento) => { if (tentarAcao()) setRegistroDe(v); };
   const printRef = useRef<HTMLDivElement>(null);
 
 
@@ -224,18 +231,16 @@ const VencimentosPage: React.FC = () => {
   const fecharModal = () => { setModalAberto(false); setEditandoId(null); };
 
   /* ── imagens do vencimento ── */
-  const handleImagemVencimento = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImagemVencimento = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-    const erro = validarImagem(file);
-    if (erro) { alert(erro); e.target.value = ''; return; }
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const url = ev.target?.result as string;
-      setForm(p => ({ ...p, imagens: [...(p.imagens || []), url] }));
-    };
-    reader.readAsDataURL(file);
     e.target.value = '';
+    if (!file) return;
+    try {
+      const url = await enviarImagem(file);
+      setForm(p => ({ ...p, imagens: [...(p.imagens || []), url] }));
+    } catch (err: any) {
+      alert(err?.message || 'Não foi possível enviar a imagem.');
+    }
   };
   const removerImagemVencimento = (idx: number) => {
     setForm(p => ({ ...p, imagens: (p.imagens || []).filter((_, i) => i !== idx) }));
@@ -276,20 +281,18 @@ const VencimentosPage: React.FC = () => {
   };
   const removerAviso = (id: string) => setForm(p => ({ ...p, avisos: p.avisos.filter(a => a.id !== id) }));
 
-  const handleImagemAviso = (avisoId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImagemAviso = async (avisoId: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
-    const erro = validarImagem(file);
-    if (erro) { alert(erro); e.target.value = ''; return; }
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const url = ev.target?.result as string;
+    try {
+      const url = await enviarImagem(file);
       setForm(p => ({ ...p, avisos: p.avisos.map(a =>
         a.id === avisoId ? { ...a, imagens: [...(a.imagens || []), url] } : a
       ) }));
-    };
-    reader.readAsDataURL(file);
-    e.target.value = '';
+    } catch (err: any) {
+      alert(err?.message || 'Não foi possível enviar a imagem.');
+    }
   };
   const removerImagemAviso = (avisoId: string, idx: number) => {
     setForm(p => ({ ...p, avisos: p.avisos.map(a =>
@@ -476,6 +479,14 @@ const VencimentosPage: React.FC = () => {
           return (
             <Card key={v.id} padding="md" hover>
               <div className={styles.vencCard}>
+                <div
+                  className={styles.vencClicavel}
+                  role="button"
+                  tabIndex={0}
+                  title="Abrir registro de antes e depois"
+                  onClick={() => abrirRegistro(v)}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); abrirRegistro(v); } }}
+                >
                 <div className={styles.vencTop}>
                   <div className={styles.vencTipo}>
                     {obterCategoriaTipo(v.tipo) === 'contrato' && <FileText size={16} />}
@@ -523,6 +534,8 @@ const VencimentosPage: React.FC = () => {
                   <span className={styles.metaItem}><Mail size={13} /> {v.emails.length} e-mail{v.emails.length !== 1 ? 's' : ''}</span>
                   <span className={styles.metaItem}><Bell size={13} /> {v.avisos.length} aviso{v.avisos.length !== 1 ? 's' : ''}</span>
                   <span className={styles.metaItem}><CalendarClock size={13} /> {v.qtdNotificacoes}x notificação</span>
+                  <span className={styles.metaItem}><Images size={13} /> {v.totalAnexos || 0} foto{(v.totalAnexos || 0) !== 1 ? 's' : ''} antes/depois</span>
+                </div>
                 </div>
 
                 <button className={styles.expandBtn} onClick={() => setExpandido(isExpanded ? null : v.id)}>
@@ -533,6 +546,13 @@ const VencimentosPage: React.FC = () => {
                 {isExpanded && (
                   <div className={styles.detalhes}>
                     {v.descricao && <p className={styles.detalheDesc}>{v.descricao}</p>}
+
+                    {v.registroDescricao && (
+                      <div className={styles.detalheSecao}>
+                        <h4><Images size={14} /> Serviço realizado</h4>
+                        <p className={styles.detalheDesc}>{v.registroDescricao}</p>
+                      </div>
+                    )}
 
                     {v.emails.length > 0 && (
                       <div className={styles.detalheSecao}>
@@ -561,6 +581,9 @@ const VencimentosPage: React.FC = () => {
                 )}
 
                 <div className={styles.vencActions}>
+                  <button className={styles.btnRegistro} onClick={() => abrirRegistro(v)}>
+                    <Images size={15} /> Antes e depois
+                  </button>
                   <button className={styles.btnEditar} onClick={() => abrirEditar(v)}><Edit2 size={15} /> Editar</button>
                   <button className={styles.btnExcluir} onClick={() => excluir(v.id)}><Trash2 size={15} /> Excluir</button>
                   <WhatsAppShare mensagem={`*Vencimento*\n*Título:* ${v.titulo}\n*Tipo:* ${obterLabelTipo(v.tipo, opcoesTipo)}\n*Condomínio:* ${v.condominio || 'N/A'}\n*Data Vencimento:* ${v.dataVencimento ? formatarData(v.dataVencimento) : 'N/A'}\n*Descrição:* ${v.descricao || 'N/A'}`} />
@@ -749,6 +772,14 @@ const VencimentosPage: React.FC = () => {
           </button>
         </div>
       </Modal>
+
+      <RegistroVencimento
+        vencimento={registroDe}
+        onFechar={() => setRegistroDe(null)}
+        onAtualizado={({ id, totalAnexos, descricao }) =>
+          setVencimentos(prev => prev.map(v => v.id === id ? { ...v, totalAnexos, registroDescricao: descricao } : v))
+        }
+      />
 
       <Modal aberto={modalTiposAberto} onFechar={() => setModalTiposAberto(false)} titulo="Tipos de vencimento de manutenção">
         <div className={styles.tiposModalConteudo}>

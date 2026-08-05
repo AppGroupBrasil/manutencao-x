@@ -17,6 +17,7 @@ import { useDemo } from '../../contexts/DemoContext';
 import { comunicados as comunicadosApi, moradores as moradoresApi, condominios as condominiosApi } from '../../services/api';
 import WhatsAppShare from '../../components/Common/WhatsAppShare';
 import { safeStorage } from '../../utils/storage';
+import { enviarAnexo } from '../../utils/anexos';
 import styles from './Comunicados.module.css';
 
 /* ============ Tipos ============ */
@@ -259,8 +260,9 @@ const ComunicadosPage: React.FC = () => {
   };
 
   /* PDF upload */
-  const handlePdfUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
     if (file.type !== 'application/pdf') {
       alert('Apenas arquivos PDF são permitidos.');
@@ -270,13 +272,13 @@ const ComunicadosPage: React.FC = () => {
       alert('Arquivo muito grande. Máximo: 10 MB.');
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => {
-      setPdfAnexo(reader.result as string);
+    try {
+      const anexo = await enviarAnexo(file);
+      setPdfAnexo(anexo.url);
       setPdfNome(file.name);
-    };
-    reader.readAsDataURL(file);
-    e.target.value = '';
+    } catch (err: any) {
+      alert(err?.message || 'Não foi possível enviar o PDF.');
+    }
   };
 
   /* Enviar */
@@ -609,7 +611,11 @@ const ComunicadosPage: React.FC = () => {
                     </td>
                     <td className={styles.cellTitulo}>
                       {c.titulo}
-                      {c.pdfNome && <span className={styles.pdfTag}><Paperclip size={11} /> PDF</span>}
+                      {c.pdfNome && (
+                        c.pdfAnexo
+                          ? <a className={styles.pdfTag} href={c.pdfAnexo} target="_blank" rel="noreferrer" title={c.pdfNome}><Paperclip size={11} /> PDF</a>
+                          : <span className={styles.pdfTag}><Paperclip size={11} /> PDF</span>
+                      )}
                     </td>
                     <td>{destLabel(c)}</td>
                     <td className={styles.cellCenter}>{c.emailsEnviados.length}</td>

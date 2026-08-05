@@ -1,4 +1,4 @@
-import { upload as uploadApi } from '../services/api';
+import { upload as uploadApi, publico as publicoApi } from '../services/api';
 
 export interface AnexoEnviado {
   url: string;
@@ -13,8 +13,10 @@ const EXT_PDF = /\.pdf$/i;
 const MAX_DIMENSAO = 1600;
 const LIMITE_SEM_COMPRESSAO = 1.5 * 1024 * 1024;
 
-export async function prepararImagem(file: File): Promise<File> {
-  if (file.size <= LIMITE_SEM_COMPRESSAO) return file;
+const TIPOS_ACEITOS_UPLOAD = new Set(['image/jpeg', 'image/png', 'image/webp']);
+
+export async function prepararImagem(file: File, forcarConversao = false): Promise<File> {
+  if (!forcarConversao && file.size <= LIMITE_SEM_COMPRESSAO) return file;
   try {
     const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
     const escala = Math.min(1, MAX_DIMENSAO / Math.max(bitmap.width, bitmap.height));
@@ -30,11 +32,42 @@ export async function prepararImagem(file: File): Promise<File> {
     ctx.drawImage(bitmap, 0, 0, largura, altura);
     bitmap.close();
     const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.85));
-    if (!blob || blob.size >= file.size) return file;
+    if (!blob || (!forcarConversao && blob.size >= file.size)) return file;
     return new File([blob], file.name.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' });
   } catch {
     return file;
   }
+}
+
+/**
+ * Envia uma imagem para o servidor e devolve a URL. Substitui o antigo
+ * `lerImagemComoBase64` — nada de data URL indo para o banco.
+ */
+export async function enviarImagem(file: File, pasta = 'fotos'): Promise<string> {
+  if (!file.type.startsWith('image/')) {
+    throw new Error('Envie uma imagem (JPG, PNG ou WebP).');
+  }
+  const precisaConverter = !TIPOS_ACEITOS_UPLOAD.has(file.type);
+  const imagem = await prepararImagem(file, precisaConverter);
+  if (precisaConverter && !TIPOS_ACEITOS_UPLOAD.has(imagem.type)) {
+    throw new Error('Formato não suportado. Use JPG, PNG ou WebP.');
+  }
+  const url = await uploadApi.image(imagem, pasta);
+  if (!url) throw new Error(`Falha ao enviar "${file.name}"`);
+  return url;
+}
+
+/** Mesma coisa, porém pelo endpoint público (links sem login). */
+export async function enviarImagemPublica(file: File): Promise<string> {
+  if (!file.type.startsWith('image/')) {
+    throw new Error('Envie uma imagem (JPG, PNG ou WebP).');
+  }
+  const precisaConverter = !TIPOS_ACEITOS_UPLOAD.has(file.type);
+  const imagem = await prepararImagem(file, precisaConverter);
+  if (precisaConverter && !TIPOS_ACEITOS_UPLOAD.has(imagem.type)) {
+    throw new Error('Formato não suportado. Use JPG, PNG ou WebP.');
+  }
+  return publicoApi.uploadImagem(imagem);
 }
 
 export async function enviarAnexo(file: File): Promise<AnexoEnviado> {

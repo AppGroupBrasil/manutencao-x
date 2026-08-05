@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import { query, queryOne, execute } from '../db/database.js';
 import { AuthRequest } from '../middleware/auth.js';
 import { validate, checklistSchema, checklistItensSchema } from '../middleware/validation.js';
+import { removerArquivosUpload, urlsDosItensChecklist } from '../services/arquivos.js';
 
 const router = Router();
 
@@ -97,6 +98,10 @@ router.put('/:id', validate(checklistSchema), async (req: AuthRequest, res: Resp
 router.patch('/:id/itens', validate(checklistItensSchema), async (req: AuthRequest, res: Response) => {
   const ids: string[] = req.condominioIds!;
   const { itens, status, horaFim, assinatura } = req.body;
+  const anterior = await queryOne<{ itens: unknown }>(
+    'SELECT itens FROM checklists WHERE id = $1 AND condominio_id = ANY($2)',
+    [req.params.id, ids]
+  );
   const fields: string[] = ['itens = $1'];
   const params: any[] = [JSON.stringify(itens)];
   let idx = 2;
@@ -110,14 +115,21 @@ router.patch('/:id/itens', validate(checklistItensSchema), async (req: AuthReque
     params
   );
   if (!row) { res.status(404).json({ error: 'Checklist não encontrado' }); return; }
+  const mantidas = new Set(urlsDosItensChecklist(itens));
+  const removidas = urlsDosItensChecklist(anterior?.itens).filter(url => !mantidas.has(url));
+  await removerArquivosUpload(removidas).catch(() => {});
   res.json(row);
 });
 
 // DELETE /api/checklists/:id
 router.delete('/:id', async (req: AuthRequest, res: Response) => {
   const ids: string[] = req.condominioIds!;
-  const row = await queryOne('DELETE FROM checklists WHERE id = $1 AND condominio_id = ANY($2) RETURNING id', [req.params.id, ids]);
+  const row = await queryOne<{ itens: unknown }>(
+    'DELETE FROM checklists WHERE id = $1 AND condominio_id = ANY($2) RETURNING itens',
+    [req.params.id, ids]
+  );
   if (!row) { res.status(404).json({ error: 'Checklist não encontrado' }); return; }
+  await removerArquivosUpload(urlsDosItensChecklist(row.itens)).catch(() => {});
   res.json({ ok: true });
 });
 

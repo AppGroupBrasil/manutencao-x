@@ -11,13 +11,3 @@ export function validarImagem(file: File): string | null {
   return null;
 }
 
-export function lerImagemComoBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const erro = validarImagem(file);
-    if (erro) { reject(new Error(erro)); return; }
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = () => reject(new Error('Erro ao ler imagem.'));
-    reader.readAsDataURL(file);
-  });
-}

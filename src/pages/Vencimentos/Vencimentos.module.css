@@ -300,6 +300,39 @@
   display: flex;
   gap: 8px;
   padding-top: 6px;
+  flex-wrap: wrap;
+}
+
+.vencClicavel {
+  cursor: pointer;
+  border-radius: var(--raio-borda-sm);
+  transition: background 0.2s;
+}
+
+.vencClicavel:hover,
+.vencClicavel:focus-visible {
+  background: var(--cor-fundo, #f5f7fa);
+  outline: none;
+}
+
+.btnRegistro {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border: 1px solid var(--cor-primaria);
+  border-radius: var(--raio-borda-sm);
+  font-size: 12.5px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--cor-primaria);
+  color: #fff;
+}
+
+.btnRegistro:hover {
+  background: var(--cor-primaria-hover);
 }
 .btnEditar, .btnExcluir {
   display: inline-flex;

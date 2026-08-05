@@ -10,8 +10,9 @@ import { sendEmail, emailOSCriada } from '../services/email.js';
 import { notificarGestoresOSCriada, notificarGestoresOSStatus } from '../services/notificacoesOS.js';
 import {
   AutorOS, adicionarDescricao, adicionarFotos, definirResponsaveis, detalhesColaboracao,
-  listarCandidatos, listarHistorico, registrarHistorico, removerFoto,
+  listarCandidatos, listarHistorico, registrarHistorico, removerFoto, urlsDosAnexosDaOS,
 } from '../services/osColaboracao.js';
+import { removerArquivosUpload } from '../services/arquivos.js';
 
 async function enviarEmailsOS(protocolo: string, titulo: string, prioridade: string, condominioId: string, criadorId: string, jaEnviados: string[] = []) {
   const cond = await queryOne<{ nome: string }>('SELECT nome FROM condominios WHERE id = $1', [condominioId]);
@@ -375,11 +376,13 @@ router.delete('/:id', requireMinRole('administrador'), async (req: AuthRequest, 
     }
   }
 
+  const anexos = await urlsDosAnexosDaOS(req.params.id).catch(() => [] as string[]);
   const row = await queryOne<{ id: string; protocolo: string; titulo: string }>(
     'DELETE FROM ordens_servico WHERE id = $1 AND condominio_id = ANY($2) RETURNING id, protocolo, titulo',
     [req.params.id, ids]
   );
   if (!row) { res.status(404).json({ error: 'OS não encontrada' }); return; }
+  await removerArquivosUpload(anexos).catch(() => {});
   await auditLog(req.user!, 'os_excluida', 'ordens_servico', req.params.id, { protocolo: row.protocolo, titulo: row.titulo }).catch(() => {});
   res.json({ ok: true });
 });

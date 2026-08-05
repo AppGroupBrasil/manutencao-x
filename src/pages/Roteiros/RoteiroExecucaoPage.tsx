@@ -1,7 +1,7 @@
 ﻿import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePermissions } from '../../contexts/PermissionsContext';
-import { validarImagem } from '../../utils/imageUtils';
+import { enviarImagem } from '../../utils/anexos';
 import HowItWorks from '../../components/Common/HowItWorks';
 import PageHeader from '../../components/Common/PageHeader';
 import Card from '../../components/Common/Card';
@@ -236,15 +236,15 @@ const RoteiroExecucaoPage: React.FC = () => {
     ));
   };
 
-  const handleCapaUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCapaUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-    const erro = validarImagem(file);
-    if (erro) { alert(erro); e.target.value = ''; return; }
-    const reader = new FileReader();
-    reader.onload = ev => { if (ev.target?.result) setFormCapa(ev.target.result as string); };
-    reader.readAsDataURL(file);
     e.target.value = '';
+    if (!file) return;
+    try {
+      setFormCapa(await enviarImagem(file));
+    } catch (err: any) {
+      alert(err?.message || 'Não foi possível enviar a imagem.');
+    }
   };
 
   const salvarRoteiro = async () => {
@@ -363,21 +363,18 @@ const RoteiroExecucaoPage: React.FC = () => {
     : true;
 
   /* ── Helpers para modal foto ── */
-  const handleFotoRoteiro = (tipo: 'antes' | 'depois', e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFotoRoteiro = async (tipo: 'antes' | 'depois', e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file || !modalFoto) return;
-    const erro = validarImagem(file);
-    if (erro) { alert(erro); e.target.value = ''; return; }
-    const reader = new FileReader();
-    reader.onload = ev => {
-      if (!ev.target?.result) return;
-      const val = ev.target.result as string;
+    try {
+      const val = await enviarImagem(file);
       const campo = tipo === 'antes' ? 'fotoAntes' : 'fotoDepois';
       atualizarExecPasso(modalFoto.exec.passoId, campo, val);
       setModalFoto(prev => prev ? { ...prev, exec: { ...prev.exec, [campo]: val } } : null);
-    };
-    reader.readAsDataURL(file);
-    e.target.value = '';
+    } catch (err: any) {
+      alert(err?.message || 'Não foi possível enviar a imagem.');
+    }
   };
 
   const handleDescFoto = (tipo: 'antes' | 'depois', valor: string) => {
@@ -388,26 +385,23 @@ const RoteiroExecucaoPage: React.FC = () => {
   };
 
   /* ── Helpers para modal problema ── */
-  const handleImagemProblemaRoteiro = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || !modalProblema) return;
-    Array.from(files).forEach(file => {
-      const erro = validarImagem(file);
-      if (erro) { alert(erro); return; }
-      const reader = new FileReader();
-      reader.onload = ev => {
-        if (!ev.target?.result) return;
-        const val = ev.target.result as string;
+  const handleImagemProblemaRoteiro = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = '';
+    if (!modalProblema) return;
+    for (const file of files) {
+      try {
+        const val = await enviarImagem(file);
         setModalProblema(prev => {
           if (!prev) return null;
           const novas = [...prev.exec.imagens, val];
           atualizarExecPasso(prev.exec.passoId, 'imagens', novas);
           return { ...prev, exec: { ...prev.exec, imagens: novas } };
         });
-      };
-      reader.readAsDataURL(file);
-    });
-    e.target.value = '';
+      } catch (err: any) {
+        alert(err?.message || 'Não foi possível enviar a imagem.');
+      }
+    }
   };
 
   const removerImagemProblemaRoteiro = (idx: number) => {
@@ -819,15 +813,15 @@ const RoteiroExecucaoPage: React.FC = () => {
               <label className={styles.btnUploadImg}>
                 <Upload size={14} /> Foto
                 <input type="file" accept="image/*" hidden
-                  onChange={e => {
+                  onChange={async e => {
                     const file = e.target.files?.[0];
-                    if (!file) return;
-                    const erro = validarImagem(file);
-                    if (erro) { alert(erro); e.target.value = ''; return; }
-                    const reader = new FileReader();
-                    reader.onload = ev => { if (ev.target?.result) addImagemPasso(passo.id, ev.target.result as string); };
-                    reader.readAsDataURL(file);
                     e.target.value = '';
+                    if (!file) return;
+                    try {
+                      addImagemPasso(passo.id, await enviarImagem(file));
+                    } catch (err: any) {
+                      alert(err?.message || 'Não foi possível enviar a imagem.');
+                    }
                   }}
                 />
               </label>

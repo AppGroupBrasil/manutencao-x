@@ -1,0 +1,249 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.condominio {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--cor-texto-secundario, #5f6368);
+}
+
+.galeriaBloco {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid var(--cor-borda, #e0e0e0);
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.galeriaTopo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tituloAntes,
+.tituloDepois {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+.tituloAntes {
+  background: #e8f0fe;
+  color: #1a73e8;
+}
+
+.tituloDepois {
+  background: #e6f4ea;
+  color: #1e8e3e;
+}
+
+.contagem {
+  font-size: 12px;
+  color: var(--cor-texto-secundario, #5f6368);
+}
+
+.vazio {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--cor-texto-secundario, #5f6368);
+}
+
+.galeria {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 8px;
+}
+
+.figura {
+  position: relative;
+  margin: 0;
+}
+
+.imagem {
+  width: 100%;
+  height: 104px;
+  object-fit: cover;
+  border-radius: 8px;
+  display: block;
+}
+
+.arquivo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  height: 104px;
+  border: 1px solid var(--cor-borda, #e0e0e0);
+  border-radius: 8px;
+  background: var(--cor-fundo, #f5f7fa);
+  color: var(--cor-primaria, #1a73e8);
+  padding: 6px;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.arquivoNome {
+  font-size: 11px;
+  color: var(--cor-texto, #202124);
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.legenda {
+  font-size: 10px;
+  color: var(--cor-texto-secundario, #5f6368);
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.remover {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  border: none;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  padding: 4px;
+  cursor: pointer;
+  display: flex;
+}
+
+.galeriaAcoes {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.anexoBtn {
+  flex: 1 1 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 2px dashed var(--cor-borda, #e0e0e0);
+  border-radius: 8px;
+  background: var(--cor-superficie, #fff);
+  color: var(--cor-primaria, #1a73e8);
+  font-size: 13.5px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.anexoBtn:hover:not(:disabled) {
+  border-color: var(--cor-primaria, #1a73e8);
+}
+
+.anexoBtn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.campo label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cor-texto, #202124);
+}
+
+.campo textarea {
+  padding: 12px 14px;
+  border: 2px solid var(--cor-borda, #e0e0e0);
+  border-radius: 8px;
+  font-size: 15px;
+  font-family: inherit;
+  color: var(--cor-texto, #202124);
+  background: var(--cor-superficie, #fff);
+  outline: none;
+  transition: border-color 0.2s;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.campo textarea:focus {
+  border-color: var(--cor-primaria, #1a73e8);
+}
+
+.nota {
+  font-size: 12px;
+  color: var(--cor-texto-secundario, #5f6368);
+}
+
+.erro {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #fdecea;
+  color: #c0392b;
+  font-size: 13px;
+}
+
+.barra {
+  position: sticky;
+  bottom: -24px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 12px 0;
+  background: var(--cor-superficie, #fff);
+  border-top: 1px solid var(--cor-borda, #e0e0e0);
+}
+
+.salvarBtn {
+  flex: 1 1 200px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 18px;
+  border: none;
+  border-radius: 10px;
+  background: var(--cor-primaria, #1a73e8);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.salvarBtn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.salvo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e8e3e;
+}
+
+@media (max-width: 768px) {
+  .barra {
+    bottom: -16px;
+  }
+}

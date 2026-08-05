@@ -1,7 +1,7 @@
 ﻿import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePermissions } from '../../contexts/PermissionsContext';
-import { validarImagem } from '../../utils/imageUtils';
+import { enviarImagem } from '../../utils/anexos';
 import HowItWorks from '../../components/Common/HowItWorks';
 import PageHeader from '../../components/Common/PageHeader';
 import Card from '../../components/Common/Card';
@@ -597,19 +597,17 @@ const TarefaCardItem: React.FC<{
     if (aberto && !geo) capturarGeo();
   }, [aberto, geo, capturarGeo]);
 
-  const handleFoto = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
-    Array.from(files).forEach(file => {
-      const erro = validarImagem(file);
-      if (erro) { alert(erro); return; }
-      const reader = new FileReader();
-      reader.onload = () => {
-        if (typeof reader.result === 'string') setFotos(prev => [...prev, reader.result as string]);
-      };
-      reader.readAsDataURL(file);
-    });
+  const handleFoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
     e.target.value = '';
+    for (const file of files) {
+      try {
+        const url = await enviarImagem(file);
+        setFotos(prev => [...prev, url]);
+      } catch (err: any) {
+        alert(err?.message || 'Não foi possível enviar a imagem.');
+      }
+    }
   };
 
   const iniciarGravacao = async () => {

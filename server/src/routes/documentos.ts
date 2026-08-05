@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import { query, queryOne, execute } from '../db/database.js';
 import { AuthRequest } from '../middleware/auth.js';
 import { validate, documentoSchema } from '../middleware/validation.js';
+import { removerArquivoUpload } from '../services/arquivos.js';
 
 const router = Router();
 
@@ -152,6 +153,10 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
     dataEmissao, dataValidade, tags, versao, observacoes
   } = req.body;
 
+  const anterior = await queryOne<{ arquivo_url: string | null }>(
+    'SELECT arquivo_url FROM documentos_tecnicos WHERE id = $1 AND condominio_id = ANY($2)',
+    [req.params.id, ids]
+  );
   const row = await queryOne(
     `UPDATE documentos_tecnicos SET
       titulo=$1, descricao=$2, tipo=$3, status=$4,
@@ -169,14 +174,21 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
     ]
   );
   if (!row) { res.status(404).json({ error: 'Documento não encontrado' }); return; }
+  if (anterior?.arquivo_url && anterior.arquivo_url !== arquivoUrl) {
+    await removerArquivoUpload(anterior.arquivo_url).catch(() => {});
+  }
   res.json(row);
 });
 
 // DELETE /api/documentos/:id
 router.delete('/:id', async (req: AuthRequest, res: Response) => {
   const ids: string[] = req.condominioIds!;
-  const row = await queryOne('DELETE FROM documentos_tecnicos WHERE id = $1 AND condominio_id = ANY($2) RETURNING id', [req.params.id, ids]);
+  const row = await queryOne<{ arquivo_url: string | null }>(
+    'DELETE FROM documentos_tecnicos WHERE id = $1 AND condominio_id = ANY($2) RETURNING arquivo_url',
+    [req.params.id, ids]
+  );
   if (!row) { res.status(404).json({ error: 'Documento não encontrado' }); return; }
+  await removerArquivoUpload(row.arquivo_url).catch(() => {});
   res.json({ ok: true });
 });
 

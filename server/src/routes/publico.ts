@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import multer from 'multer';
+import rateLimit from 'express-rate-limit';
 import { queryOne, execute } from '../db/database.js';
 import { createNotification } from '../middleware/helpers.js';
 import { sendPush } from '../services/push.js';
@@ -49,6 +50,27 @@ function lerNome(body: any): string | null {
   if (nome.length < 3 || nome.length > 255) return null;
   return nome;
 }
+
+// Limite próprio: o upload é a rota pública mais cara (grava no disco).
+const uploadLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: process.env.RATE_LIMIT_ENABLED === 'false' ? 100000 : 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Muitos envios de imagem. Tente novamente em 15 minutos.' },
+});
+
+// POST /api/publico/upload — imagem enviada por link público (sem login, com rate limit)
+router.post('/upload', uploadLimiter, uploadPublico.single('file'), async (req: Request, res: Response) => {
+  const file = req.file;
+  if (!file) { res.status(400).json({ error: 'Nenhuma imagem enviada' }); return; }
+  const tipoReal = detectarTipoReal(file.buffer);
+  if (!tipoReal || !IMAGE_MIME_TYPES.has(tipoReal)) {
+    res.status(400).json({ error: 'Arquivo não é uma imagem JPG, PNG ou WebP válida' });
+    return;
+  }
+  res.status(201).json({ url: await salvarImagemWebp(file.buffer) });
+});
 
 // ─── ORDEM DE SERVIÇO ───
 

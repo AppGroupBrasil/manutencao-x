@@ -4,10 +4,9 @@ import PageHeader from '../../components/Common/PageHeader';
 import Card from '../../components/Common/Card';
 import StatusBadge from '../../components/Common/StatusBadge';
 import Modal from '../../components/Common/Modal';
-import { validarImagem } from '../../utils/imageUtils';
 import { compartilharConteudo, imprimirElemento, gerarPdfDeElemento } from '../../utils/exportUtils';
 import type { ChecklistLimpeza, ItemChecklist, AnexoItemChecklist } from '../../types';
-import { enviarAnexo, ehAnexoArquivo, urlAnexoSegura, ACCEPT_ANEXOS, ACCEPT_CAMERA } from '../../utils/anexos';
+import { enviarAnexo, enviarImagem, ehAnexoArquivo, urlAnexoSegura, ACCEPT_ANEXOS, ACCEPT_CAMERA } from '../../utils/anexos';
 import { Plus, CheckCircle2, ClipboardCheck, MoreVertical, AlertTriangle, Camera, X, Upload, ChevronRight, MessageCircle, Settings, Save, Trash2, Hash, Search, Minus, Edit2, FileText } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { useDemo } from '../../contexts/DemoContext';
@@ -327,44 +326,37 @@ const ChecklistsPage: React.FC = () => {
     }
   };
 
-  const handleImagemProblema = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
-    Array.from(files).forEach(file => {
-      const erro = validarImagem(file);
-      if (erro) { alert(erro); return; }
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        if (ev.target?.result) {
-          setProblema(prev => ({ ...prev, imagens: [...prev.imagens, ev.target!.result as string] }));
-        }
-      };
-      reader.readAsDataURL(file);
-    });
+  const handleImagemProblema = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
     e.target.value = '';
+    for (const file of files) {
+      try {
+        const url = await enviarImagem(file);
+        setProblema(prev => ({ ...prev, imagens: [...prev.imagens, url] }));
+      } catch (err: any) {
+        alert(err?.message || 'Não foi possível enviar a imagem.');
+      }
+    }
   };
 
   const removerImagemProblema = (idx: number) => {
     setProblema(prev => ({ ...prev, imagens: prev.imagens.filter((_, i) => i !== idx) }));
   };
 
-  const handleFoto = (tipo: 'antes' | 'depois', e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFoto = async (tipo: 'antes' | 'depois', e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-    const erro = validarImagem(file);
-    if (erro) { alert(erro); e.target.value = ''; return; }
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      if (ev.target?.result) {
-        if (tipo === 'antes') {
-          setAntesDepois(prev => ({ ...prev, fotoAntes: ev.target!.result as string }));
-        } else {
-          setAntesDepois(prev => ({ ...prev, fotoDepois: ev.target!.result as string }));
-        }
-      }
-    };
-    reader.readAsDataURL(file);
     e.target.value = '';
+    if (!file) return;
+    try {
+      const url = await enviarImagem(file);
+      if (tipo === 'antes') {
+        setAntesDepois(prev => ({ ...prev, fotoAntes: url }));
+      } else {
+        setAntesDepois(prev => ({ ...prev, fotoDepois: url }));
+      }
+    } catch (err: any) {
+      alert(err?.message || 'Não foi possível enviar a imagem.');
+    }
   };
 
   const filtered = checklists.filter(c => {

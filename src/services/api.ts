@@ -462,6 +462,15 @@ export const vencimentos = {
   update: (id: string, data: any) => request(`/vencimentos/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   getEmails: () => request<{ emails: string[] }>('/vencimentos/emails/global'),
   setEmails: (emails: string[]) => put('/vencimentos/emails/global', { emails }),
+  getRegistro: (id: string) => request<any>(`/vencimentos/${id}/registro`),
+  setRegistroDescricao: (id: string, descricao: string) =>
+    put<any>(`/vencimentos/${id}/registro`, { descricao }),
+  addAnexos: (
+    id: string,
+    anexos: Array<{ url: string; nome?: string; tipo?: 'imagem' | 'arquivo' }>,
+    fase: 'antes' | 'depois' = 'antes'
+  ) => post<any>(`/vencimentos/${id}/anexos`, { anexos: anexos.map(a => ({ ...a, fase })) }),
+  removerAnexo: (id: string, anexoId: string) => del<any>(`/vencimentos/${id}/anexos/${anexoId}`),
 };
 export const quadroAtividades = {
   ...crud('/quadro-atividades'),
@@ -481,6 +490,14 @@ export const publico = {
   get: (tipo: string, id: string) => publicoRequest<any>(`/${tipo}/${id}`),
   updateStatus: (tipo: string, id: string, data: Record<string, unknown>) =>
     publicoRequest<any>(`/${tipo}/${id}/status`, { method: 'POST', body: JSON.stringify(data) }),
+  uploadImagem: async (file: File): Promise<string> => {
+    const form = new FormData();
+    form.append('file', file);
+    const res = await fetch(`${API_BASE}/publico/upload`, { method: 'POST', body: form });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error((body as any)?.error || 'Erro ao enviar a imagem');
+    return (body as { url: string }).url;
+  },
   candidatosOS: (id: string) => publicoRequest<any[]>(`/os/${id}/candidatos`),
   setResponsaveisOS: (id: string, executadoPor: string, responsaveis: Array<{ usuarioId?: string | null; nome?: string | null }>) =>
     publicoRequest<any>(`/os/${id}/responsaveis`, { method: 'PUT', body: JSON.stringify({ executadoPor, responsaveis }) }),

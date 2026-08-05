@@ -298,6 +298,19 @@ export const vencimentoSchema = z.object({
   dataVencimento: z.string().max(30).optional().nullable(),
 }).passthrough();
 
+export const vencimentoRegistroSchema = z.object({
+  descricao: z.string().max(5000).optional().nullable(),
+}).strict();
+
+export const vencimentoAnexosSchema = z.object({
+  anexos: z.array(z.object({
+    url: urlImagem,
+    nome: z.string().max(255).optional().nullable(),
+    tipo: z.enum(['imagem', 'arquivo']).optional(),
+    fase: z.enum(['antes', 'depois']).optional(),
+  })).min(1).max(10),
+}).strict();
+
 // ── Checklists ──
 export const checklistSchema = z.object({
   condominioId: z.string().uuid('ID do condomínio inválido'),
