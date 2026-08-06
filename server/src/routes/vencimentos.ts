@@ -38,12 +38,16 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
 // GET /api/vencimentos/:id/registro
 router.get('/:id/registro', async (req: AuthRequest, res: Response) => {
-  const venc = await queryOne<{ id: string; registro_descricao: string | null }>(
-    'SELECT id, registro_descricao FROM vencimentos WHERE id = $1 AND condominio_id = ANY($2)',
+  const venc = await queryOne<{ id: string; registro_descricao: string | null; registro_status: string | null }>(
+    'SELECT id, registro_descricao, registro_status FROM vencimentos WHERE id = $1 AND condominio_id = ANY($2)',
     [req.params.id, req.condominioIds!]
   );
   if (!venc) { res.status(404).json({ error: 'Vencimento não encontrado' }); return; }
-  res.json({ descricao: venc.registro_descricao || '', anexos: await listarAnexos(venc.id) });
+  res.json({
+    descricao: venc.registro_descricao || '',
+    status: venc.registro_status || '',
+    anexos: await listarAnexos(venc.id),
+  });
 });
 
 // PUT /api/vencimentos/:id/registro
@@ -51,8 +55,14 @@ router.put('/:id/registro', validate(vencimentoRegistroSchema), async (req: Auth
   const venc = await carregarVencimento(req);
   if (!venc) { res.status(404).json({ error: 'Vencimento não encontrado' }); return; }
   const descricao = (req.body.descricao ?? '').slice(0, 5000);
-  await execute('UPDATE vencimentos SET registro_descricao = $1 WHERE id = $2', [descricao, venc.id]);
-  res.json({ descricao, anexos: await listarAnexos(venc.id) });
+  const atualizaStatus = Object.prototype.hasOwnProperty.call(req.body, 'status');
+  const row = await queryOne<{ registro_status: string | null }>(
+    atualizaStatus
+      ? 'UPDATE vencimentos SET registro_descricao = $1, registro_status = $2 WHERE id = $3 RETURNING registro_status'
+      : 'UPDATE vencimentos SET registro_descricao = $1 WHERE id = $2 RETURNING registro_status',
+    atualizaStatus ? [descricao, req.body.status || null, venc.id] : [descricao, venc.id]
+  );
+  res.json({ descricao, status: row?.registro_status || '', anexos: await listarAnexos(venc.id) });
 });
 
 // POST /api/vencimentos/:id/anexos

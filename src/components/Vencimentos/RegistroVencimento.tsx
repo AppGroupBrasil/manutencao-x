@@ -8,6 +8,20 @@ import styles from './RegistroVencimento.module.css';
 
 type Fase = 'antes' | 'depois';
 
+export type StatusRegistro = '' | 'concluido' | 'postergado' | 'no_prazo' | 'em_atraso' | 'adiado';
+
+export const STATUS_REGISTRO: { valor: Exclude<StatusRegistro, ''>; label: string; cor: string; bg: string }[] = [
+  { valor: 'concluido', label: 'Concluído', cor: '#1e8e3e', bg: '#e6f4ea' },
+  { valor: 'postergado', label: 'Postergado', cor: '#b26a00', bg: '#fef7e0' },
+  { valor: 'no_prazo', label: 'No prazo', cor: '#1a73e8', bg: '#e8f0fe' },
+  { valor: 'em_atraso', label: 'Em atraso', cor: '#c5221f', bg: '#fce8e6' },
+  { valor: 'adiado', label: 'Adiado', cor: '#5f6368', bg: '#f1f3f4' },
+];
+
+export function statusRegistroInfo(valor?: string | null) {
+  return STATUS_REGISTRO.find(s => s.valor === valor) || null;
+}
+
 interface Anexo {
   id: string;
   url: string;
@@ -21,12 +35,14 @@ interface Anexo {
 interface Props {
   vencimento: { id: string; titulo: string; condominio?: string } | null;
   onFechar: () => void;
-  onAtualizado?: (dados: { id: string; totalAnexos: number; descricao: string }) => void;
+  onAtualizado?: (dados: { id: string; totalAnexos: number; descricao: string; status: StatusRegistro }) => void;
 }
 
 export default function RegistroVencimento({ vencimento, onFechar, onAtualizado }: Props) {
   const [descricao, setDescricao] = useState('');
   const [descricaoSalva, setDescricaoSalva] = useState('');
+  const [status, setStatus] = useState<StatusRegistro>('');
+  const [statusSalvo, setStatusSalvo] = useState<StatusRegistro>('');
   const [anexos, setAnexos] = useState<Anexo[]>([]);
   const [carregando, setCarregando] = useState(false);
   const [salvando, setSalvando] = useState(false);
@@ -42,6 +58,8 @@ export default function RegistroVencimento({ vencimento, onFechar, onAtualizado 
   useEffect(() => {
     setDescricao('');
     setDescricaoSalva('');
+    setStatus('');
+    setStatusSalvo('');
     setAnexos([]);
     setErro('');
     setSalvo(false);
@@ -53,6 +71,8 @@ export default function RegistroVencimento({ vencimento, onFechar, onAtualizado 
         if (!atual) return;
         setDescricao(dados?.descricao || '');
         setDescricaoSalva(dados?.descricao || '');
+        setStatus((dados?.status || '') as StatusRegistro);
+        setStatusSalvo((dados?.status || '') as StatusRegistro);
         setAnexos(Array.isArray(dados?.anexos) ? dados.anexos : []);
       })
       .catch((e: any) => { if (atual) setErro(e?.message || 'Não foi possível carregar o registro.'); })
@@ -62,24 +82,31 @@ export default function RegistroVencimento({ vencimento, onFechar, onAtualizado 
 
   const antes = anexos.filter(a => a.fase !== 'depois');
   const depois = anexos.filter(a => a.fase === 'depois');
+  const semSalvar = descricao.trim() !== descricaoSalva || status !== statusSalvo;
 
-  const avisar = (lista: Anexo[], texto: string) => {
-    if (!vencimentoId) return;
-    onAtualizado?.({ id: vencimentoId, totalAnexos: lista.length, descricao: texto });
+  const fechar = () => {
+    if (semSalvar && !confirm('O status ou a descrição ainda não foram salvos. Fechar mesmo assim?')) return;
+    onFechar();
   };
 
-  const salvarDescricao = async () => {
+  const avisar = (lista: Anexo[], texto: string, situacao: StatusRegistro) => {
+    if (!vencimentoId) return;
+    onAtualizado?.({ id: vencimentoId, totalAnexos: lista.length, descricao: texto, status: situacao });
+  };
+
+  const salvarRegistro = async () => {
     if (!vencimentoId) return;
     setSalvando(true);
     setErro('');
     try {
-      await vencimentosApi.setRegistroDescricao(vencimentoId, descricao.trim());
+      await vencimentosApi.setRegistroDescricao(vencimentoId, descricao.trim(), status);
       setDescricaoSalva(descricao.trim());
-      avisar(anexos, descricao.trim());
+      setStatusSalvo(status);
+      avisar(anexos, descricao.trim(), status);
       setSalvo(true);
       window.setTimeout(() => setSalvo(false), 4000);
     } catch (e: any) {
-      setErro(e?.message || 'Erro ao salvar a descrição');
+      setErro(e?.message || 'Erro ao salvar o registro');
     } finally {
       setSalvando(false);
     }
@@ -111,7 +138,7 @@ export default function RegistroVencimento({ vencimento, onFechar, onAtualizado 
         const dados = await vencimentosApi.addAnexos(vencimentoId, enviados, fase);
         const lista = Array.isArray(dados?.anexos) ? dados.anexos : [];
         setAnexos(lista);
-        avisar(lista, descricaoSalva);
+        avisar(lista, descricaoSalva, statusSalvo);
       }
       if (falha) setErro(falha);
     } catch (err: any) {
@@ -128,7 +155,7 @@ export default function RegistroVencimento({ vencimento, onFechar, onAtualizado 
       const dados = await vencimentosApi.removerAnexo(vencimentoId, anexoId);
       const lista = Array.isArray(dados?.anexos) ? dados.anexos : [];
       setAnexos(lista);
-      avisar(lista, descricaoSalva);
+      avisar(lista, descricaoSalva, statusSalvo);
     } catch (e: any) {
       setErro(e?.message || 'Erro ao remover o anexo');
     }
@@ -188,7 +215,7 @@ export default function RegistroVencimento({ vencimento, onFechar, onAtualizado 
   return (
     <Modal
       aberto={!!vencimento}
-      onFechar={onFechar}
+      onFechar={fechar}
       titulo={vencimento ? `Antes e depois — ${vencimento.titulo}` : 'Antes e depois'}
       largura="lg"
     >
@@ -207,6 +234,24 @@ export default function RegistroVencimento({ vencimento, onFechar, onAtualizado 
           {galeria('Fotos do depois', 'depois', depois, 'Nenhuma foto do depois. Registre como ficou depois da manutenção realizada.')}
 
           <div className={styles.campo}>
+            <label>Status do vencimento</label>
+            <div className={styles.statusLista}>
+              {STATUS_REGISTRO.map(op => (
+                <button
+                  key={op.valor}
+                  type="button"
+                  className={`${styles.statusBtn} ${status === op.valor ? styles.statusBtnAtivo : ''}`}
+                  style={status === op.valor ? { background: op.bg, color: op.cor, borderColor: op.cor } : undefined}
+                  onClick={() => setStatus(status === op.valor ? '' : op.valor)}
+                >
+                  {status === op.valor && <Check size={14} />} {op.label}
+                </button>
+              ))}
+            </div>
+            <span className={styles.nota}>Toque de novo no status escolhido para deixar sem status.</span>
+          </div>
+
+          <div className={styles.campo}>
             <label>Descrição do serviço realizado</label>
             <textarea
               rows={4}
@@ -223,10 +268,10 @@ export default function RegistroVencimento({ vencimento, onFechar, onAtualizado 
             <button
               type="button"
               className={styles.salvarBtn}
-              onClick={salvarDescricao}
-              disabled={salvando || descricao.trim() === descricaoSalva}
+              onClick={salvarRegistro}
+              disabled={salvando || !semSalvar}
             >
-              <Save size={17} /> {salvando ? 'Salvando…' : 'Salvar descrição'}
+              <Save size={17} /> {salvando ? 'Salvando…' : 'Salvar registro'}
             </button>
           </div>
         </div>

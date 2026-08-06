@@ -9,7 +9,7 @@ import {
   Plus, CalendarClock, Trash2, Save, Edit2, X, Mail, Bell, AlertTriangle,
   Clock, CheckCircle2, FileText, Wrench, Building2, Search, ChevronDown, ChevronUp, BookmarkPlus, ImagePlus, Settings, Images
 } from 'lucide-react';
-import RegistroVencimento from '../../components/Vencimentos/RegistroVencimento';
+import RegistroVencimento, { StatusRegistro, statusRegistroInfo } from '../../components/Vencimentos/RegistroVencimento';
 import { useDemo } from '../../contexts/DemoContext';
 import { configuracoes as configuracoesApi, vencimentos as vencimentosApi, condominios as condominiosApi } from '../../services/api';
 import LoadingSpinner from '../../components/Common/LoadingSpinner';
@@ -58,6 +58,7 @@ interface Vencimento {
   qtdNotificacoes: number;       // quantas vezes notificar
   imagens?: string[];             // base64 data URLs
   registroDescricao?: string;     // descrição do serviço realizado
+  registroStatus?: StatusRegistro; // status informado no registro
   totalAnexos?: number;           // fotos de antes e depois
   criadoEm: string;
 }
@@ -169,6 +170,7 @@ function normalizarVencimento(vencimento: VencimentoApi, condominios: { id: stri
     qtdNotificacoes: vencimento.qtdNotificacoes || 0,
     imagens: vencimento.imagens || [],
     registroDescricao: vencimento.registroDescricao || '',
+    registroStatus: (vencimento.registroStatus || '') as StatusRegistro,
     totalAnexos: vencimento.totalAnexos || 0,
     criadoEm: vencimento.criadoEm || new Date().toISOString(),
   };
@@ -475,6 +477,7 @@ const VencimentosPage: React.FC = () => {
           const dias = diasRestantes(v.dataVencimento);
           const st = statusVencimento(v.dataVencimento);
           const stInfo = STATUS_LABELS[st];
+          const stRegistro = statusRegistroInfo(v.registroStatus);
           const isExpanded = expandido === v.id;
           return (
             <Card key={v.id} padding="md" hover>
@@ -494,7 +497,12 @@ const VencimentosPage: React.FC = () => {
                     {obterCategoriaTipo(v.tipo) === 'manutencao' && <Building2 size={16} />}
                     <span>{obterLabelTipo(v.tipo, opcoesTipo)}</span>
                   </div>
-                  <span className={styles.statusBadge} style={{ background: stInfo.bg, color: stInfo.cor }}>{stInfo.texto}</span>
+                  <div className={styles.badges}>
+                    {stRegistro && (
+                      <span className={styles.statusBadge} style={{ background: stRegistro.bg, color: stRegistro.cor }}>{stRegistro.label}</span>
+                    )}
+                    <span className={styles.statusBadge} style={{ background: stInfo.bg, color: stInfo.cor }}>{stInfo.texto}</span>
+                  </div>
                 </div>
 
                 <h3 className={styles.vencTitulo}>{v.titulo}</h3>
@@ -776,8 +784,8 @@ const VencimentosPage: React.FC = () => {
       <RegistroVencimento
         vencimento={registroDe}
         onFechar={() => setRegistroDe(null)}
-        onAtualizado={({ id, totalAnexos, descricao }) =>
-          setVencimentos(prev => prev.map(v => v.id === id ? { ...v, totalAnexos, registroDescricao: descricao } : v))
+        onAtualizado={({ id, totalAnexos, descricao, status }) =>
+          setVencimentos(prev => prev.map(v => v.id === id ? { ...v, totalAnexos, registroDescricao: descricao, registroStatus: status } : v))
         }
       />
 

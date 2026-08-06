@@ -463,8 +463,8 @@ export const vencimentos = {
   getEmails: () => request<{ emails: string[] }>('/vencimentos/emails/global'),
   setEmails: (emails: string[]) => put('/vencimentos/emails/global', { emails }),
   getRegistro: (id: string) => request<any>(`/vencimentos/${id}/registro`),
-  setRegistroDescricao: (id: string, descricao: string) =>
-    put<any>(`/vencimentos/${id}/registro`, { descricao }),
+  setRegistroDescricao: (id: string, descricao: string, status = '') =>
+    put<any>(`/vencimentos/${id}/registro`, { descricao, status }),
   addAnexos: (
     id: string,
     anexos: Array<{ url: string; nome?: string; tipo?: 'imagem' | 'arquivo' }>,

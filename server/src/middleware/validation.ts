@@ -298,8 +298,11 @@ export const vencimentoSchema = z.object({
   dataVencimento: z.string().max(30).optional().nullable(),
 }).passthrough();
 
+export const VENCIMENTO_STATUS = ['concluido', 'postergado', 'no_prazo', 'em_atraso', 'adiado'] as const;
+
 export const vencimentoRegistroSchema = z.object({
   descricao: z.string().max(5000).optional().nullable(),
+  status: z.enum(VENCIMENTO_STATUS).or(z.literal('')).optional().nullable(),
 }).strict();
 
 export const vencimentoAnexosSchema = z.object({
