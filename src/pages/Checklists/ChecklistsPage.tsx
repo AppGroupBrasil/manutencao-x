@@ -108,6 +108,7 @@ const ChecklistsPage: React.FC = () => {
 
   // Ações modal (2 opções: Reportar Problema + Antes/Depois)
   const [acoesModal, setAcoesModal] = useState<{ ckId: string; itemId: string; itemDesc: string } | null>(null);
+  const [salvandoItem, setSalvandoItem] = useState<string | null>(null);
 
   // Reportar Problema
   const [problemaModal, setProblemaModal] = useState<{ ckId: string; itemId: string; itemDesc: string } | null>(null);
@@ -286,6 +287,26 @@ const ChecklistsPage: React.FC = () => {
     }
   };
 
+  const alternarItem = async (ck: ChecklistLimpeza, itemIdx: number) => {
+    if (!tentarAcao()) return;
+    if (salvandoItem) return;
+    const itens = ck.itens.map((i, idx) => idx === itemIdx ? { ...i, concluido: !i.concluido } : i);
+    const feitos = itens.filter(i => i.concluido).length;
+    const status: ChecklistLimpeza['status'] = feitos === 0 ? 'pendente' : feitos === itens.length ? 'concluido' : 'em_andamento';
+    const anterior = checklists;
+    setChecklists(prev => prev.map(c => c.id === ck.id ? { ...c, itens, status } : c));
+    setSalvandoItem(`${ck.id}:${itemIdx}`);
+    try {
+      await checklistsApi.updateItens(ck.id, { itens, status });
+    } catch (err) {
+      console.error(err);
+      setChecklists(anterior);
+      alert('Não foi possível salvar o item. Tente novamente.');
+    } finally {
+      setSalvandoItem(null);
+    }
+  };
+
   const abrirProblema = () => {
     if (!acoesModal) return;
     setProblema({ itemId: acoesModal.itemId, checklistId: acoesModal.ckId, descricao: '', status: 'aberto', prioridade: 'media', imagens: [] });
@@ -459,28 +480,34 @@ const ChecklistsPage: React.FC = () => {
 
                 <div className={styles.progress}>
                   <div className={styles.progressBar}>
-                    <div className={styles.progressFill} style={{ width: `${pct}%` }} />
+                    <div className={`${styles.progressFill} ${pct === 100 ? styles.progressFillDone : ''}`} style={{ width: `${pct}%` }} />
                   </div>
                   <span className={styles.progressText}>{concluidos}/{total} ({pct}%)</span>
                 </div>
 
                 <div className={styles.itemsList}>
                   {ck.itens.map((item, itemIdx) => (
-                    <div key={item.id ?? itemIdx} className={`${styles.item} ${item.concluido ? styles.itemDone : ''}`}>
+                    <div
+                      key={item.id ?? itemIdx}
+                      className={`${styles.item} ${item.concluido ? styles.itemDone : ''} ${salvandoItem === `${ck.id}:${itemIdx}` ? styles.itemSalvando : ''}`}
+                      onClick={() => alternarItem(ck, itemIdx)}
+                      title={item.concluido ? 'Marcar como pendente' : 'Marcar como concluído'}
+                    >
                       <div className={styles.itemCheck}>
-                        {item.concluido ? <CheckCircle2 size={16} color="#2e7d32" /> : <div className={styles.unchecked} />}
+                        {item.concluido ? <CheckCircle2 size={16} color="#c5221f" /> : <div className={styles.unchecked} />}
                       </div>
                       <span className={styles.itemText}>{item.descricao}</span>
+                      {item.concluido && <span className={styles.itemTag}>Concluído</span>}
                       <button
                         className={`${styles.itemAlerta} ${itemTemRegistro(item) ? styles.itemAlertaAtivo : ''}`}
-                        onClick={() => abrirObservacao(ck.id, item, itemIdx)}
+                        onClick={e => { e.stopPropagation(); abrirObservacao(ck.id, item, itemIdx); }}
                         title={itemTemRegistro(item) ? 'Ver anexos e descrição' : 'Anexar arquivo/imagem e descrever'}
                       >
                         <AlertTriangle size={16} />
                       </button>
                       <button
                         className={styles.itemAction}
-                        onClick={() => abrirAcoes(ck.id, item.id, item.descricao)}
+                        onClick={e => { e.stopPropagation(); abrirAcoes(ck.id, item.id, item.descricao); }}
                         title="Ações"
                       >
                         <MoreVertical size={16} />

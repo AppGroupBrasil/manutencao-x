@@ -105,8 +105,15 @@ router.patch('/:id/itens', validate(checklistItensSchema), async (req: AuthReque
   const fields: string[] = ['itens = $1'];
   const params: any[] = [JSON.stringify(itens)];
   let idx = 2;
-  if (status) { fields.push(`status = $${idx++}`); params.push(status); }
-  if (horaFim) { fields.push(`hora_fim = $${idx++}`); params.push(horaFim); }
+  if (status) {
+    const p = idx++;
+    fields.push(`status = $${p}::status_checklist`);
+    fields.push(`hora_inicio = CASE WHEN $${p} = 'pendente' THEN hora_inicio ELSE COALESCE(hora_inicio, NOW()) END`);
+    fields.push(`hora_fim = CASE WHEN $${p} = 'concluido' THEN COALESCE(hora_fim, NOW()) ELSE NULL END`);
+    params.push(status);
+  } else if (horaFim) {
+    fields.push(`hora_fim = $${idx++}`); params.push(horaFim);
+  }
   if (assinatura) { fields.push(`assinatura = $${idx++}`); params.push(assinatura); }
   params.push(req.params.id);
   params.push(ids);
